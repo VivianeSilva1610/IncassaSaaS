@@ -23,6 +23,14 @@ export async function POST() {
     ],
     success_url: `${siteUrl}/acesso?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${siteUrl}/?checkout=cancelled`,
+    consent_collection: {
+      terms_of_service: "required",
+    },
+    custom_text: {
+      terms_of_service_acceptance: {
+        message: `Accetto i [Termini e Condizioni](${siteUrl}/termini): richiedo l'accesso immediato al contenuto digitale e riconosco di perdere il diritto di recesso di 14 giorni.`,
+      },
+    },
   });
 
   if (!session.url) {

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { messages } from "@/content/kit-incassa";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { Reveal } from "@/components/Reveal";
@@ -272,6 +273,14 @@ export default function Home() {
         <p>© {new Date().getFullYear()} Kit Incassa. Tutti i diritti riservati.</p>
         <p className="mt-1">
           Kit Incassa non è affiliato con WhatsApp Inc. WhatsApp è un marchio registrato di WhatsApp LLC.
+        </p>
+        <p className="mt-2 space-x-3">
+          <Link href="/privacy" className="underline underline-offset-2 hover:text-stone-600">
+            Privacy
+          </Link>
+          <Link href="/termini" className="underline underline-offset-2 hover:text-stone-600">
+            Termini e Condizioni
+          </Link>
         </p>
       </footer>
     </main>
