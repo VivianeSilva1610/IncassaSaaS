@@ -1,13 +1,13 @@
 import { Resend } from "resend";
 import { buildKitText } from "@/lib/kit-file";
 
-export async function sendKitEmail(email: string, sessionId: string) {
+export async function sendKitEmail(email: string, sessionId: string): Promise<{ ok: true } | { ok: false; error: string }> {
   const resend = new Resend(process.env.RESEND_API_KEY!);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const accessUrl = `${siteUrl}/acesso?session_id=${sessionId}`;
   const kitText = buildKitText();
 
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev",
     to: email,
     subject: "Il tuo Kit Incassa è pronto",
@@ -24,4 +24,9 @@ export async function sendKitEmail(email: string, sessionId: string) {
       },
     ],
   });
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
 }

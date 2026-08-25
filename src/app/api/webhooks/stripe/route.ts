@@ -41,11 +41,15 @@ export async function POST(req: Request) {
         .single();
 
       if (!error && purchase && !purchase.email_sent_at) {
-        await sendKitEmail(email, session.id);
-        await supabase
-          .from("purchases")
-          .update({ email_sent_at: new Date().toISOString() })
-          .eq("id", purchase.id);
+        const result = await sendKitEmail(email, session.id);
+        if (result.ok) {
+          await supabase
+            .from("purchases")
+            .update({ email_sent_at: new Date().toISOString() })
+            .eq("id", purchase.id);
+        } else {
+          console.error(`sendKitEmail failed for purchase ${purchase.id}:`, result.error);
+        }
       }
     }
   }
