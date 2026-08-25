@@ -1,5 +1,7 @@
 import { messages } from "@/content/kit-incassa";
 import { CheckoutButton } from "@/components/CheckoutButton";
+import { Reveal } from "@/components/Reveal";
+import { toneBadgeClasses } from "@/lib/tone-styles";
 
 const SUPPORT_EMAIL = "viverevivi37@gmail.com";
 
@@ -15,7 +17,7 @@ const galleryMessages = galleryIds.map((id) => messages.find((m) => m.id === id)
 
 const benefits = [
   {
-    icon: "😊🙂😐⚠️",
+    icon: "😊",
     title: "4 toni diversi",
     text: "Gentile, Cordiale, Diretto o Formale: scegli il tono giusto in base al cliente e al rapporto che hai con lui.",
   },
@@ -88,159 +90,185 @@ const faqs = [
   },
 ];
 
+const primaryButton =
+  "rounded-lg bg-gradient-to-b from-amber-500 to-orange-600 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-orange-900/20 transition-transform hover:from-amber-400 hover:to-orange-500 active:scale-[0.98] disabled:opacity-60";
+
 export default function Home() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
       {/* Hero */}
-      <section className="text-center">
-        <p className="mb-3 inline-block rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-          Per idraulici, elettricisti, imprese edili e artigiani
-        </p>
-        <h1 className="text-3xl font-bold leading-tight text-neutral-900 sm:text-4xl">
-          Kit Incassa
-        </h1>
-        <p className="mx-auto mt-4 max-w-xl text-lg text-neutral-600">
-          37 messaggi pronti per farti pagare senza rovinare il rapporto con il cliente.
-        </p>
-        <div className="mt-8 flex flex-col items-center gap-2">
-          <CheckoutButton className="rounded-lg bg-neutral-900 px-6 py-3 text-base font-semibold text-white hover:bg-neutral-700 disabled:opacity-60" />
-          <span className="text-xs text-neutral-400">Pagamento unico di €9 · accesso immediato</span>
-        </div>
+      <section className="relative overflow-hidden text-center">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-amber-300/30 blur-3xl"
+        />
+        <Reveal mode="load" stagger={0.1} className="relative">
+          <p className="mb-3 inline-block rounded-full border border-amber-200 bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+            Per idraulici, elettricisti, imprese edili e artigiani
+          </p>
+          <h1 className="text-3xl font-bold leading-tight text-stone-900 sm:text-4xl">
+            Kit Incassa
+          </h1>
+          <p className="mx-auto mt-4 max-w-xl text-lg text-stone-600">
+            37 messaggi pronti per farti pagare senza rovinare il rapporto con il cliente.
+          </p>
+          <div className="mt-8 flex flex-col items-center gap-2">
+            <CheckoutButton className={primaryButton} />
+            <span className="text-xs text-stone-400">Pagamento unico di €9 · accesso immediato</span>
+          </div>
+        </Reveal>
       </section>
 
       {/* Problema */}
-      <section className="mt-16 rounded-xl bg-neutral-50 p-6 sm:p-8">
-        <h2 className="text-xl font-semibold text-neutral-900">Ti suona familiare?</h2>
-        <ul className="mt-4 space-y-2 text-neutral-700">
+      <Reveal className="mt-16 rounded-xl border border-stone-200 bg-stone-50 p-6 sm:p-8">
+        <h2 className="text-xl font-semibold text-stone-900">Ti suona familiare?</h2>
+        <ul className="mt-4 space-y-2 text-stone-700">
           <li>Un cliente ha visualizzato il tuo messaggio e non ha più risposto.</li>
           <li>Non sai come scrivere un sollecito senza sembrare aggressivo.</li>
           <li>Hai lavori pagati in ritardo di settimane e non sai come chiedere senza rovinare il rapporto.</li>
         </ul>
-        <p className="mt-4 text-neutral-700">
+        <p className="mt-4 text-stone-700">
           Il Kit Incassa ti dà la frase giusta per ogni situazione: ritardo lieve o grave, cliente
           abituale o nuovo, azienda o privato — in quattro toni diversi, da scegliere in base al
           rapporto che hai con il cliente.
         </p>
-      </section>
+      </Reveal>
 
       {/* Galleria di esempi */}
       <section className="mt-16">
-        <h2 className="text-center text-xl font-semibold text-neutral-900">Alcuni esempi</h2>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <Reveal>
+          <h2 className="text-center text-xl font-semibold text-stone-900">Alcuni esempi</h2>
+        </Reveal>
+        <Reveal stagger={0.08} className="mt-6 grid gap-4 sm:grid-cols-2">
           {galleryMessages.map((message) => (
             <div
               key={message.id}
-              className="rounded-lg border border-neutral-200 bg-white p-4 text-sm text-neutral-700 shadow-sm"
+              className="rounded-xl border border-stone-200 bg-white p-4 text-sm text-stone-700 shadow-sm transition-shadow hover:shadow-md"
             >
               {message.tone && (
-                <span className="mb-2 inline-block rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-500">
+                <span
+                  className={`mb-2 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${toneBadgeClasses[message.tone]}`}
+                >
                   {message.tone}
                 </span>
               )}
               <p>{message.text}</p>
             </div>
           ))}
-        </div>
+        </Reveal>
       </section>
 
       {/* Benefici */}
       <section className="mt-16">
-        <h2 className="text-center text-xl font-semibold text-neutral-900">Perché il Kit Incassa</h2>
-        <div className="mt-6 grid gap-6 sm:grid-cols-2">
+        <Reveal>
+          <h2 className="text-center text-xl font-semibold text-stone-900">Perché il Kit Incassa</h2>
+        </Reveal>
+        <Reveal stagger={0.1} className="mt-6 grid gap-6 sm:grid-cols-2">
           {benefits.map((b) => (
             <div key={b.title} className="flex gap-3">
-              <span className="text-2xl leading-none">{b.icon}</span>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xl">
+                {b.icon}
+              </span>
               <div>
-                <h3 className="font-semibold text-neutral-900">{b.title}</h3>
-                <p className="mt-1 text-sm text-neutral-600">{b.text}</p>
+                <h3 className="font-semibold text-stone-900">{b.title}</h3>
+                <p className="mt-1 text-sm text-stone-600">{b.text}</p>
               </div>
             </div>
           ))}
-        </div>
+        </Reveal>
       </section>
 
       {/* Situazioni coperte */}
-      <section className="mt-16 rounded-xl border border-neutral-200 p-6 sm:p-8">
-        <h2 className="text-xl font-semibold text-neutral-900">Tutte le situazioni coperte</h2>
-        <div className="mt-4 grid gap-x-8 gap-y-2 sm:grid-cols-2">
+      <Reveal className="mt-16 rounded-xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+        <h2 className="text-xl font-semibold text-stone-900">Tutte le situazioni coperte</h2>
+        <Reveal stagger={0.03} className="mt-4 grid gap-x-8 gap-y-2 sm:grid-cols-2">
           {situations.map((s) => (
-            <div key={s} className="flex items-start gap-2 text-neutral-700">
-              <span className="mt-0.5 text-emerald-600">✓</span>
+            <div key={s} className="flex items-start gap-2 text-stone-700">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs text-emerald-700">
+                ✓
+              </span>
               <span>{s}</span>
             </div>
           ))}
-        </div>
+        </Reveal>
         <div className="mt-8 flex justify-center">
-          <CheckoutButton className="rounded-lg bg-neutral-900 px-6 py-3 text-base font-semibold text-white hover:bg-neutral-700 disabled:opacity-60" />
+          <CheckoutButton className={primaryButton} />
         </div>
-      </section>
+      </Reveal>
 
       {/* Prezzo */}
-      <section className="mt-16 rounded-xl bg-neutral-900 p-6 text-center text-white sm:p-10">
+      <Reveal className="mt-16 rounded-xl bg-gradient-to-b from-stone-900 to-stone-800 p-6 text-center text-white shadow-xl sm:p-10">
         <h2 className="text-xl font-semibold">Kit Incassa completo</h2>
         <p className="mt-2 text-4xl font-bold">€9</p>
-        <p className="mt-1 text-sm text-neutral-300">pagamento unico, nessun abbonamento</p>
-        <ul className="mx-auto mt-6 max-w-sm space-y-2 text-left text-sm text-neutral-200">
+        <p className="mt-1 text-sm text-stone-300">pagamento unico, nessun abbonamento</p>
+        <ul className="mx-auto mt-6 max-w-sm space-y-2 text-left text-sm text-stone-200">
           <li>✓ 37 messaggi pronti in 4 toni diversi</li>
           <li>✓ Accesso immediato + copia via email</li>
           <li>✓ File scaricabile da copiare e incollare</li>
           <li>✓ Uso illimitato, per tutti i tuoi clienti</li>
         </ul>
         <div className="mt-8">
-          <CheckoutButton className="rounded-lg bg-white px-6 py-3 text-base font-semibold text-neutral-900 hover:bg-neutral-100 disabled:opacity-60" />
+          <CheckoutButton className="rounded-lg bg-white px-6 py-3 text-base font-semibold text-stone-900 shadow-lg transition-transform hover:bg-stone-100 active:scale-[0.98] disabled:opacity-60" />
         </div>
-      </section>
+      </Reveal>
 
       {/* Garanzia */}
-      <section className="mt-16 text-center">
-        <h2 className="text-xl font-semibold text-neutral-900">Garanzia 7 giorni</h2>
-        <p className="mx-auto mt-2 max-w-lg text-neutral-600">
+      <Reveal className="mt-16 text-center">
+        <h2 className="text-xl font-semibold text-stone-900">Garanzia 7 giorni</h2>
+        <p className="mx-auto mt-2 max-w-lg text-stone-600">
           Se il Kit Incassa non fa per te, scrivici entro 7 giorni dall&apos;acquisto a{" "}
-          <a href={`mailto:${SUPPORT_EMAIL}`} className="underline">
+          <a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium text-amber-700 underline underline-offset-2">
             {SUPPORT_EMAIL}
           </a>{" "}
           e ti rimborsiamo, senza fare domande.
         </p>
-      </section>
+      </Reveal>
 
       {/* Come funziona */}
       <section className="mt-16">
-        <h2 className="text-center text-xl font-semibold text-neutral-900">Come funziona</h2>
-        <div className="mt-6 grid gap-6 sm:grid-cols-3">
+        <Reveal>
+          <h2 className="text-center text-xl font-semibold text-stone-900">Come funziona</h2>
+        </Reveal>
+        <Reveal stagger={0.12} className="mt-6 grid gap-6 sm:grid-cols-3">
           {[
             { step: "1", title: "Acquisti", text: "Pagamento sicuro tramite Stripe, carta o Apple/Google Pay." },
             { step: "2", title: "Accedi subito", text: "Vieni reindirizzato alla pagina con tutti i 37 messaggi, già pronta." },
             { step: "3", title: "Copia e invia", text: "Personalizza con i dati del cliente e invia su WhatsApp o email." },
           ].map((s) => (
             <div key={s.step} className="text-center">
-              <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-neutral-900 text-sm font-semibold text-white">
+              <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-b from-amber-500 to-orange-600 text-sm font-semibold text-white shadow-md shadow-orange-900/20">
                 {s.step}
               </div>
-              <h3 className="mt-3 font-semibold text-neutral-900">{s.title}</h3>
-              <p className="mt-1 text-sm text-neutral-600">{s.text}</p>
+              <h3 className="mt-3 font-semibold text-stone-900">{s.title}</h3>
+              <p className="mt-1 text-sm text-stone-600">{s.text}</p>
             </div>
           ))}
-        </div>
+        </Reveal>
       </section>
 
       {/* FAQ */}
       <section className="mt-16">
-        <h2 className="text-center text-xl font-semibold text-neutral-900">Domande frequenti</h2>
-        <div className="mt-6 space-y-3">
+        <Reveal>
+          <h2 className="text-center text-xl font-semibold text-stone-900">Domande frequenti</h2>
+        </Reveal>
+        <Reveal stagger={0.05} className="mt-6 space-y-3">
           {faqs.map((f) => (
-            <details key={f.q} className="rounded-lg border border-neutral-200 p-4">
-              <summary className="cursor-pointer font-medium text-neutral-900">{f.q}</summary>
-              <p className="mt-2 text-sm text-neutral-600">{f.a}</p>
+            <details key={f.q} className="group rounded-lg border border-stone-200 bg-white p-4 open:shadow-sm">
+              <summary className="flex cursor-pointer list-none items-center justify-between font-medium text-stone-900">
+                {f.q}
+                <span className="ml-4 shrink-0 text-stone-400 transition-transform group-open:rotate-45">+</span>
+              </summary>
+              <p className="mt-2 text-sm text-stone-600">{f.a}</p>
             </details>
           ))}
-        </div>
+        </Reveal>
       </section>
 
-      <section className="mt-16 text-center">
-        <CheckoutButton className="rounded-lg bg-neutral-900 px-6 py-3 text-base font-semibold text-white hover:bg-neutral-700 disabled:opacity-60" />
-      </section>
+      <Reveal className="mt-16 text-center">
+        <CheckoutButton className={primaryButton} />
+      </Reveal>
 
-      <footer className="mt-16 border-t border-neutral-200 pt-6 text-center text-xs text-neutral-400">
+      <footer className="mt-16 border-t border-stone-200 pt-6 text-center text-xs text-stone-400">
         <p>© {new Date().getFullYear()} Kit Incassa. Tutti i diritti riservati.</p>
         <p className="mt-1">
           Kit Incassa non è affiliato con WhatsApp Inc. WhatsApp è un marchio registrato di WhatsApp LLC.
