@@ -123,7 +123,6 @@ export default function Home() {
             <Link href="/signup" className={primaryButton}>
               Inizia la prova gratuita di 7 giorni
             </Link>
-            <span className="text-xs text-stone-400">Poi €19,90/mese · cancelli quando vuoi</span>
           </div>
         </Reveal>
       </section>
