@@ -120,11 +120,6 @@ export default function Home() {
             INCASSA ti aiuta a ricordare chi deve pagarti e quali preventivi aspettano ancora una
             risposta — senza perdere tempo tra WhatsApp, note e fogli Excel.
           </p>
-          <div className="mt-8 flex flex-col items-center gap-2">
-            <Link href="/signup" className={primaryButton}>
-              Inizia la prova gratuita di 7 giorni
-            </Link>
-          </div>
         </Reveal>
       </section>
 
