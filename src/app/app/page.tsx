@@ -8,7 +8,12 @@ export default async function DashboardPage() {
   await requireActiveSubscription();
   const supabase = await createClient();
 
-  const [{ data: invoices }, { data: quotes }] = await Promise.all([
+  const today = new Date().toISOString().slice(0, 10);
+  const trentaGiorniFa = new Date();
+  trentaGiorniFa.setDate(trentaGiorniFa.getDate() - 30);
+  const trentaGiorniFaStr = trentaGiorniFa.toISOString().slice(0, 10);
+
+  const [{ data: invoices }, { data: quotes }, { data: fattureRecenti }] = await Promise.all([
     supabase
       .from("invoices")
       .select("*, clients(nome, telefono, email)")
@@ -19,11 +24,24 @@ export default async function DashboardPage() {
       .select("*, clients(nome, telefono, email)")
       .eq("status", "in_attesa")
       .order("data_invio"),
+    supabase
+      .from("invoices")
+      .select("status")
+      .gte("data_scadenza", trentaGiorniFaStr)
+      .lte("data_scadenza", today),
   ]);
 
   const totalInvoices = (invoices ?? []).reduce((sum, i) => sum + Number(i.importo), 0);
   const totalQuotes = (quotes ?? []).reduce((sum, q) => sum + Number(q.importo), 0);
   const total = totalInvoices + totalQuotes;
+
+  const scadenzeOggi = (invoices ?? []).filter((inv) => inv.data_scadenza === today);
+  const totalScadenzeOggi = scadenzeOggi.reduce((sum, i) => sum + Number(i.importo), 0);
+
+  const fattureRecentiCount = fattureRecenti?.length ?? 0;
+  const fatturePagateRecenti = (fattureRecenti ?? []).filter((f) => f.status === "pagata").length;
+  const tassoRecupero =
+    fattureRecentiCount > 0 ? Math.round((fatturePagateRecenti / fattureRecentiCount) * 100) : null;
 
   return (
     <div>
@@ -39,6 +57,22 @@ export default async function DashboardPage() {
             <p className="text-stone-300">Preventivi</p>
             <p className="text-lg font-semibold">{formatEuro(totalQuotes)}</p>
           </div>
+        </div>
+      </section>
+
+      <section className="mt-6 grid grid-cols-2 gap-4">
+        <div className="rounded-xl border border-stone-200 bg-white p-4">
+          <p className="text-sm text-stone-500">Scadenze oggi</p>
+          <p className="mt-1 text-2xl font-bold text-stone-900">{scadenzeOggi.length}</p>
+          {scadenzeOggi.length > 0 && (
+            <p className="text-sm text-stone-500">{formatEuro(totalScadenzeOggi)}</p>
+          )}
+        </div>
+        <div className="rounded-xl border border-stone-200 bg-white p-4">
+          <p className="text-sm text-stone-500">Tasso di recupero (30gg)</p>
+          <p className="mt-1 text-2xl font-bold text-stone-900">
+            {tassoRecupero === null ? "—" : `${tassoRecupero}%`}
+          </p>
         </div>
       </section>
 
