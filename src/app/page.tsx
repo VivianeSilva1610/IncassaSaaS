@@ -11,83 +11,81 @@ const galleryIds = [
   "secondo-sollecito-diretto",
   "cliente-abituale-gentile",
   "azienda-formale",
-  "pagamento-parziale-gentile",
-  "sollecito-finale-formale",
 ];
 const galleryMessages = galleryIds.map((id) => messages.find((m) => m.id === id)!);
 
-const benefits = [
+const problemi = [
   {
-    icon: "😊",
-    title: "4 toni diversi",
-    text: "Gentile, Cordiale, Diretto o Formale: scegli il tono giusto in base al cliente e al rapporto che hai con lui.",
+    title: "Fatture dimenticate",
+    text: "Le fatture scadute si accumulano tra WhatsApp, note e fogli Excel. Nessuno le tiene tutte d'occhio.",
   },
   {
-    icon: "📋",
-    title: "17 situazioni coperte",
-    text: "Dal primo ritardo al sollecito finale, passando per aziende, privati, pagamenti parziali e promesse non mantenute.",
+    title: "Solleciti scritti a mano",
+    text: "Ogni volta devi capire cosa scrivere, con che tono, senza sembrare aggressivo o rovinare il rapporto.",
   },
   {
-    icon: "⚡",
-    title: "Accesso immediato",
-    text: "Ricevi tutto subito dopo il pagamento, direttamente sul sito. Nessuna attesa, nessun login da creare.",
-  },
-  {
-    icon: "📱",
-    title: "Pronto per WhatsApp ed email",
-    text: "Copia, incolla, personalizza con i dati del cliente e invia in pochi secondi.",
+    title: "Zero visibilità",
+    text: "Non sai quanto hai da recuperare in totale, cosa scade oggi, o quanti dei tuoi solleciti funzionano davvero.",
   },
 ];
 
-const situations = [
-  "Ritardo lieve (3 giorni)",
-  "Ritardo medio (7 giorni)",
-  "Cliente ha visualizzato e non risponde",
-  "Primo e secondo sollecito",
-  "Sollecito finale",
-  "Ha promesso un bonifico",
-  "Ha promesso di pagare \"venerdì\"",
-  "Pagamento parziale ricevuto",
-  "Cliente abituale vs. nuovo",
-  "Azienda (B2B) vs. privato (B2C)",
-  "Dopo un lungo silenzio",
-  "Richiesta di conferma pagamento",
-  "Cliente chiede sconto o rateizzazione",
-  "Ringraziamento dopo il pagamento",
+const features = [
+  {
+    icon: "🤖",
+    title: "Sollecito automatico via email",
+    text: "Se attivi l'opzione, quando una fattura resta scaduta 5 giorni INCASSA manda da sola l'email di sollecito al cliente. Nessun clic.",
+  },
+  {
+    icon: "😊",
+    title: "IA in 4 toni diversi",
+    text: "Gentile, Cordiale, Diretto o Formale: un clic e hai il messaggio pronto per WhatsApp o email, scritto su misura per la situazione.",
+  },
+  {
+    icon: "📊",
+    title: "Dashboard operativa",
+    text: "Quanto devi recuperare in totale, cosa scade oggi, il tasso di recupero degli ultimi 30 giorni — tutto in un colpo d'occhio.",
+  },
+  {
+    icon: "📥",
+    title: "Importa fatture e clienti da CSV",
+    text: "Carica tutto in blocco invece di inserirlo uno per uno. INCASSA riconosce i clienti già esistenti da telefono o nome.",
+  },
+  {
+    icon: "🗂️",
+    title: "Storico comunicazioni",
+    text: "Ogni sollecito inviato — manuale o automatico — resta registrato per cliente: cosa hai mandato, quando e come.",
+  },
+  {
+    icon: "📱",
+    title: "Pronto per WhatsApp",
+    text: "Il messaggio si apre già scritto nella chat del cliente: lo controlli tu, decidi tu quando inviarlo.",
+  },
 ];
 
 const faqs = [
   {
-    q: "Devo personalizzare i messaggi?",
-    a: "Sì. Sostituisci le parti tra [parentesi quadre] (nome, importo, data...) con i dati reali del cliente. Ci vogliono pochi secondi.",
+    q: "È completamente automatico?",
+    a: "L'email di sollecito può essere automatica (opzionale, la attivi tu quando vuoi). Il messaggio WhatsApp oggi si apre pronto nella chat, ma sei sempre tu a premere invio.",
   },
   {
-    q: "Funziona su WhatsApp?",
-    a: "Sì. Copi il messaggio e lo incolli direttamente nella chat. Non è un'automazione: sei sempre tu a decidere quando inviare.",
+    q: "Posso importare le fatture che ho già?",
+    a: "Sì, via CSV: carichi il file e INCASSA le aggiunge tutte insieme, riconoscendo i clienti già presenti.",
   },
   {
-    q: "Ricevo il kit anche via email?",
-    a: "Sì. Oltre alla pagina di accesso immediato, ti mandiamo una copia via email con il file scaricabile.",
+    q: "Quanto costa?",
+    a: "€19,90 al mese, con 7 giorni di prova gratuita. Nessun vincolo: cancelli quando vuoi dalle impostazioni dell'account.",
   },
   {
-    q: "Va bene anche per clienti aziendali (B2B)?",
-    a: "Sì, ci sono messaggi specifici sia per aziende che per clienti privati.",
+    q: "Devo installare qualcosa?",
+    a: "No. È tutto accessibile dal browser, anche da telefono.",
   },
   {
-    q: "È un abbonamento?",
-    a: "No. È un pagamento unico di €9. Nessun rinnovo automatico.",
+    q: "E se non ho ancora clienti/fatture da gestire, solo bisogno dei messaggi pronti?",
+    a: `C'è anche il Kit Incassa: 37 messaggi pronti da copiare e incollare, pagamento unico di €9, senza dashboard né abbonamento.`,
   },
   {
-    q: "Posso usarlo per più clienti?",
-    a: "Sì, senza limiti: usa i messaggi per tutti i clienti che vuoi, quante volte vuoi.",
-  },
-  {
-    q: "Cosa succede se non fa per me?",
-    a: `Hai 7 giorni dall'acquisto per chiedere il rimborso completo scrivendo a ${SUPPORT_EMAIL}.`,
-  },
-  {
-    q: "Serve installare qualcosa?",
-    a: "No. È tutto accessibile dal browser: nessuna app da scaricare, nessun account da creare.",
+    q: "I miei dati sono al sicuro?",
+    a: "Sì. I dati restano tuoi: puoi esportarli o eliminare l'account in qualsiasi momento dalle impostazioni.",
   },
 ];
 
@@ -97,8 +95,15 @@ const primaryButton =
 export default function Home() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
+      <div className="flex items-center justify-between text-sm">
+        <span className="font-bold text-stone-900">INCASSA</span>
+        <Link href="/login" className="text-stone-500 hover:text-stone-900">
+          Accedi
+        </Link>
+      </div>
+
       {/* Hero */}
-      <section className="relative overflow-hidden text-center">
+      <section className="relative mt-10 overflow-hidden text-center">
         <div
           aria-hidden
           className="pointer-events-none absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-amber-300/30 blur-3xl"
@@ -108,37 +113,62 @@ export default function Home() {
             Per idraulici, elettricisti, imprese edili e artigiani
           </p>
           <h1 className="text-3xl font-bold leading-tight text-stone-900 sm:text-4xl">
-            Kit Incassa
+            Hai lavorato. Ora fatti pagare.
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-lg text-stone-600">
-            37 messaggi pronti per farti pagare senza rovinare il rapporto con il cliente.
+            INCASSA ti aiuta a ricordare chi deve pagarti e quali preventivi aspettano ancora una
+            risposta — senza perdere tempo tra WhatsApp, note e fogli Excel.
           </p>
           <div className="mt-8 flex flex-col items-center gap-2">
-            <CheckoutButton className={primaryButton} />
-            <span className="text-xs text-stone-400">Pagamento unico di €9 · accesso immediato</span>
+            <Link href="/signup" className={primaryButton}>
+              Inizia la prova gratuita di 7 giorni
+            </Link>
+            <span className="text-xs text-stone-400">Poi €19,90/mese · cancelli quando vuoi</span>
           </div>
         </Reveal>
       </section>
 
       {/* Problema */}
-      <Reveal className="mt-16 rounded-xl border border-stone-200 bg-stone-50 p-6 sm:p-8">
-        <h2 className="text-xl font-semibold text-stone-900">Ti suona familiare?</h2>
-        <ul className="mt-4 space-y-2 text-stone-700">
-          <li>Un cliente ha visualizzato il tuo messaggio e non ha più risposto.</li>
-          <li>Non sai come scrivere un sollecito senza sembrare aggressivo.</li>
-          <li>Hai lavori pagati in ritardo di settimane e non sai come chiedere senza rovinare il rapporto.</li>
-        </ul>
-        <p className="mt-4 text-stone-700">
-          Il Kit Incassa ti dà la frase giusta per ogni situazione: ritardo lieve o grave, cliente
-          abituale o nuovo, azienda o privato — in quattro toni diversi, da scegliere in base al
-          rapporto che hai con il cliente.
-        </p>
-      </Reveal>
+      <section className="mt-16">
+        <Reveal>
+          <h2 className="text-center text-xl font-semibold text-stone-900">Ti suona familiare?</h2>
+        </Reveal>
+        <Reveal stagger={0.1} className="mt-6 grid gap-6 sm:grid-cols-3">
+          {problemi.map((p) => (
+            <div key={p.title} className="rounded-xl border border-stone-200 bg-stone-50 p-5">
+              <h3 className="font-semibold text-stone-900">{p.title}</h3>
+              <p className="mt-1 text-sm text-stone-600">{p.text}</p>
+            </div>
+          ))}
+        </Reveal>
+      </section>
+
+      {/* Funzionalità */}
+      <section className="mt-16">
+        <Reveal>
+          <h2 className="text-center text-xl font-semibold text-stone-900">
+            Tutto quello che serve per farti pagare
+          </h2>
+        </Reveal>
+        <Reveal stagger={0.1} className="mt-6 grid gap-6 sm:grid-cols-2">
+          {features.map((f) => (
+            <div key={f.title} className="flex gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xl">
+                {f.icon}
+              </span>
+              <div>
+                <h3 className="font-semibold text-stone-900">{f.title}</h3>
+                <p className="mt-1 text-sm text-stone-600">{f.text}</p>
+              </div>
+            </div>
+          ))}
+        </Reveal>
+      </section>
 
       {/* Galleria di esempi */}
       <section className="mt-16">
         <Reveal>
-          <h2 className="text-center text-xl font-semibold text-stone-900">Alcuni esempi</h2>
+          <h2 className="text-center text-xl font-semibold text-stone-900">Il tono giusto per ogni cliente</h2>
         </Reveal>
         <Reveal stagger={0.08} className="mt-6 grid gap-4 sm:grid-cols-2">
           {galleryMessages.map((message) => (
@@ -159,72 +189,6 @@ export default function Home() {
         </Reveal>
       </section>
 
-      {/* Benefici */}
-      <section className="mt-16">
-        <Reveal>
-          <h2 className="text-center text-xl font-semibold text-stone-900">Perché il Kit Incassa</h2>
-        </Reveal>
-        <Reveal stagger={0.1} className="mt-6 grid gap-6 sm:grid-cols-2">
-          {benefits.map((b) => (
-            <div key={b.title} className="flex gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xl">
-                {b.icon}
-              </span>
-              <div>
-                <h3 className="font-semibold text-stone-900">{b.title}</h3>
-                <p className="mt-1 text-sm text-stone-600">{b.text}</p>
-              </div>
-            </div>
-          ))}
-        </Reveal>
-      </section>
-
-      {/* Situazioni coperte */}
-      <Reveal className="mt-16 rounded-xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
-        <h2 className="text-xl font-semibold text-stone-900">Tutte le situazioni coperte</h2>
-        <Reveal stagger={0.03} className="mt-4 grid gap-x-8 gap-y-2 sm:grid-cols-2">
-          {situations.map((s) => (
-            <div key={s} className="flex items-start gap-2 text-stone-700">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs text-emerald-700">
-                ✓
-              </span>
-              <span>{s}</span>
-            </div>
-          ))}
-        </Reveal>
-        <div className="mt-8 flex justify-center">
-          <CheckoutButton className={primaryButton} />
-        </div>
-      </Reveal>
-
-      {/* Prezzo */}
-      <Reveal className="mt-16 rounded-xl bg-gradient-to-b from-stone-900 to-stone-800 p-6 text-center text-white shadow-xl sm:p-10">
-        <h2 className="text-xl font-semibold">Kit Incassa completo</h2>
-        <p className="mt-2 text-4xl font-bold">€9</p>
-        <p className="mt-1 text-sm text-stone-300">pagamento unico, nessun abbonamento</p>
-        <ul className="mx-auto mt-6 max-w-sm space-y-2 text-left text-sm text-stone-200">
-          <li>✓ 37 messaggi pronti in 4 toni diversi</li>
-          <li>✓ Accesso immediato + copia via email</li>
-          <li>✓ File scaricabile da copiare e incollare</li>
-          <li>✓ Uso illimitato, per tutti i tuoi clienti</li>
-        </ul>
-        <div className="mt-8">
-          <CheckoutButton className="rounded-lg bg-white px-6 py-3 text-base font-semibold text-stone-900 shadow-lg transition-transform hover:bg-stone-100 active:scale-[0.98] disabled:opacity-60" />
-        </div>
-      </Reveal>
-
-      {/* Garanzia */}
-      <Reveal className="mt-16 text-center">
-        <h2 className="text-xl font-semibold text-stone-900">Garanzia 7 giorni</h2>
-        <p className="mx-auto mt-2 max-w-lg text-stone-600">
-          Se il Kit Incassa non fa per te, scrivici entro 7 giorni dall&apos;acquisto a{" "}
-          <a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium text-amber-700 underline underline-offset-2">
-            {SUPPORT_EMAIL}
-          </a>{" "}
-          e ti rimborsiamo, senza fare domande.
-        </p>
-      </Reveal>
-
       {/* Come funziona */}
       <section className="mt-16">
         <Reveal>
@@ -232,9 +196,9 @@ export default function Home() {
         </Reveal>
         <Reveal stagger={0.12} className="mt-6 grid gap-6 sm:grid-cols-3">
           {[
-            { step: "1", title: "Acquisti", text: "Pagamento sicuro tramite Stripe, carta o Apple/Google Pay." },
-            { step: "2", title: "Accedi subito", text: "Vieni reindirizzato alla pagina con tutti i 37 messaggi, già pronta." },
-            { step: "3", title: "Copia e invia", text: "Personalizza con i dati del cliente e invia su WhatsApp o email." },
+            { step: "1", title: "Importa", text: "Carica fatture e clienti da CSV, o aggiungili man mano che lavori." },
+            { step: "2", title: "Attiva o genera", text: "Lascia che INCASSA solleciti da sola via email, oppure genera il messaggio quando vuoi." },
+            { step: "3", title: "Segui dalla dashboard", text: "Scadenze del giorno, tasso di recupero, storico di tutto quello che hai inviato." },
           ].map((s) => (
             <div key={s.step} className="text-center">
               <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-b from-amber-500 to-orange-600 text-sm font-semibold text-white shadow-md shadow-orange-900/20">
@@ -246,6 +210,28 @@ export default function Home() {
           ))}
         </Reveal>
       </section>
+
+      {/* Prezzo */}
+      <Reveal className="mt-16 rounded-xl bg-gradient-to-b from-stone-900 to-stone-800 p-6 text-center text-white shadow-xl sm:p-10">
+        <h2 className="text-xl font-semibold">INCASSA</h2>
+        <p className="mt-2 text-4xl font-bold">€19,90</p>
+        <p className="mt-1 text-sm text-stone-300">al mese, 7 giorni di prova gratuita</p>
+        <ul className="mx-auto mt-6 max-w-sm space-y-2 text-left text-sm text-stone-200">
+          <li>✓ Dashboard con scadenze e tasso di recupero</li>
+          <li>✓ Solleciti IA in 4 toni, per WhatsApp ed email</li>
+          <li>✓ Sollecito automatico via email (opzionale)</li>
+          <li>✓ Import CSV di fatture e clienti</li>
+          <li>✓ Storico comunicazioni per cliente</li>
+        </ul>
+        <div className="mt-8">
+          <Link
+            href="/signup"
+            className="inline-block rounded-lg bg-white px-6 py-3 text-base font-semibold text-stone-900 shadow-lg transition-transform hover:bg-stone-100 active:scale-[0.98]"
+          >
+            Inizia la prova gratuita
+          </Link>
+        </div>
+      </Reveal>
 
       {/* FAQ */}
       <section className="mt-16">
@@ -266,13 +252,33 @@ export default function Home() {
       </section>
 
       <Reveal className="mt-16 text-center">
-        <CheckoutButton className={primaryButton} />
+        <Link href="/signup" className={primaryButton}>
+          Inizia la prova gratuita di 7 giorni
+        </Link>
+      </Reveal>
+
+      {/* Kit Incassa - offerta secondaria */}
+      <Reveal className="mt-16 rounded-xl border border-stone-200 bg-stone-50 p-6 text-center sm:p-8">
+        <h2 className="text-lg font-semibold text-stone-900">Ti serve solo qualche messaggio pronto?</h2>
+        <p className="mx-auto mt-2 max-w-md text-sm text-stone-600">
+          Il Kit Incassa ti dà 37 messaggi pronti da copiare e incollare, in 4 toni diversi.
+          Pagamento unico di €9, nessun abbonamento.
+        </p>
+        <div className="mt-4">
+          <CheckoutButton className="rounded-lg bg-stone-900 px-5 py-2.5 text-sm font-semibold text-white transition-transform hover:bg-stone-700 active:scale-[0.98] disabled:opacity-60" />
+        </div>
       </Reveal>
 
       <footer className="mt-16 border-t border-stone-200 pt-6 text-center text-xs text-stone-400">
-        <p>© {new Date().getFullYear()} Kit Incassa. Tutti i diritti riservati.</p>
+        <p>© {new Date().getFullYear()} INCASSA. Tutti i diritti riservati.</p>
         <p className="mt-1">
-          Kit Incassa non è affiliato con WhatsApp Inc. WhatsApp è un marchio registrato di WhatsApp LLC.
+          INCASSA non è affiliato con WhatsApp Inc. WhatsApp è un marchio registrato di WhatsApp LLC.
+        </p>
+        <p className="mt-2">
+          Domande? Scrivici a{" "}
+          <a href={`mailto:${SUPPORT_EMAIL}`} className="underline underline-offset-2 hover:text-stone-600">
+            {SUPPORT_EMAIL}
+          </a>
         </p>
         <p className="mt-2 space-x-3">
           <Link href="/privacy" className="underline underline-offset-2 hover:text-stone-600">

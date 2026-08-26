@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kit Incassa — 37 messaggi pronti per farti pagare",
+  title: "INCASSA — Hai lavorato. Ora fatti pagare.",
   description:
-    "37 messaggi pronti per farti pagare senza rovinare il rapporto con il cliente. Per idraulici, elettricisti, imprese edili e artigiani.",
+    "Dashboard, solleciti generati con IA e promemoria automatici per farti pagare senza perdere tempo. Per idraulici, elettricisti, imprese edili e artigiani.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
