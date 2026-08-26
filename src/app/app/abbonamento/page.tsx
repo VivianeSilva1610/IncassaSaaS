@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
 import { SubscribeButton } from "@/components/SubscribeButton";
+import { isAdminEmail } from "@/lib/subscription";
 
 const statusLabel: Record<string, string> = {
   trialing: "🟢 Periodo di prova attivo",
@@ -25,12 +26,13 @@ export default async function AbbonamentoPage() {
     .single();
 
   const status = profile?.subscription_status ?? "none";
-  const hasAccess = status === "trialing" || status === "active";
+  const isAdmin = isAdminEmail(user.email);
+  const hasAccess = isAdmin || status === "trialing" || status === "active";
 
   return (
     <main className="mx-auto max-w-md text-center">
       <h1 className="text-2xl font-bold text-stone-900">Abbonamento INCASSA</h1>
-      <p className="mt-2 text-sm text-stone-600">{statusLabel[status] ?? status}</p>
+      <p className="mt-2 text-sm text-stone-600">{isAdmin ? "🟢 Accesso amministratore" : (statusLabel[status] ?? status)}</p>
 
       {hasAccess ? (
         <>

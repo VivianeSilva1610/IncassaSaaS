@@ -1,6 +1,7 @@
 import { requireActiveSubscription } from "@/lib/subscription";
 import { createClient } from "@/lib/supabase-server";
 import { addCliente, updateCliente, deleteCliente } from "@/app/app/actions";
+import { ContactPickerFields } from "@/components/ContactPickerFields";
 
 export default async function ClientiPage() {
   await requireActiveSubscription();
@@ -12,12 +13,11 @@ export default async function ClientiPage() {
       <h1 className="text-2xl font-bold text-stone-900">Clienti</h1>
 
       <form action={addCliente} className="mt-6 grid gap-3 rounded-xl border border-stone-200 bg-white p-4 sm:grid-cols-2">
-        <input name="nome" required placeholder="Nome" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        <ContactPickerFields />
         <select name="tipo" className="rounded-md border border-stone-300 px-3 py-2 text-sm">
           <option value="privato">Privato</option>
           <option value="azienda">Azienda</option>
         </select>
-        <input name="telefono" placeholder="Telefono (per WhatsApp)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
         <input name="email" type="email" placeholder="Email" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
         <input name="indirizzo" placeholder="Indirizzo (opzionale)" className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2" />
         <button

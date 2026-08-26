@@ -1,6 +1,15 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
 
+export function isAdminEmail(email: string | undefined | null): boolean {
+  if (!email) return false;
+  const admins = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return admins.includes(email.toLowerCase());
+}
+
 export async function requireActiveSubscription() {
   const supabase = await createClient();
   const {
@@ -14,7 +23,10 @@ export async function requireActiveSubscription() {
     .eq("id", user.id)
     .single();
 
-  if (!profile || !["trialing", "active"].includes(profile.subscription_status)) {
+  const hasAccess =
+    isAdminEmail(user.email) || (!!profile && ["trialing", "active"].includes(profile.subscription_status));
+
+  if (!hasAccess) {
     redirect("/app/abbonamento");
   }
 

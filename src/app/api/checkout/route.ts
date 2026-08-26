@@ -9,15 +9,7 @@ export async function POST() {
     payment_method_types: ["card"],
     line_items: [
       {
-        price_data: {
-          currency: "eur",
-          product_data: {
-            name: "Kit Incassa — 37 messaggi pronti",
-            description:
-              "37 messaggi pronti per farti pagare senza rovinare il rapporto con il cliente.",
-          },
-          unit_amount: 900,
-        },
+        price: process.env.STRIPE_PRICE_KIT_INCASSA!,
         quantity: 1,
       },
     ],

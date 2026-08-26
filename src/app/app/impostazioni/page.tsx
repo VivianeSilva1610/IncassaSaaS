@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
 import { BillingPortalButton } from "@/components/BillingPortalButton";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
+import { EnableNotificationsButton } from "@/components/EnableNotificationsButton";
 
 export default async function ImpostazioniPage() {
   const supabase = await createClient();
@@ -32,6 +33,16 @@ export default async function ImpostazioniPage() {
         ) : (
           <p className="mt-4 text-sm text-stone-400">Nessun abbonamento attivo.</p>
         )}
+      </section>
+
+      <section className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
+        <h2 className="font-semibold text-stone-900">Notifiche</h2>
+        <p className="mt-1 text-sm text-stone-600">
+          Ricevi una notifica sul dispositivo quando una fattura scade oggi.
+        </p>
+        <div className="mt-4">
+          <EnableNotificationsButton />
+        </div>
       </section>
 
       <section className="mt-6 rounded-xl border border-red-200 bg-white p-4">

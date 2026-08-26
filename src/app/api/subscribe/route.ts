@@ -20,12 +20,7 @@ export async function POST() {
     client_reference_id: user.id,
     line_items: [
       {
-        price_data: {
-          currency: "eur",
-          product_data: { name: "INCASSA — abbonamento mensile" },
-          unit_amount: 1990,
-          recurring: { interval: "month" },
-        },
+        price: process.env.STRIPE_PRICE_INCASSA_SAAS!,
         quantity: 1,
       },
     ],
