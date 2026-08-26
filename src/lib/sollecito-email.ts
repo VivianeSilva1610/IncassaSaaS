@@ -16,7 +16,9 @@ export async function sendSollecitoEmail(params: {
     html: `
       <p>${params.messaggio.replace(/\n/g, "<br>")}</p>
       <p style="margin-top: 24px; color: #78716c; font-size: 12px;">
-        Inviato automaticamente da INCASSA per conto di ${params.replyTo}.
+        Promemoria automatico inviato da INCASSA per conto di ${params.replyTo}. Per qualsiasi
+        chiarimento, contestazione o per segnalare che il pagamento è già stato effettuato,
+        rispondi direttamente a questa email.
       </p>
     `,
   });

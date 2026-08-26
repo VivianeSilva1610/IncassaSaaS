@@ -4,6 +4,11 @@ import { BillingPortalButton } from "@/components/BillingPortalButton";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 import { EnableNotificationsButton } from "@/components/EnableNotificationsButton";
 import { ToggleSollecitoAutomatico } from "@/components/ToggleSollecitoAutomatico";
+import { CopyTextButton } from "@/components/CopyTextButton";
+
+const testoInformativa =
+  "I dati forniti potranno essere utilizzati per l'invio di promemoria di pagamento, " +
+  "anche in forma automatizzata, relativi a fatture e preventivi in essere.";
 
 export default async function ImpostazioniPage() {
   const supabase = await createClient();
@@ -56,6 +61,16 @@ export default async function ImpostazioniPage() {
             </p>
           </div>
           <ToggleSollecitoAutomatico initialEnabled={profile?.sollecito_automatico_attivo ?? false} />
+        </div>
+
+        <div className="mt-4 rounded-lg bg-stone-50 p-3">
+          <p className="text-xs font-medium text-stone-500">
+            Frase pronta per la tua informativa privacy o fattura
+          </p>
+          <p className="mt-1 text-sm text-stone-700 italic">&quot;{testoInformativa}&quot;</p>
+          <div className="mt-2">
+            <CopyTextButton text={testoInformativa} />
+          </div>
         </div>
       </section>
 
