@@ -47,9 +47,11 @@ function parseImporto(raw: string): number | null {
 function parseData(raw: string): string | null {
   const trimmed = raw.trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-  const match = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+
+  const match = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
   if (match) {
-    const [, gg, mm, yyyy] = match;
+    const [, gg, mm, annoRaw] = match;
+    const yyyy = annoRaw.length === 2 ? String(2000 + Number(annoRaw)) : annoRaw;
     return `${yyyy}-${mm.padStart(2, "0")}-${gg.padStart(2, "0")}`;
   }
   return null;

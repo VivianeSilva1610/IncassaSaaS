@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseClientiCsv, type ParseClientiCsvResult } from "@/lib/csv-parser";
+import { readSpreadsheetAsCsv } from "@/lib/spreadsheet";
 import { importClienti, type ImportClientiResult } from "@/app/app/actions";
 
 export function ImportClientiForm() {
@@ -15,7 +16,7 @@ export function ImportClientiForm() {
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const text = await file.text();
+    const text = await readSpreadsheetAsCsv(file);
     setCsvText(text);
     setPreview(parseClientiCsv(text));
     setResult(null);
@@ -73,7 +74,12 @@ export function ImportClientiForm() {
   if (!preview) {
     return (
       <div className="rounded-xl border border-dashed border-stone-300 bg-white p-6 text-center">
-        <input type="file" accept=".csv" onChange={handleFile} className="mx-auto block text-sm" />
+        <input
+          type="file"
+          accept=".csv,.xlsx,.xls"
+          onChange={handleFile}
+          className="mx-auto block text-sm"
+        />
       </div>
     );
   }

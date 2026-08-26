@@ -8,14 +8,14 @@ export default async function ImportaClientiPage() {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-stone-900">Importa clienti da CSV</h1>
+        <h1 className="text-2xl font-bold text-stone-900">Importa clienti da CSV o Excel</h1>
         <Link href="/app/clienti" className="text-sm text-amber-700 underline underline-offset-2">
           Torna ai clienti
         </Link>
       </div>
 
       <p className="mt-2 text-sm text-stone-600">
-        Carica un file CSV con le colonne{" "}
+        Carica un file CSV o Excel (.xlsx) con le colonne{" "}
         <code className="rounded bg-stone-100 px-1 py-0.5 text-xs">nome,telefono,email,tipo,indirizzo</code>. Scarica il{" "}
         <a href="/template-importazione-clienti.csv" download className="text-amber-700 underline underline-offset-2">
           file di esempio

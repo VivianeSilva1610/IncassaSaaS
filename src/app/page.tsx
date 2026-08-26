@@ -48,7 +48,7 @@ const features = [
   },
   {
     icon: "/feature-icons/importa-csv.png",
-    title: "Importa fatture e clienti da CSV",
+    title: "Importa fatture e clienti da CSV o Excel",
     text: "Carica tutto in blocco invece di inserirlo uno per uno. INCASSA riconosce i clienti già esistenti da telefono o nome.",
   },
   {
@@ -70,7 +70,7 @@ const faqs = [
   },
   {
     q: "Posso importare le fatture che ho già?",
-    a: "Sì, via CSV: carichi il file e INCASSA le aggiunge tutte insieme, riconoscendo i clienti già presenti.",
+    a: "Sì, via CSV o Excel: carichi il file e INCASSA le aggiunge tutte insieme, riconoscendo i clienti già presenti.",
   },
   {
     q: "Quanto costa?",
@@ -195,7 +195,7 @@ export default function Home() {
         </Reveal>
         <Reveal stagger={0.12} className="mt-6 grid gap-6 sm:grid-cols-3">
           {[
-            { step: "1", title: "Importa", text: "Carica fatture e clienti da CSV, o aggiungili man mano che lavori." },
+            { step: "1", title: "Importa", text: "Carica fatture e clienti da CSV o Excel, o aggiungili man mano che lavori." },
             { step: "2", title: "Attiva o genera", text: "Lascia che INCASSA solleciti da sola via email, oppure genera il messaggio quando vuoi." },
             { step: "3", title: "Segui dalla dashboard", text: "Scadenze del giorno, tasso di recupero, storico di tutto quello che hai inviato." },
           ].map((s) => (
@@ -223,7 +223,7 @@ export default function Home() {
           <li>✓ Dashboard con scadenze e tasso di recupero</li>
           <li>✓ Solleciti IA in 4 toni, per WhatsApp ed email</li>
           <li>✓ Sollecito automatico via email (opzionale)</li>
-          <li>✓ Import CSV di fatture e clienti</li>
+          <li>✓ Import CSV/Excel di fatture e clienti</li>
           <li>✓ Storico comunicazioni per cliente</li>
         </ul>
         <div className="mt-8">
