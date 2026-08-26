@@ -385,3 +385,48 @@ export async function updateSollecitoAutomatico(enabled: boolean) {
     .eq("id", user.id);
   revalidatePath("/app/impostazioni");
 }
+
+export async function addUscita(formData: FormData) {
+  const { supabase, user } = await requireUser();
+
+  await supabase.from("uscite").insert({
+    user_id: user.id,
+    descrizione: String(formData.get("descrizione") ?? ""),
+    importo: Number(formData.get("importo") ?? 0),
+    data_scadenza: String(formData.get("data_scadenza") ?? ""),
+  });
+
+  revalidatePath("/app/uscite");
+  revalidatePath("/app");
+}
+
+export async function updateUscita(id: string, formData: FormData) {
+  const { supabase, user } = await requireUser();
+
+  await supabase
+    .from("uscite")
+    .update({
+      descrizione: String(formData.get("descrizione") ?? ""),
+      importo: Number(formData.get("importo") ?? 0),
+      data_scadenza: String(formData.get("data_scadenza") ?? ""),
+    })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  revalidatePath("/app/uscite");
+  revalidatePath("/app");
+}
+
+export async function markUscitaPagata(id: string) {
+  const { supabase, user } = await requireUser();
+  await supabase.from("uscite").update({ status: "pagata" }).eq("id", id).eq("user_id", user.id);
+  revalidatePath("/app/uscite");
+  revalidatePath("/app");
+}
+
+export async function deleteUscita(id: string) {
+  const { supabase, user } = await requireUser();
+  await supabase.from("uscite").delete().eq("id", id).eq("user_id", user.id);
+  revalidatePath("/app/uscite");
+  revalidatePath("/app");
+}

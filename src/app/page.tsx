@@ -44,7 +44,7 @@ const features = [
   {
     icon: "/feature-icons/dashboard-operativa.png",
     title: "Dashboard operativa",
-    text: "Quanto devi recuperare in totale, cosa scade oggi, il tasso di recupero degli ultimi 30 giorni — tutto in un colpo d'occhio.",
+    text: "Quanto devi recuperare, cosa scade oggi, il tasso di recupero degli ultimi 30 giorni e il saldo netto stimato dopo le tue uscite — tutto in un colpo d'occhio.",
   },
   {
     icon: "/feature-icons/importa-csv.png",
@@ -225,6 +225,7 @@ export default function Home() {
           <li>✓ Sollecito automatico via email (opzionale)</li>
           <li>✓ Import CSV/Excel di fatture e clienti</li>
           <li>✓ Storico comunicazioni per cliente</li>
+          <li>✓ Uscite e saldo netto stimato</li>
         </ul>
         <div className="mt-8">
           <Link

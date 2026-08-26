@@ -13,7 +13,7 @@ export default async function DashboardPage() {
   trentaGiorniFa.setDate(trentaGiorniFa.getDate() - 30);
   const trentaGiorniFaStr = trentaGiorniFa.toISOString().slice(0, 10);
 
-  const [{ data: invoices }, { data: quotes }, { data: fattureRecenti }] = await Promise.all([
+  const [{ data: invoices }, { data: quotes }, { data: fattureRecenti }, { data: uscite }] = await Promise.all([
     supabase
       .from("invoices")
       .select("*, clients(nome, telefono, email)")
@@ -29,14 +29,21 @@ export default async function DashboardPage() {
       .select("status")
       .gte("data_scadenza", trentaGiorniFaStr)
       .lte("data_scadenza", today),
+    supabase.from("uscite").select("*").eq("status", "da_pagare").order("data_scadenza"),
   ]);
 
   const totalInvoices = (invoices ?? []).reduce((sum, i) => sum + Number(i.importo), 0);
   const totalQuotes = (quotes ?? []).reduce((sum, q) => sum + Number(q.importo), 0);
   const total = totalInvoices + totalQuotes;
 
+  const totalUscite = (uscite ?? []).reduce((sum, u) => sum + Number(u.importo), 0);
+  const saldoNetto = total - totalUscite;
+
   const scadenzeOggi = (invoices ?? []).filter((inv) => inv.data_scadenza === today);
   const totalScadenzeOggi = scadenzeOggi.reduce((sum, i) => sum + Number(i.importo), 0);
+
+  const usciteOggi = (uscite ?? []).filter((u) => u.data_scadenza === today);
+  const totalUsciteOggi = usciteOggi.reduce((sum, u) => sum + Number(u.importo), 0);
 
   const fattureRecentiCount = fattureRecenti?.length ?? 0;
   const fatturePagateRecenti = (fattureRecenti ?? []).filter((f) => f.status === "pagata").length;
@@ -58,14 +65,31 @@ export default async function DashboardPage() {
             <p className="text-lg font-semibold">{formatEuro(totalQuotes)}</p>
           </div>
         </div>
+
+        <div className="mx-auto mt-6 max-w-sm border-t border-white/10 pt-6">
+          <p className="text-sm text-stone-300">Saldo netto stimato (dopo le uscite)</p>
+          <p className={`mt-1 text-2xl font-bold ${saldoNetto >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            {formatEuro(saldoNetto)}
+          </p>
+          <p className="mt-1 text-xs text-stone-400">
+            {formatEuro(total)} da recuperare − {formatEuro(totalUscite)} di uscite che hai segnato
+          </p>
+        </div>
       </section>
 
-      <section className="mt-6 grid grid-cols-2 gap-4">
+      <section className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-stone-200 bg-white p-4">
           <p className="text-sm text-stone-500">Scadenze oggi</p>
           <p className="mt-1 text-2xl font-bold text-stone-900">{scadenzeOggi.length}</p>
           {scadenzeOggi.length > 0 && (
             <p className="text-sm text-stone-500">{formatEuro(totalScadenzeOggi)}</p>
+          )}
+        </div>
+        <div className="rounded-xl border border-stone-200 bg-white p-4">
+          <p className="text-sm text-stone-500">Uscite oggi</p>
+          <p className="mt-1 text-2xl font-bold text-stone-900">{usciteOggi.length}</p>
+          {usciteOggi.length > 0 && (
+            <p className="text-sm text-stone-500">{formatEuro(totalUsciteOggi)}</p>
           )}
         </div>
         <div className="rounded-xl border border-stone-200 bg-white p-4">
@@ -129,6 +153,35 @@ export default async function DashboardPage() {
                 </p>
               </div>
               <SollecitaButton kind="preventivo" id={q.id} />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-stone-900">Uscite da pagare</h2>
+          <Link href="/app/uscite" className="text-sm text-amber-700 underline underline-offset-2">
+            Gestisci uscite
+          </Link>
+        </div>
+        <div className="mt-4 space-y-2">
+          {(uscite ?? []).length === 0 && (
+            <p className="text-sm text-stone-500">Nessuna uscita segnata. 🎉</p>
+          )}
+          {(uscite ?? []).map((u) => (
+            <div
+              key={u.id}
+              className="flex items-center justify-between rounded-lg border border-stone-200 bg-white p-4"
+            >
+              <div>
+                <p className="font-medium text-stone-900">
+                  {urgencyEmoji[getUrgency(u.data_scadenza)]} {u.descrizione}
+                </p>
+                <p className="text-sm text-stone-500">
+                  {formatEuro(Number(u.importo))} · scade {u.data_scadenza}
+                </p>
+              </div>
             </div>
           ))}
         </div>

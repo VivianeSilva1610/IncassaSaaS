@@ -44,7 +44,8 @@ export default async function ImpostazioniPage() {
       <section className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
         <h2 className="font-semibold text-stone-900">Notifiche</h2>
         <p className="mt-1 text-sm text-stone-600">
-          Ricevi una notifica sul dispositivo quando una fattura scade oggi.
+          Ricevi una notifica sul dispositivo quando una fattura scade oggi, o quando hai
+          un&apos;uscita da pagare oggi.
         </p>
         <div className="mt-4">
           <EnableNotificationsButton />
