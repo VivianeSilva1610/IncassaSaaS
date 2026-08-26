@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     tono: string;
   };
 
-  await supabase.from("comunicazioni").insert({
+  const { error } = await supabase.from("comunicazioni").insert({
     user_id: user.id,
     client_id: body.clientId,
     tipo_documento: body.tipoDocumento,
@@ -28,6 +28,11 @@ export async function POST(req: Request) {
     tono: body.tono,
     automatico: false,
   });
+
+  if (error) {
+    console.error("Failed to log comunicazione:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }
