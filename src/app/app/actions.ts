@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getStripe } from "@/lib/stripe";
+import { parseFattureCsv, type ParsedFatturaRow, type FatturaRowError } from "@/lib/csv-parser";
+import { normalizePhoneForWhatsapp } from "@/lib/phone";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -186,4 +188,102 @@ export async function deletePreventivo(id: string) {
   await supabase.from("quotes").delete().eq("id", id).eq("user_id", user.id);
   revalidatePath("/app/preventivi");
   revalidatePath("/app");
+}
+
+export interface ImportFattureResult {
+  imported: number;
+  clientiCreati: number;
+  errors: FatturaRowError[];
+}
+
+export async function importFatture(csvText: string): Promise<ImportFattureResult> {
+  const { supabase, user } = await requireUser();
+  const { rows, errors } = parseFattureCsv(csvText);
+
+  if (rows.length === 0) {
+    return { imported: 0, clientiCreati: 0, errors };
+  }
+
+  const { data: existingClients } = await supabase
+    .from("clients")
+    .select("id, nome, telefono")
+    .eq("user_id", user.id);
+
+  const byPhone = new Map<string, string>();
+  const byName = new Map<string, string>();
+  for (const c of existingClients ?? []) {
+    if (c.telefono) byPhone.set(normalizePhoneForWhatsapp(c.telefono), c.id);
+    byName.set(c.nome.trim().toLowerCase(), c.id);
+  }
+
+  const rowsWithClientId: { row: ParsedFatturaRow; clientId: string }[] = [];
+  let clientiCreati = 0;
+
+  for (const row of rows) {
+    const phoneKey = row.telefono ? normalizePhoneForWhatsapp(row.telefono) : null;
+    const nameKey = row.cliente.trim().toLowerCase();
+
+    const existingClientId: string | undefined = (phoneKey && byPhone.get(phoneKey)) || byName.get(nameKey);
+    let clientId: string;
+
+    if (existingClientId) {
+      clientId = existingClientId;
+    } else {
+      const { data: created, error } = await supabase
+        .from("clients")
+        .insert({
+          user_id: user.id,
+          nome: row.cliente,
+          telefono: row.telefono,
+          email: row.email,
+          tipo: "privato",
+        })
+        .select("id")
+        .single();
+
+      if (error || !created) {
+        errors.push({ line: row.line, reason: "Impossibile creare il cliente" });
+        continue;
+      }
+
+      clientId = created.id as string;
+      clientiCreati += 1;
+      if (phoneKey) byPhone.set(phoneKey, clientId);
+      byName.set(nameKey, clientId);
+    }
+
+    rowsWithClientId.push({ row, clientId });
+  }
+
+  if (rowsWithClientId.length > 0) {
+    const { error } = await supabase.from("invoices").insert(
+      rowsWithClientId.map(({ row, clientId }) => ({
+        user_id: user.id,
+        client_id: clientId,
+        numero: row.numero,
+        descrizione: row.descrizione,
+        importo: row.importo,
+        data_scadenza: row.data_scadenza,
+        luogo_lavoro: row.luogo_lavoro,
+      })),
+    );
+
+    if (error) {
+      return { imported: 0, clientiCreati, errors: [...errors, { line: 0, reason: error.message }] };
+    }
+  }
+
+  revalidatePath("/app/fatture");
+  revalidatePath("/app");
+
+  return { imported: rowsWithClientId.length, clientiCreati, errors };
+}
+
+export async function updateSollecitoAutomatico(enabled: boolean) {
+  const { supabase, user } = await requireUser();
+  await supabase
+    .from("profiles")
+    .update({ sollecito_automatico_attivo: enabled })
+    .eq("id", user.id);
+  revalidatePath("/app/impostazioni");
 }

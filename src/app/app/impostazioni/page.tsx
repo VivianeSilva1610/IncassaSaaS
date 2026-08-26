@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase-server";
 import { BillingPortalButton } from "@/components/BillingPortalButton";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 import { EnableNotificationsButton } from "@/components/EnableNotificationsButton";
+import { ToggleSollecitoAutomatico } from "@/components/ToggleSollecitoAutomatico";
 
 export default async function ImpostazioniPage() {
   const supabase = await createClient();
@@ -13,7 +14,7 @@ export default async function ImpostazioniPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("stripe_customer_id")
+    .select("stripe_customer_id, sollecito_automatico_attivo")
     .eq("id", user.id)
     .single();
 
@@ -42,6 +43,19 @@ export default async function ImpostazioniPage() {
         </p>
         <div className="mt-4">
           <EnableNotificationsButton />
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="font-semibold text-stone-900">Solleciti automatici</h2>
+            <p className="mt-1 text-sm text-stone-600">
+              Se una fattura resta scaduta per più di 5 giorni, invieremo un&apos;email di sollecito
+              automatico al cliente, con tono Cordiale. Puoi disattivare in ogni momento.
+            </p>
+          </div>
+          <ToggleSollecitoAutomatico initialEnabled={profile?.sollecito_automatico_attivo ?? false} />
         </div>
       </section>
 
