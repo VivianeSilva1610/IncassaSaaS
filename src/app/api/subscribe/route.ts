@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { getStripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase-server";
 
@@ -13,6 +14,7 @@ export async function POST() {
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const cookieStore = await cookies();
 
   const session = await getStripe().checkout.sessions.create({
     mode: "subscription",
@@ -30,6 +32,10 @@ export async function POST() {
     },
     success_url: `${siteUrl}/app?subscribed=1`,
     cancel_url: `${siteUrl}/app/abbonamento?checkout=cancelled`,
+    metadata: {
+      fbp: cookieStore.get("_fbp")?.value ?? "",
+      fbc: cookieStore.get("_fbc")?.value ?? "",
+    },
   });
 
   if (!session.url) {

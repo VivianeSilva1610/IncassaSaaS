@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { getStripe } from "@/lib/stripe";
 
 export async function POST() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const cookieStore = await cookies();
 
   const session = await getStripe().checkout.sessions.create({
     mode: "payment",
@@ -22,6 +24,10 @@ export async function POST() {
       terms_of_service_acceptance: {
         message: `Accetto i [Termini e Condizioni](${siteUrl}/termini): richiedo l'accesso immediato al contenuto digitale e riconosco di perdere il diritto di recesso di 14 giorni.`,
       },
+    },
+    metadata: {
+      fbp: cookieStore.get("_fbp")?.value ?? "",
+      fbc: cookieStore.get("_fbc")?.value ?? "",
     },
   });
 

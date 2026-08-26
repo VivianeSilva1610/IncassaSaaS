@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendKitEmail } from "@/lib/email";
+import { sendMetaEvent } from "@/lib/meta-capi";
 
 async function handleKitIncassaCheckout(session: Stripe.Checkout.Session) {
   const email = session.customer_details?.email ?? session.customer_email;
@@ -32,6 +33,16 @@ async function handleKitIncassaCheckout(session: Stripe.Checkout.Session) {
       console.error(`sendKitEmail failed for purchase ${purchase.id}:`, result.error);
     }
   }
+
+  await sendMetaEvent({
+    eventName: "Purchase",
+    eventId: session.id,
+    email,
+    fbp: session.metadata?.fbp,
+    fbc: session.metadata?.fbc,
+    value: (session.amount_total ?? 0) / 100,
+    currency: session.currency?.toUpperCase() ?? "EUR",
+  });
 }
 
 async function handleSubscriptionCheckout(session: Stripe.Checkout.Session) {
@@ -50,6 +61,16 @@ async function handleSubscriptionCheckout(session: Stripe.Checkout.Session) {
       trial_ends_at: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
     })
     .eq("id", userId);
+
+  await sendMetaEvent({
+    eventName: "StartTrial",
+    eventId: session.id,
+    email: session.customer_details?.email ?? session.customer_email,
+    fbp: session.metadata?.fbp,
+    fbc: session.metadata?.fbc,
+    value: 19.9,
+    currency: "EUR",
+  });
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {

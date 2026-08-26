@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-browser";
+import { trackMetaEvent } from "@/lib/meta-pixel";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -30,6 +31,7 @@ export default function SignupPage() {
       return;
     }
 
+    trackMetaEvent("CompleteRegistration");
     setStatus("sent");
   }
 
