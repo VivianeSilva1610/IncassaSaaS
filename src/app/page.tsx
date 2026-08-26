@@ -77,7 +77,7 @@ const faqs = [
   },
   {
     q: "Devo installare qualcosa?",
-    a: "No. È tutto accessibile dal browser, anche da telefono.",
+    a: "No. È tutto accessibile dal browser, anche da telefono. Se vuoi, puoi aggiungere INCASSA alla schermata Home del cellulare per aprirlo come un'app: su iPhone tocca Condividi → \"Aggiungi a Home\", su Android tocca i tre puntini del browser → \"Aggiungi a schermata Home\".",
   },
   {
     q: "E se non ho ancora clienti/fatture da gestire, solo bisogno dei messaggi pronti?",
