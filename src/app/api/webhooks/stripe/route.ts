@@ -4,6 +4,74 @@ import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendKitEmail } from "@/lib/email";
 
+async function handleKitIncassaCheckout(session: Stripe.Checkout.Session) {
+  const email = session.customer_details?.email ?? session.customer_email;
+  if (!email || session.payment_status !== "paid") return;
+
+  const supabase = getSupabaseAdmin();
+
+  const { data: purchase, error } = await supabase
+    .from("purchases")
+    .upsert(
+      {
+        stripe_session_id: session.id,
+        email,
+        product: "kit_incassa",
+        status: "paid",
+      },
+      { onConflict: "stripe_session_id" },
+    )
+    .select()
+    .single();
+
+  if (!error && purchase && !purchase.email_sent_at) {
+    const result = await sendKitEmail(email, session.id);
+    if (result.ok) {
+      await supabase.from("purchases").update({ email_sent_at: new Date().toISOString() }).eq("id", purchase.id);
+    } else {
+      console.error(`sendKitEmail failed for purchase ${purchase.id}:`, result.error);
+    }
+  }
+}
+
+async function handleSubscriptionCheckout(session: Stripe.Checkout.Session) {
+  const userId = session.client_reference_id;
+  if (!userId) return;
+
+  const stripe = getStripe();
+  const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+
+  await getSupabaseAdmin()
+    .from("profiles")
+    .update({
+      stripe_customer_id: session.customer as string,
+      stripe_subscription_id: subscription.id,
+      subscription_status: subscription.status,
+      trial_ends_at: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
+    })
+    .eq("id", userId);
+}
+
+async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+  const userId = subscription.metadata?.user_id;
+  if (!userId) return;
+
+  await getSupabaseAdmin()
+    .from("profiles")
+    .update({
+      subscription_status: subscription.status,
+      trial_ends_at: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
+    })
+    .eq("id", userId);
+}
+
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  const userId = subscription.metadata?.user_id;
+  if (!userId) return;
+
+  await getSupabaseAdmin().from("profiles").update({ subscription_status: "canceled" }).eq("id", userId);
+}
+
 export async function POST(req: Request) {
   const body = await req.text();
   const signature = req.headers.get("stripe-signature");
@@ -21,37 +89,15 @@ export async function POST(req: Request) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    const email = session.customer_details?.email ?? session.customer_email;
-
-    if (email && session.payment_status === "paid") {
-      const supabase = getSupabaseAdmin();
-
-      const { data: purchase, error } = await supabase
-        .from("purchases")
-        .upsert(
-          {
-            stripe_session_id: session.id,
-            email,
-            product: "kit_incassa",
-            status: "paid",
-          },
-          { onConflict: "stripe_session_id" },
-        )
-        .select()
-        .single();
-
-      if (!error && purchase && !purchase.email_sent_at) {
-        const result = await sendKitEmail(email, session.id);
-        if (result.ok) {
-          await supabase
-            .from("purchases")
-            .update({ email_sent_at: new Date().toISOString() })
-            .eq("id", purchase.id);
-        } else {
-          console.error(`sendKitEmail failed for purchase ${purchase.id}:`, result.error);
-        }
-      }
+    if (session.mode === "subscription") {
+      await handleSubscriptionCheckout(session);
+    } else {
+      await handleKitIncassaCheckout(session);
     }
+  } else if (event.type === "customer.subscription.updated") {
+    await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+  } else if (event.type === "customer.subscription.deleted") {
+    await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
   }
 
   return NextResponse.json({ received: true });
