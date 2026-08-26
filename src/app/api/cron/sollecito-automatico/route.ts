@@ -47,6 +47,17 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: invoicesError.message }, { status: 500 });
   }
 
+  const invoiceIds = (invoices ?? []).map((inv) => inv.id);
+  const { data: pagamenti } = await supabase
+    .from("pagamenti")
+    .select("invoice_id, importo")
+    .in("invoice_id", invoiceIds.length > 0 ? invoiceIds : [""]);
+
+  const pagatoByInvoice = new Map<string, number>();
+  for (const p of pagamenti ?? []) {
+    pagatoByInvoice.set(p.invoice_id, (pagatoByInvoice.get(p.invoice_id) ?? 0) + Number(p.importo));
+  }
+
   let sent = 0;
   for (const inv of invoices ?? []) {
     const cliente = inv.clients as unknown as
@@ -61,6 +72,9 @@ export async function GET(req: Request) {
     const artigianoEmail = emailByUserId.get(inv.user_id);
     if (!artigianoEmail) continue;
 
+    const importoResiduo = Number(inv.importo) - (pagatoByInvoice.get(inv.id) ?? 0);
+    if (importoResiduo <= 0) continue;
+
     const giorniRitardo = Math.max(
       0,
       Math.round((Date.now() - new Date(inv.data_scadenza).getTime()) / (1000 * 60 * 60 * 24)),
@@ -71,7 +85,7 @@ export async function GET(req: Request) {
       messaggio = await generateSollecitoMessage({
         tono: TONO_DEFAULT,
         clienteNome: cliente.nome,
-        importo: Number(inv.importo),
+        importo: importoResiduo,
         data: inv.data_scadenza,
         tipoDocumento: "fattura",
         giorniRitardo,
@@ -83,7 +97,7 @@ export async function GET(req: Request) {
         getFallbackMessages({
           tono: TONO_DEFAULT,
           clienteNome: cliente.nome,
-          importo: Number(inv.importo),
+          importo: importoResiduo,
           data: inv.data_scadenza,
           giorniRitardo,
           numero: inv.numero,

@@ -13,26 +13,35 @@ export default async function DashboardPage() {
   trentaGiorniFa.setDate(trentaGiorniFa.getDate() - 30);
   const trentaGiorniFaStr = trentaGiorniFa.toISOString().slice(0, 10);
 
-  const [{ data: invoices }, { data: quotes }, { data: fattureRecenti }, { data: uscite }] = await Promise.all([
-    supabase
-      .from("invoices")
-      .select("*, clients(nome, telefono, email)")
-      .eq("status", "aperta")
-      .order("data_scadenza"),
-    supabase
-      .from("quotes")
-      .select("*, clients(nome, telefono, email)")
-      .eq("status", "in_attesa")
-      .order("data_invio"),
-    supabase
-      .from("invoices")
-      .select("status")
-      .gte("data_scadenza", trentaGiorniFaStr)
-      .lte("data_scadenza", today),
-    supabase.from("uscite").select("*").eq("status", "da_pagare").order("data_scadenza"),
-  ]);
+  const [{ data: invoices }, { data: quotes }, { data: fattureRecenti }, { data: uscite }, { data: pagamenti }] =
+    await Promise.all([
+      supabase
+        .from("invoices")
+        .select("*, clients(nome, telefono, email)")
+        .eq("status", "aperta")
+        .order("data_scadenza"),
+      supabase
+        .from("quotes")
+        .select("*, clients(nome, telefono, email)")
+        .eq("status", "in_attesa")
+        .order("data_invio"),
+      supabase
+        .from("invoices")
+        .select("status")
+        .gte("data_scadenza", trentaGiorniFaStr)
+        .lte("data_scadenza", today),
+      supabase.from("uscite").select("*").eq("status", "da_pagare").order("data_scadenza"),
+      supabase.from("pagamenti").select("invoice_id, importo"),
+    ]);
 
-  const totalInvoices = (invoices ?? []).reduce((sum, i) => sum + Number(i.importo), 0);
+  const pagatoByInvoice = new Map<string, number>();
+  for (const p of pagamenti ?? []) {
+    pagatoByInvoice.set(p.invoice_id, (pagatoByInvoice.get(p.invoice_id) ?? 0) + Number(p.importo));
+  }
+  const residuo = (inv: { id: string; importo: number }) =>
+    Number(inv.importo) - (pagatoByInvoice.get(inv.id) ?? 0);
+
+  const totalInvoices = (invoices ?? []).reduce((sum, i) => sum + residuo(i), 0);
   const totalQuotes = (quotes ?? []).reduce((sum, q) => sum + Number(q.importo), 0);
   const total = totalInvoices + totalQuotes;
 
@@ -40,7 +49,7 @@ export default async function DashboardPage() {
   const saldoNetto = total - totalUscite;
 
   const scadenzeOggi = (invoices ?? []).filter((inv) => inv.data_scadenza === today);
-  const totalScadenzeOggi = scadenzeOggi.reduce((sum, i) => sum + Number(i.importo), 0);
+  const totalScadenzeOggi = scadenzeOggi.reduce((sum, i) => sum + residuo(i), 0);
 
   const usciteOggi = (uscite ?? []).filter((u) => u.data_scadenza === today);
   const totalUsciteOggi = usciteOggi.reduce((sum, u) => sum + Number(u.importo), 0);
@@ -121,7 +130,11 @@ export default async function DashboardPage() {
                   {urgencyEmoji[getUrgency(inv.data_scadenza)]} {inv.clients?.nome}
                 </p>
                 <p className="text-sm text-stone-500">
-                  {formatEuro(Number(inv.importo))} · scade {inv.data_scadenza}
+                  {pagatoByInvoice.has(inv.id)
+                    ? `${formatEuro(residuo(inv))} ancora da incassare (di ${formatEuro(Number(inv.importo))})`
+                    : formatEuro(Number(inv.importo))}
+                  {" · scade "}
+                  {inv.data_scadenza}
                 </p>
               </div>
               <SollecitaButton kind="fattura" id={inv.id} />

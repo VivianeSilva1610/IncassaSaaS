@@ -168,6 +168,68 @@ export async function deleteFattura(id: string) {
   revalidatePath("/app");
 }
 
+export async function addPagamento(invoiceId: string, formData: FormData) {
+  const { supabase, user } = await requireUser();
+
+  const { data: invoice } = await supabase
+    .from("invoices")
+    .select("id, importo")
+    .eq("id", invoiceId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!invoice) {
+    throw new Error("Fattura non valida.");
+  }
+
+  await supabase.from("pagamenti").insert({
+    user_id: user.id,
+    invoice_id: invoiceId,
+    importo: Number(formData.get("importo") ?? 0),
+    data_pagamento: String(formData.get("data_pagamento") ?? ""),
+  });
+
+  const { data: pagamenti } = await supabase
+    .from("pagamenti")
+    .select("importo")
+    .eq("invoice_id", invoiceId);
+
+  const totalePagato = (pagamenti ?? []).reduce((sum, p) => sum + Number(p.importo), 0);
+  if (totalePagato >= Number(invoice.importo)) {
+    await supabase.from("invoices").update({ status: "pagata" }).eq("id", invoiceId);
+  }
+
+  revalidatePath("/app/fatture");
+  revalidatePath("/app");
+}
+
+export async function deletePagamento(id: string, invoiceId: string) {
+  const { supabase, user } = await requireUser();
+  await supabase.from("pagamenti").delete().eq("id", id).eq("user_id", user.id);
+
+  const { data: invoice } = await supabase
+    .from("invoices")
+    .select("id, importo, status")
+    .eq("id", invoiceId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (invoice && invoice.status === "pagata") {
+    const { data: pagamenti } = await supabase
+      .from("pagamenti")
+      .select("importo")
+      .eq("invoice_id", invoiceId);
+
+    const totalePagato = (pagamenti ?? []).reduce((sum, p) => sum + Number(p.importo), 0);
+    if (totalePagato < Number(invoice.importo)) {
+      await supabase.from("invoices").update({ status: "aperta" }).eq("id", invoiceId);
+    }
+  }
+
+  revalidatePath("/app/fatture");
+  revalidatePath("/app");
+}
+
 export async function addPreventivo(formData: FormData) {
   const { supabase, user } = await requireUser();
   const clientId = String(formData.get("client_id") ?? "");

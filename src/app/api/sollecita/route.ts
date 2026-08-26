@@ -30,6 +30,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Non trovato" }, { status: 404 });
   }
 
+  let importoResiduo = Number(record.importo);
+  if (kind === "fattura") {
+    const { data: pagamenti } = await supabase
+      .from("pagamenti")
+      .select("importo")
+      .eq("invoice_id", id);
+    const totalePagato = (pagamenti ?? []).reduce((sum, p) => sum + Number(p.importo), 0);
+    importoResiduo = Number(record.importo) - totalePagato;
+  }
+
   const dataRiferimento: string = kind === "fattura" ? record.data_scadenza : record.data_invio;
   const giorniRitardo = Math.max(
     0,
@@ -42,7 +52,7 @@ export async function POST(req: Request) {
     const aiMessage = await generateSollecitoMessage({
       tono,
       clienteNome: record.clients.nome,
-      importo: Number(record.importo),
+      importo: importoResiduo,
       data: dataRiferimento,
       tipoDocumento: kind,
       giorniRitardo,
@@ -54,7 +64,7 @@ export async function POST(req: Request) {
     messages = getFallbackMessages({
       tono,
       clienteNome: record.clients.nome,
-      importo: Number(record.importo),
+      importo: importoResiduo,
       data: dataRiferimento,
       giorniRitardo,
       numero: record.numero,
