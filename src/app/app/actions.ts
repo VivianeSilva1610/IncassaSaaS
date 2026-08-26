@@ -23,6 +23,23 @@ async function requireUser() {
   return { supabase, user };
 }
 
+async function requireOwnClient(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  clientId: string,
+  userId: string,
+) {
+  const { data } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("id", clientId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!data) {
+    throw new Error("Cliente non valido.");
+  }
+}
+
 export async function signOut() {
   const { supabase } = await requireUser();
   await supabase.auth.signOut();
@@ -98,10 +115,12 @@ export async function deleteCliente(id: string) {
 
 export async function addFattura(formData: FormData) {
   const { supabase, user } = await requireUser();
+  const clientId = String(formData.get("client_id") ?? "");
+  await requireOwnClient(supabase, clientId, user.id);
 
   await supabase.from("invoices").insert({
     user_id: user.id,
-    client_id: String(formData.get("client_id") ?? ""),
+    client_id: clientId,
     numero: String(formData.get("numero") ?? "") || null,
     descrizione: String(formData.get("descrizione") ?? "") || null,
     importo: Number(formData.get("importo") ?? 0),
@@ -115,11 +134,13 @@ export async function addFattura(formData: FormData) {
 
 export async function updateFattura(id: string, formData: FormData) {
   const { supabase, user } = await requireUser();
+  const clientId = String(formData.get("client_id") ?? "");
+  await requireOwnClient(supabase, clientId, user.id);
 
   await supabase
     .from("invoices")
     .update({
-      client_id: String(formData.get("client_id") ?? ""),
+      client_id: clientId,
       numero: String(formData.get("numero") ?? "") || null,
       descrizione: String(formData.get("descrizione") ?? "") || null,
       importo: Number(formData.get("importo") ?? 0),
@@ -149,10 +170,12 @@ export async function deleteFattura(id: string) {
 
 export async function addPreventivo(formData: FormData) {
   const { supabase, user } = await requireUser();
+  const clientId = String(formData.get("client_id") ?? "");
+  await requireOwnClient(supabase, clientId, user.id);
 
   await supabase.from("quotes").insert({
     user_id: user.id,
-    client_id: String(formData.get("client_id") ?? ""),
+    client_id: clientId,
     numero: String(formData.get("numero") ?? "") || null,
     descrizione: String(formData.get("descrizione") ?? "") || null,
     importo: Number(formData.get("importo") ?? 0),
@@ -166,11 +189,13 @@ export async function addPreventivo(formData: FormData) {
 
 export async function updatePreventivo(id: string, formData: FormData) {
   const { supabase, user } = await requireUser();
+  const clientId = String(formData.get("client_id") ?? "");
+  await requireOwnClient(supabase, clientId, user.id);
 
   await supabase
     .from("quotes")
     .update({
-      client_id: String(formData.get("client_id") ?? ""),
+      client_id: clientId,
       numero: String(formData.get("numero") ?? "") || null,
       descrizione: String(formData.get("descrizione") ?? "") || null,
       importo: Number(formData.get("importo") ?? 0),

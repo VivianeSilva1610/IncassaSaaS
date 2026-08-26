@@ -19,6 +19,19 @@ export async function POST(req: Request) {
     tono: string;
   };
 
+  const documentTable = body.tipoDocumento === "fattura" ? "invoices" : "quotes";
+  const { data: document } = await supabase
+    .from(documentTable)
+    .select("id")
+    .eq("id", body.documentId)
+    .eq("client_id", body.clientId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!document) {
+    return NextResponse.json({ error: "Documento non valido" }, { status: 403 });
+  }
+
   const { error } = await supabase.from("comunicazioni").insert({
     user_id: user.id,
     client_id: body.clientId,

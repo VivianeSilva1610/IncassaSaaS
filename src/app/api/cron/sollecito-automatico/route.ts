@@ -36,7 +36,7 @@ export async function GET(req: Request) {
 
   const { data: invoices, error: invoicesError } = await supabase
     .from("invoices")
-    .select("id, user_id, importo, data_scadenza, numero, clients(id, nome, email)")
+    .select("id, user_id, importo, data_scadenza, numero, clients(id, nome, email, user_id)")
     .in("user_id", profiles.map((p) => p.id))
     .eq("status", "aperta")
     .lte("data_scadenza", sogliaStr)
@@ -49,8 +49,14 @@ export async function GET(req: Request) {
 
   let sent = 0;
   for (const inv of invoices ?? []) {
-    const cliente = inv.clients as unknown as { id: string; nome: string; email: string | null } | null;
+    const cliente = inv.clients as unknown as
+      | { id: string; nome: string; email: string | null; user_id: string }
+      | null;
     if (!cliente?.email) continue;
+    if (cliente.user_id !== inv.user_id) {
+      console.error(`Skipping invoice ${inv.id} with mismatched client ownership`);
+      continue;
+    }
 
     const artigianoEmail = emailByUserId.get(inv.user_id);
     if (!artigianoEmail) continue;

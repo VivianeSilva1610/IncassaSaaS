@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 
   const { data: invoices, error } = await supabase
     .from("invoices")
-    .select("user_id, importo, clients(nome)")
+    .select("user_id, importo, clients(nome, user_id)")
     .eq("status", "aperta")
     .eq("data_scadenza", today);
 
@@ -24,7 +24,12 @@ export async function GET(req: Request) {
 
   let sent = 0;
   for (const inv of invoices ?? []) {
-    const clienteNome = (inv.clients as unknown as { nome: string } | null)?.nome ?? "un cliente";
+    const cliente = inv.clients as unknown as { nome: string; user_id: string } | null;
+    if (!cliente || cliente.user_id !== inv.user_id) {
+      console.error(`Skipping invoice with mismatched client ownership (user ${inv.user_id})`);
+      continue;
+    }
+    const clienteNome = cliente.nome;
     await sendPushToUser(inv.user_id, {
       title: "Fattura in scadenza oggi",
       body: `${clienteNome} — ${formatEuro(Number(inv.importo))}`,

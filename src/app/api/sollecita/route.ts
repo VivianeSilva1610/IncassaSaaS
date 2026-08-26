@@ -23,6 +23,7 @@ export async function POST(req: Request) {
     .from(table)
     .select("*, clients(nome, telefono, email)")
     .eq("id", id)
+    .eq("user_id", user.id)
     .single();
 
   if (error || !record) {
