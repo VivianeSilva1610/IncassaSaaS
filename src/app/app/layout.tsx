@@ -8,6 +8,7 @@ const navItems = [
   { href: "/app/fatture", label: "Fatture" },
   { href: "/app/preventivi", label: "Preventivi" },
   { href: "/app/abbonamento", label: "Abbonamento" },
+  { href: "/app/impostazioni", label: "Impostazioni" },
 ];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
