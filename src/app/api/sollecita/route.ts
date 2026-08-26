@@ -71,5 +71,11 @@ export async function POST(req: Request) {
 
   const phone = record.clients.telefono ? normalizePhoneForWhatsapp(record.clients.telefono) : null;
 
-  return NextResponse.json({ messages, fallback, phone, email: record.clients.email ?? null });
+  return NextResponse.json({
+    messages,
+    fallback,
+    phone,
+    email: record.clients.email ?? null,
+    clientId: record.client_id,
+  });
 }

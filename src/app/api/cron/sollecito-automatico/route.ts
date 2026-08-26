@@ -36,7 +36,7 @@ export async function GET(req: Request) {
 
   const { data: invoices, error: invoicesError } = await supabase
     .from("invoices")
-    .select("id, user_id, importo, data_scadenza, numero, clients(nome, email)")
+    .select("id, user_id, importo, data_scadenza, numero, clients(id, nome, email)")
     .in("user_id", profiles.map((p) => p.id))
     .eq("status", "aperta")
     .lte("data_scadenza", sogliaStr)
@@ -49,7 +49,7 @@ export async function GET(req: Request) {
 
   let sent = 0;
   for (const inv of invoices ?? []) {
-    const cliente = inv.clients as unknown as { nome: string; email: string | null } | null;
+    const cliente = inv.clients as unknown as { id: string; nome: string; email: string | null } | null;
     if (!cliente?.email) continue;
 
     const artigianoEmail = emailByUserId.get(inv.user_id);
@@ -103,6 +103,16 @@ export async function GET(req: Request) {
       .from("invoices")
       .update({ sollecito_auto_inviato_il: new Date().toISOString() })
       .eq("id", inv.id);
+
+    await supabase.from("comunicazioni").insert({
+      user_id: inv.user_id,
+      client_id: cliente.id,
+      tipo_documento: "fattura",
+      document_id: inv.id,
+      canale: "email",
+      tono: TONO_DEFAULT,
+      automatico: true,
+    });
 
     sent += 1;
   }

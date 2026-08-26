@@ -5,7 +5,13 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getStripe } from "@/lib/stripe";
-import { parseFattureCsv, type ParsedFatturaRow, type FatturaRowError } from "@/lib/csv-parser";
+import {
+  parseFattureCsv,
+  parseClientiCsv,
+  type ParsedFatturaRow,
+  type ParsedClienteRow,
+  type CsvRowError,
+} from "@/lib/csv-parser";
 import { normalizePhoneForWhatsapp } from "@/lib/phone";
 
 async function requireUser() {
@@ -59,6 +65,7 @@ export async function addCliente(formData: FormData) {
     email: String(formData.get("email") ?? "") || null,
     tipo: String(formData.get("tipo") ?? "privato"),
     indirizzo: String(formData.get("indirizzo") ?? "") || null,
+    note: String(formData.get("note") ?? "") || null,
   });
 
   revalidatePath("/app/clienti");
@@ -75,6 +82,7 @@ export async function updateCliente(id: string, formData: FormData) {
       email: String(formData.get("email") ?? "") || null,
       tipo: String(formData.get("tipo") ?? "privato"),
       indirizzo: String(formData.get("indirizzo") ?? "") || null,
+      note: String(formData.get("note") ?? "") || null,
     })
     .eq("id", id)
     .eq("user_id", user.id);
@@ -193,7 +201,7 @@ export async function deletePreventivo(id: string) {
 export interface ImportFattureResult {
   imported: number;
   clientiCreati: number;
-  errors: FatturaRowError[];
+  errors: CsvRowError[];
 }
 
 export async function importFatture(csvText: string): Promise<ImportFattureResult> {
@@ -277,6 +285,71 @@ export async function importFatture(csvText: string): Promise<ImportFattureResul
   revalidatePath("/app");
 
   return { imported: rowsWithClientId.length, clientiCreati, errors };
+}
+
+export interface ImportClientiResult {
+  imported: number;
+  saltati: number;
+  errors: CsvRowError[];
+}
+
+export async function importClienti(csvText: string): Promise<ImportClientiResult> {
+  const { supabase, user } = await requireUser();
+  const { rows, errors } = parseClientiCsv(csvText);
+
+  if (rows.length === 0) {
+    return { imported: 0, saltati: 0, errors };
+  }
+
+  const { data: existingClients } = await supabase
+    .from("clients")
+    .select("nome, telefono")
+    .eq("user_id", user.id);
+
+  const existingPhones = new Set<string>();
+  const existingNames = new Set<string>();
+  for (const c of existingClients ?? []) {
+    if (c.telefono) existingPhones.add(normalizePhoneForWhatsapp(c.telefono));
+    existingNames.add(c.nome.trim().toLowerCase());
+  }
+
+  const toInsert: ParsedClienteRow[] = [];
+  let saltati = 0;
+
+  for (const row of rows) {
+    const phoneKey = row.telefono ? normalizePhoneForWhatsapp(row.telefono) : null;
+    const nameKey = row.nome.trim().toLowerCase();
+
+    if ((phoneKey && existingPhones.has(phoneKey)) || existingNames.has(nameKey)) {
+      saltati += 1;
+      continue;
+    }
+
+    if (phoneKey) existingPhones.add(phoneKey);
+    existingNames.add(nameKey);
+    toInsert.push(row);
+  }
+
+  if (toInsert.length > 0) {
+    const { error } = await supabase.from("clients").insert(
+      toInsert.map((row) => ({
+        user_id: user.id,
+        nome: row.nome,
+        telefono: row.telefono,
+        email: row.email,
+        tipo: row.tipo,
+        indirizzo: row.indirizzo,
+      })),
+    );
+
+    if (error) {
+      return { imported: 0, saltati, errors: [...errors, { line: 0, reason: error.message }] };
+    }
+  }
+
+  revalidatePath("/app/clienti");
+
+  return { imported: toInsert.length, saltati, errors };
 }
 
 export async function updateSollecitoAutomatico(enabled: boolean) {

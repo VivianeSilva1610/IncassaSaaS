@@ -7,6 +7,7 @@ const navItems = [
   { href: "/app/clienti", label: "Clienti" },
   { href: "/app/fatture", label: "Fatture" },
   { href: "/app/preventivi", label: "Preventivi" },
+  { href: "/app/comunicazioni", label: "Comunicazioni" },
   { href: "/app/abbonamento", label: "Abbonamento" },
   { href: "/app/impostazioni", label: "Impostazioni" },
 ];

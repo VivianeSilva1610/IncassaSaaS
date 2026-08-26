@@ -11,6 +11,7 @@ interface SollecitaResult {
   fallback: boolean;
   phone: string | null;
   email: string | null;
+  clientId: string;
 }
 
 export function SollecitaButton({ kind, id }: { kind: "fattura" | "preventivo"; id: string }) {
@@ -20,8 +21,26 @@ export function SollecitaButton({ kind, id }: { kind: "fattura" | "preventivo"; 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [tono, setTono] = useState<Tone | null>(null);
 
-  async function handleTone(tono: Tone) {
+  function logComunicazione(canale: "email" | "whatsapp") {
+    if (!result) return;
+    fetch("/api/comunicazioni/log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      keepalive: true,
+      body: JSON.stringify({
+        clientId: result.clientId,
+        tipoDocumento: kind,
+        documentId: id,
+        canale,
+        tono,
+      }),
+    }).catch(() => {});
+  }
+
+  async function handleTone(t: Tone) {
+    setTono(t);
     setLoading(true);
     setResult(null);
     setError(null);
@@ -30,7 +49,7 @@ export function SollecitaButton({ kind, id }: { kind: "fattura" | "preventivo"; 
       const res = await fetch("/api/sollecita", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, id, tono }),
+        body: JSON.stringify({ kind, id, tono: t }),
       });
       const data = await res.json();
       if (!res.ok || !data.messages?.length) {
@@ -131,6 +150,7 @@ export function SollecitaButton({ kind, id }: { kind: "fattura" | "preventivo"; 
                     href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => logComunicazione("whatsapp")}
                     className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"
                   >
                     WhatsApp
@@ -138,6 +158,7 @@ export function SollecitaButton({ kind, id }: { kind: "fattura" | "preventivo"; 
                 )}
                 {mailtoUrl && (
                   <a
+                    onClick={() => logComunicazione("email")}
                     href={mailtoUrl}
                     className="rounded-md bg-sky-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-500"
                   >

@@ -2,6 +2,7 @@ import { requireActiveSubscription } from "@/lib/subscription";
 import { createClient } from "@/lib/supabase-server";
 import { addCliente, updateCliente, deleteCliente } from "@/app/app/actions";
 import { ContactPickerFields } from "@/components/ContactPickerFields";
+import Link from "next/link";
 
 export default async function ClientiPage() {
   await requireActiveSubscription();
@@ -10,7 +11,12 @@ export default async function ClientiPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-stone-900">Clienti</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-stone-900">Clienti</h1>
+        <Link href="/app/clienti/importa" className="text-sm text-amber-700 underline underline-offset-2">
+          Importa da CSV
+        </Link>
+      </div>
 
       <form action={addCliente} className="mt-6 grid gap-3 rounded-xl border border-stone-200 bg-white p-4 sm:grid-cols-2">
         <ContactPickerFields />
@@ -20,6 +26,12 @@ export default async function ClientiPage() {
         </select>
         <input name="email" type="email" placeholder="Email" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
         <input name="indirizzo" placeholder="Indirizzo (opzionale)" className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2" />
+        <textarea
+          name="note"
+          placeholder="Note (opzionale)"
+          rows={2}
+          className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2"
+        />
         <button
           type="submit"
           className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-transform hover:bg-stone-700 active:scale-[0.98] sm:col-span-2"
@@ -40,8 +52,15 @@ export default async function ClientiPage() {
                   {c.email ? ` · ${c.email}` : ""}
                   {c.indirizzo ? ` · ${c.indirizzo}` : ""}
                 </p>
+                {c.note && <p className="mt-1 text-sm text-stone-500 italic">{c.note}</p>}
               </div>
               <div className="flex items-center gap-3">
+                <Link
+                  href={`/app/comunicazioni?cliente=${c.id}`}
+                  className="text-xs text-amber-700 hover:underline"
+                >
+                  Storico
+                </Link>
                 <details className="relative">
                   <summary className="cursor-pointer list-none text-xs text-amber-700 hover:underline">
                     Modifica
@@ -77,6 +96,13 @@ export default async function ClientiPage() {
                       name="indirizzo"
                       defaultValue={c.indirizzo ?? ""}
                       placeholder="Indirizzo"
+                      className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
+                    />
+                    <textarea
+                      name="note"
+                      defaultValue={c.note ?? ""}
+                      placeholder="Note"
+                      rows={2}
                       className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
                     />
                     <button

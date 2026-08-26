@@ -12,14 +12,28 @@ export interface ParsedFatturaRow {
   luogo_lavoro: string | null;
 }
 
-export interface FatturaRowError {
+export interface CsvRowError {
   line: number;
   reason: string;
 }
 
 export interface ParseFattureCsvResult {
   rows: ParsedFatturaRow[];
-  errors: FatturaRowError[];
+  errors: CsvRowError[];
+}
+
+export interface ParsedClienteRow {
+  line: number;
+  nome: string;
+  telefono: string | null;
+  email: string | null;
+  tipo: "privato" | "azienda";
+  indirizzo: string | null;
+}
+
+export interface ParseClientiCsvResult {
+  rows: ParsedClienteRow[];
+  errors: CsvRowError[];
 }
 
 const MAX_ROWS = 500;
@@ -49,7 +63,7 @@ export function parseFattureCsv(csvText: string): ParseFattureCsvResult {
   });
 
   const rows: ParsedFatturaRow[] = [];
-  const errors: FatturaRowError[] = [];
+  const errors: CsvRowError[] = [];
 
   parsed.data.slice(0, MAX_ROWS).forEach((raw, index) => {
     const line = index + 2;
@@ -84,6 +98,39 @@ export function parseFattureCsv(csvText: string): ParseFattureCsvResult {
       numero: (raw.numero ?? "").trim() || null,
       descrizione: (raw.descrizione ?? "").trim() || null,
       luogo_lavoro: (raw.luogo_lavoro ?? "").trim() || null,
+    });
+  });
+
+  return { rows, errors };
+}
+
+/** Pura: nessun I/O, usabile sia nel preview client che nel commit server. */
+export function parseClientiCsv(csvText: string): ParseClientiCsvResult {
+  const parsed = Papa.parse<Record<string, string>>(csvText, {
+    header: true,
+    skipEmptyLines: true,
+  });
+
+  const rows: ParsedClienteRow[] = [];
+  const errors: CsvRowError[] = [];
+
+  parsed.data.slice(0, MAX_ROWS).forEach((raw, index) => {
+    const line = index + 2;
+    const nome = (raw.nome ?? "").trim();
+    const tipoRaw = (raw.tipo ?? "privato").trim().toLowerCase();
+
+    if (!nome) {
+      errors.push({ line, reason: "Nome mancante" });
+      return;
+    }
+
+    rows.push({
+      line,
+      nome,
+      telefono: (raw.telefono ?? "").trim() || null,
+      email: (raw.email ?? "").trim() || null,
+      tipo: tipoRaw === "azienda" ? "azienda" : "privato",
+      indirizzo: (raw.indirizzo ?? "").trim() || null,
     });
   });
 
