@@ -15,15 +15,27 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 
 type Status = "idle" | "loading" | "enabled" | "denied" | "unsupported" | "error";
 
+function isIosNotInstalled(): boolean {
+  const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const isStandalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as unknown as { standalone?: boolean }).standalone === true;
+  return isIos && !isStandalone;
+}
+
 export function EnableNotificationsButton() {
   const [status, setStatus] = useState<Status>("idle");
+  const [iosNotInstalled, setIosNotInstalled] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function checkSupport() {
       if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
-        if (!cancelled) setStatus("unsupported");
+        if (!cancelled) {
+          setIosNotInstalled(isIosNotInstalled());
+          setStatus("unsupported");
+        }
         return;
       }
       const registration = await navigator.serviceWorker.ready;
@@ -67,6 +79,16 @@ export function EnableNotificationsButton() {
   }
 
   if (status === "unsupported") {
+    if (iosNotInstalled) {
+      return (
+        <p className="text-sm text-stone-500">
+          Su iPhone le notifiche funzionano solo se aggiungi INCASSA alla schermata Home: tocca{" "}
+          <span className="font-medium">Condividi</span> nel browser →{" "}
+          <span className="font-medium">&quot;Aggiungi a Home&quot;</span>, poi apri l&apos;app da lì e
+          riprova.
+        </p>
+      );
+    }
     return <p className="text-sm text-stone-400">Il tuo browser non supporta le notifiche push.</p>;
   }
 
