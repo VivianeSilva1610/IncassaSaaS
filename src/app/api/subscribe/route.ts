@@ -16,6 +16,9 @@ export async function POST() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const cookieStore = await cookies();
 
+  const fbp = cookieStore.get("_fbp")?.value ?? "";
+  const fbc = cookieStore.get("_fbc")?.value ?? "";
+
   const session = await getStripe().checkout.sessions.create({
     mode: "subscription",
     customer_email: user.email,
@@ -28,14 +31,15 @@ export async function POST() {
     ],
     subscription_data: {
       trial_period_days: 7,
-      metadata: { user_id: user.id },
+      // Duplicato qui (oltre che sulla Checkout Session) perché il webhook
+      // customer.subscription.updated riceve l'oggetto Subscription, non la
+      // Session originale — serve per l'evento Meta CAPI "Subscribe" quando
+      // il trial si converte in abbonamento pagante, giorni dopo.
+      metadata: { user_id: user.id, fbp, fbc },
     },
     success_url: `${siteUrl}/app?subscribed=1`,
     cancel_url: `${siteUrl}/app/abbonamento?checkout=cancelled`,
-    metadata: {
-      fbp: cookieStore.get("_fbp")?.value ?? "",
-      fbc: cookieStore.get("_fbc")?.value ?? "",
-    },
+    metadata: { fbp, fbc },
   });
 
   if (!session.url) {

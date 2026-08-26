@@ -73,17 +73,39 @@ async function handleSubscriptionCheckout(session: Stripe.Checkout.Session) {
   });
 }
 
-async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+async function handleSubscriptionUpdated(
+  subscription: Stripe.Subscription,
+  previousAttributes?: Partial<Stripe.Subscription>,
+) {
   const userId = subscription.metadata?.user_id;
   if (!userId) return;
 
-  await getSupabaseAdmin()
+  const supabase = getSupabaseAdmin();
+
+  await supabase
     .from("profiles")
     .update({
       subscription_status: subscription.status,
       trial_ends_at: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
     })
     .eq("id", userId);
+
+  // Il trial è appena diventato un abbonamento pagante (prima addebito reale,
+  // di solito 7 giorni dopo lo StartTrial) — è la conversione vera per Meta,
+  // non il semplice inizio del trial.
+  if (previousAttributes?.status === "trialing" && subscription.status === "active") {
+    const { data: profile } = await supabase.from("profiles").select("email").eq("id", userId).single();
+
+    await sendMetaEvent({
+      eventName: "Subscribe",
+      eventId: `${subscription.id}:converted`,
+      email: profile?.email,
+      fbp: subscription.metadata?.fbp,
+      fbc: subscription.metadata?.fbc,
+      value: 19.9,
+      currency: "EUR",
+    });
+  }
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
@@ -116,7 +138,9 @@ export async function POST(req: Request) {
       await handleKitIncassaCheckout(session);
     }
   } else if (event.type === "customer.subscription.updated") {
-    await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+    const previousAttributes = (event.data as { previous_attributes?: Partial<Stripe.Subscription> })
+      .previous_attributes;
+    await handleSubscriptionUpdated(event.data.object as Stripe.Subscription, previousAttributes);
   } else if (event.type === "customer.subscription.deleted") {
     await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
   }
