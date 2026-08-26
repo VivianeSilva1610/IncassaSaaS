@@ -172,6 +172,9 @@ export function SollecitaButton({ kind, id }: { kind: "fattura" | "preventivo"; 
                   {copied ? "Copiato!" : "Copia"}
                 </button>
               </div>
+              <p className="mt-2 text-xs text-stone-400">
+                Solo WhatsApp ed Email vengono salvati in Comunicazioni. &quot;Copia&quot; no.
+              </p>
             </div>
           )}
 
