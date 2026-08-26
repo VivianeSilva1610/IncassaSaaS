@@ -215,7 +215,11 @@ export default function Home() {
         <h2 className="text-xl font-semibold">INCASSA</h2>
         <p className="mt-2 text-4xl font-bold">€19,90</p>
         <p className="mt-1 text-sm text-stone-300">al mese, 7 giorni di prova gratuita</p>
+        <p className="mt-3 inline-block rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-300">
+          Nessun limite di clienti, fatture o messaggi
+        </p>
         <ul className="mx-auto mt-6 max-w-sm space-y-2 text-left text-sm text-stone-200">
+          <li>✓ Clienti, fatture e messaggi illimitati</li>
           <li>✓ Dashboard con scadenze e tasso di recupero</li>
           <li>✓ Solleciti IA in 4 toni, per WhatsApp ed email</li>
           <li>✓ Sollecito automatico via email (opzionale)</li>
