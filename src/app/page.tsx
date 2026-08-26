@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { messages } from "@/content/kit-incassa";
 import { CheckoutButton } from "@/components/CheckoutButton";
@@ -31,32 +32,32 @@ const problemi = [
 
 const features = [
   {
-    icon: "🤖",
+    icon: "/feature-icons/sollecito-automatico-email.png",
     title: "Sollecito automatico via email",
     text: "Se attivi l'opzione, quando una fattura resta scaduta 5 giorni INCASSA manda da sola l'email di sollecito al cliente. Nessun clic.",
   },
   {
-    icon: "😊",
+    icon: "/feature-icons/ia-quattro-toni.png",
     title: "IA in 4 toni diversi",
     text: "Gentile, Cordiale, Diretto o Formale: un clic e hai il messaggio pronto per WhatsApp o email, scritto su misura per la situazione.",
   },
   {
-    icon: "📊",
+    icon: "/feature-icons/dashboard-operativa.png",
     title: "Dashboard operativa",
     text: "Quanto devi recuperare in totale, cosa scade oggi, il tasso di recupero degli ultimi 30 giorni — tutto in un colpo d'occhio.",
   },
   {
-    icon: "📥",
+    icon: "/feature-icons/importa-csv.png",
     title: "Importa fatture e clienti da CSV",
     text: "Carica tutto in blocco invece di inserirlo uno per uno. INCASSA riconosce i clienti già esistenti da telefono o nome.",
   },
   {
-    icon: "🗂️",
+    icon: "/feature-icons/storico-comunicazioni.png",
     title: "Storico comunicazioni",
     text: "Ogni sollecito inviato — manuale o automatico — resta registrato per cliente: cosa hai mandato, quando e come.",
   },
   {
-    icon: "📱",
+    icon: "/feature-icons/pronto-whatsapp.png",
     title: "Pronto per WhatsApp",
     text: "Il messaggio si apre già scritto nella chat del cliente: lo controlli tu, decidi tu quando inviarlo.",
   },
@@ -151,10 +152,14 @@ export default function Home() {
         </Reveal>
         <Reveal stagger={0.1} className="mt-6 grid gap-6 sm:grid-cols-2">
           {features.map((f) => (
-            <div key={f.title} className="flex gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xl">
-                {f.icon}
-              </span>
+            <div key={f.title} className="flex gap-4">
+              <Image
+                src={f.icon}
+                alt=""
+                width={56}
+                height={56}
+                className="h-14 w-14 shrink-0 rounded-xl border border-stone-200 object-cover"
+              />
               <div>
                 <h3 className="font-semibold text-stone-900">{f.title}</h3>
                 <p className="mt-1 text-sm text-stone-600">{f.text}</p>
