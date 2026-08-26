@@ -20,7 +20,10 @@ export default async function UscitePage() {
       <form action={addUscita} className="mt-6 grid gap-3 rounded-xl border border-stone-200 bg-white p-4 sm:grid-cols-2">
         <input name="descrizione" required placeholder="Descrizione (es. Fornitore materiali)" className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2" />
         <input name="importo" type="number" step="0.01" min="0" required placeholder="Importo (€)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
-        <input name="data_scadenza" type="date" required className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        <label className="text-sm text-stone-600">
+          <span className="mb-1 block text-xs text-stone-500">Entro quando devi pagarla</span>
+          <input name="data_scadenza" type="date" required className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        </label>
         <button
           type="submit"
           className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-transform hover:bg-stone-700 active:scale-[0.98] sm:col-span-2"
@@ -66,13 +69,16 @@ export default async function UscitePage() {
                       defaultValue={u.importo}
                       className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
                     />
-                    <input
-                      name="data_scadenza"
-                      type="date"
-                      required
-                      defaultValue={u.data_scadenza}
-                      className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
-                    />
+                    <label className="text-xs text-stone-500">
+                      Entro quando devi pagarla
+                      <input
+                        name="data_scadenza"
+                        type="date"
+                        required
+                        defaultValue={u.data_scadenza}
+                        className="mt-1 w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm text-stone-900"
+                      />
+                    </label>
                     <button
                       type="submit"
                       className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-700"
