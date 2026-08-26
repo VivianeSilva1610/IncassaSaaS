@@ -164,13 +164,20 @@ export default async function FatturePage() {
                 </details>
                 {inv.status === "aperta" && (
                   <details className="relative">
-                    <summary className="cursor-pointer list-none text-xs text-sky-700 hover:underline">
+                    <summary
+                      className="cursor-pointer list-none text-xs text-sky-700 hover:underline"
+                      title="Usa questo se il cliente paga solo una parte — tieni traccia di quanto ha versato e quanto manca ancora."
+                    >
                       Registra pagamento
                     </summary>
                     <form
                       action={addPagamento.bind(null, inv.id)}
                       className="absolute right-0 z-10 mt-2 grid w-64 gap-2 rounded-lg border border-stone-200 bg-white p-3 shadow-lg"
                     >
+                      <p className="text-xs text-stone-500">
+                        Per pagamenti parziali: registra qui ogni versamento e vedrai sempre quanto
+                        resta da incassare.
+                      </p>
                       <input
                         name="importo"
                         type="number"
@@ -199,7 +206,11 @@ export default async function FatturePage() {
                 )}
                 {inv.status === "aperta" && (
                   <form action={markFatturaPagata.bind(null, inv.id)}>
-                    <button type="submit" className="text-xs text-emerald-700 hover:underline">
+                    <button
+                      type="submit"
+                      className="text-xs text-emerald-700 hover:underline"
+                      title="Usa questo se il cliente ha pagato tutto in un'unica soluzione."
+                    >
                       Segna pagata
                     </button>
                   </form>
