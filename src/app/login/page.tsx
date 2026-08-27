@@ -24,7 +24,7 @@ export default function LoginPage() {
     if (error) {
       if (error.code === "email_not_confirmed" || error.message.includes("Email not confirmed")) {
         setError(
-          "Devi prima confermare la tua email. Controlla la posta in arrivo (anche lo spam) e clicca sul link che ti abbiamo mandato in fase di registrazione.",
+          "Devi prima confermare la tua email. Controlla la posta in arrivo (anche spam e cestino) e clicca sul link che ti abbiamo mandato in fase di registrazione.",
         );
       } else {
         setError("Email o password non corretti.");

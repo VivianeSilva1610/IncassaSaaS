@@ -42,8 +42,8 @@ export default function SignupPage() {
 
       {status === "sent" ? (
         <p className="mt-6 rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800">
-          Controlla la tua email ({email}) e clicca sul link per confermare l&apos;account. Dopo
-          potrai accedere con la password che hai scelto.
+          Controlla la tua email ({email}, anche spam e cestino) e clicca sul link per confermare
+          l&apos;account. Dopo potrai accedere con la password che hai scelto.
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="mt-6 space-y-3">
