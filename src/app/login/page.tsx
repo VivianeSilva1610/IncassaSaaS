@@ -22,7 +22,13 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError("Email o password non corretti.");
+      if (error.code === "email_not_confirmed" || error.message.includes("Email not confirmed")) {
+        setError(
+          "Devi prima confermare la tua email. Controlla la posta in arrivo (anche lo spam) e clicca sul link che ti abbiamo mandato in fase di registrazione.",
+        );
+      } else {
+        setError("Email o password non corretti.");
+      }
       setLoading(false);
       return;
     }
