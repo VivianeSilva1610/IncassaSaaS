@@ -6,6 +6,7 @@ export const metadata: Metadata = {
 };
 
 const SUPPORT_EMAIL = "viverevivi37@gmail.com";
+const PEC_EMAIL = "supporto@pec.incassa.eu";
 const LAST_UPDATED = "25 agosto 2026";
 
 export default function TerminiPage() {
@@ -25,6 +26,10 @@ export default function TerminiPage() {
             Il Kit Incassa è venduto da Viviane Silva, Italia. Per qualsiasi domanda: {" "}
             <a href={`mailto:${SUPPORT_EMAIL}`} className="text-amber-700 underline underline-offset-2">
               {SUPPORT_EMAIL}
+            </a>{" "}
+            o via PEC:{" "}
+            <a href={`mailto:${PEC_EMAIL}`} className="text-amber-700 underline underline-offset-2">
+              {PEC_EMAIL}
             </a>
             .
           </p>
@@ -69,6 +74,10 @@ export default function TerminiPage() {
             completo entro 7 giorni dall&apos;acquisto scrivendo a{" "}
             <a href={`mailto:${SUPPORT_EMAIL}`} className="text-amber-700 underline underline-offset-2">
               {SUPPORT_EMAIL}
+            </a>{" "}
+            o via PEC a{" "}
+            <a href={`mailto:${PEC_EMAIL}`} className="text-amber-700 underline underline-offset-2">
+              {PEC_EMAIL}
             </a>
             , senza necessità di motivazione.
           </p>

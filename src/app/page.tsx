@@ -6,6 +6,7 @@ import { Reveal } from "@/components/Reveal";
 import { toneBadgeClasses } from "@/lib/tone-styles";
 
 const SUPPORT_EMAIL = "viverevivi37@gmail.com";
+const PEC_EMAIL = "supporto@pec.incassa.eu";
 
 const galleryIds = [
   "ritardo-lieve-gentile",
@@ -282,6 +283,10 @@ export default function Home() {
           Domande? Scrivici a{" "}
           <a href={`mailto:${SUPPORT_EMAIL}`} className="underline underline-offset-2 hover:text-stone-600">
             {SUPPORT_EMAIL}
+          </a>{" "}
+          o via PEC a{" "}
+          <a href={`mailto:${PEC_EMAIL}`} className="underline underline-offset-2 hover:text-stone-600">
+            {PEC_EMAIL}
           </a>
         </p>
         <p className="mt-2 space-x-3">

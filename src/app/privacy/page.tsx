@@ -6,6 +6,7 @@ export const metadata: Metadata = {
 };
 
 const SUPPORT_EMAIL = "viverevivi37@gmail.com";
+const PEC_EMAIL = "supporto@pec.incassa.eu";
 const LAST_UPDATED = "26 agosto 2026";
 
 export default function PrivacyPage() {
@@ -30,6 +31,10 @@ export default function PrivacyPage() {
             relativa a questa informativa o al trattamento dei tuoi dati, puoi scrivere a{" "}
             <a href={`mailto:${SUPPORT_EMAIL}`} className="text-amber-700 underline underline-offset-2">
               {SUPPORT_EMAIL}
+            </a>{" "}
+            o via PEC a{" "}
+            <a href={`mailto:${PEC_EMAIL}`} className="text-amber-700 underline underline-offset-2">
+              {PEC_EMAIL}
             </a>
             .
           </p>
@@ -113,6 +118,10 @@ export default function PrivacyPage() {
             Incassa, scrivi a{" "}
             <a href={`mailto:${SUPPORT_EMAIL}`} className="text-amber-700 underline underline-offset-2">
               {SUPPORT_EMAIL}
+            </a>{" "}
+            o via PEC a{" "}
+            <a href={`mailto:${PEC_EMAIL}`} className="text-amber-700 underline underline-offset-2">
+              {PEC_EMAIL}
             </a>
             . Hai inoltre diritto di proporre reclamo al Garante per la protezione dei dati
             personali (www.garanteprivacy.it).
