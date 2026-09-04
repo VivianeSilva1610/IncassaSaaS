@@ -26,6 +26,22 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-white text-stone-900">
+        {process.env.NEXT_PUBLIC_GOOGLE_ADS_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GOOGLE_ADS_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-ads" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${process.env.NEXT_PUBLIC_GOOGLE_ADS_ID}');
+              `}
+            </Script>
+          </>
+        )}
         {process.env.NEXT_PUBLIC_META_PIXEL_ID && (
           <Script id="meta-pixel" strategy="afterInteractive">
             {`
