@@ -1,8 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import type { Locale } from "@/lib/locale";
 
-export function BillingPortalButton({ className }: { className?: string }) {
+const strings = {
+  it: { unAttimo: "Un attimo…", gestisciAbbonamento: "Gestisci abbonamento", qualcosaAndato: "Qualcosa è andato storto." },
+  en: { unAttimo: "One moment…", gestisciAbbonamento: "Manage subscription", qualcosaAndato: "Something went wrong." },
+};
+
+export function BillingPortalButton({ className, locale = "it" }: { className?: string; locale?: Locale }) {
+  const t = strings[locale];
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,11 +22,11 @@ export function BillingPortalButton({ className }: { className?: string }) {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        setError(data.error ?? "Qualcosa è andato storto.");
+        setError(data.error ?? t.qualcosaAndato);
         setLoading(false);
       }
     } catch {
-      setError("Qualcosa è andato storto.");
+      setError(t.qualcosaAndato);
       setLoading(false);
     }
   }
@@ -27,7 +34,7 @@ export function BillingPortalButton({ className }: { className?: string }) {
   return (
     <div>
       <button onClick={handleClick} disabled={loading} className={className}>
-        {loading ? "Un attimo…" : "Gestisci abbonamento"}
+        {loading ? t.unAttimo : t.gestisciAbbonamento}
       </button>
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
     </div>

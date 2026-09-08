@@ -1,8 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import type { Locale } from "@/lib/locale";
 
-export function SubscribeButton({ className }: { className?: string }) {
+const strings = {
+  it: { unAttimo: "Un attimo…", inizia: "Inizia il trial gratuito di 7 giorni" },
+  en: { unAttimo: "One moment…", inizia: "Start your 7-day free trial" },
+};
+
+export function SubscribeButton({ className, locale = "it" }: { className?: string; locale?: Locale }) {
+  const t = strings[locale];
   const [loading, setLoading] = useState(false);
 
   async function handleClick() {
@@ -22,7 +29,7 @@ export function SubscribeButton({ className }: { className?: string }) {
 
   return (
     <button onClick={handleClick} disabled={loading} className={className}>
-      {loading ? "Un attimo…" : "Inizia il trial gratuito di 7 giorni"}
+      {loading ? t.unAttimo : t.inizia}
     </button>
   );
 }
