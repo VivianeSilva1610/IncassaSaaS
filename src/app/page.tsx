@@ -3,6 +3,7 @@ import Link from "next/link";
 import { messages } from "@/content/kit-incassa";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { Reveal } from "@/components/Reveal";
+import { DemoDashboard } from "@/components/DemoDashboard";
 import { toneBadgeClasses } from "@/lib/tone-styles";
 
 const SUPPORT_EMAIL = "viverevivi37@gmail.com";
@@ -167,6 +168,19 @@ export default function Home() {
               </div>
             </div>
           ))}
+        </Reveal>
+      </section>
+
+      {/* Demo dashboard */}
+      <section className="mt-16">
+        <Reveal>
+          <h2 className="text-center text-xl font-semibold text-stone-900">La tua dashboard, in pratica</h2>
+          <p className="mx-auto mt-1 max-w-md text-center text-sm text-stone-500">
+            Esempio con dati fittizi — è così che vedi tutto quando accedi.
+          </p>
+        </Reveal>
+        <Reveal className="mx-auto mt-6 max-w-lg">
+          <DemoDashboard locale="it" />
         </Reveal>
       </section>
 

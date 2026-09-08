@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { messagesEn } from "@/content/kit-incassa.en";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { Reveal } from "@/components/Reveal";
+import { DemoDashboard } from "@/components/DemoDashboard";
 import { toneBadgeClasses } from "@/lib/tone-styles";
 
 export const metadata: Metadata = {
@@ -188,6 +189,19 @@ export default function HomeEn() {
               </div>
             </div>
           ))}
+        </Reveal>
+      </section>
+
+      {/* Demo dashboard */}
+      <section className="mt-16">
+        <Reveal>
+          <h2 className="text-center text-xl font-semibold text-stone-900">Your dashboard, in practice</h2>
+          <p className="mx-auto mt-1 max-w-md text-center text-sm text-stone-500">
+            Example with sample data — this is what you see once you log in.
+          </p>
+        </Reveal>
+        <Reveal className="mx-auto mt-6 max-w-lg">
+          <DemoDashboard locale="en" />
         </Reveal>
       </section>
 
