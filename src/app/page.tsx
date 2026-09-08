@@ -99,7 +99,7 @@ export default function Home() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
       <div className="flex items-center justify-between text-sm">
-        <span className="font-bold text-stone-900">INCASSA</span>
+        <Image src="/logo.png" alt="INCASSA" width={48} height={48} className="rounded-full" priority />
         <div className="flex items-center gap-4">
           <Link href="/en" className="text-stone-400 hover:text-stone-900">
             English
