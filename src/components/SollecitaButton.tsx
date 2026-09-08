@@ -3,8 +3,45 @@
 import { useState } from "react";
 import type { Tone } from "@/content/kit-incassa";
 import { toneEmoji } from "@/lib/tone-styles";
+import type { Locale } from "@/lib/locale";
 
 const tones: Tone[] = ["Gentile", "Cordiale", "Diretto", "Formale"];
+
+const toneLabelEn: Record<Tone, string> = {
+  Gentile: "Friendly",
+  Cordiale: "Polite",
+  Diretto: "Direct",
+  Formale: "Formal",
+};
+
+const strings = {
+  it: {
+    sollecita: "Sollecita",
+    scegliTono: "Scegli il tono:",
+    generando: "Generando il messaggio…",
+    genericError: "Qualcosa è andato storto. Riprova.",
+    iaNonDisponibile: "L'IA non era disponibile: messaggi pronti dai nostri modelli.",
+    opzione: "Opzione",
+    copia: "Copia",
+    copiato: "Copiato!",
+    soloWhatsappEmail: "Solo WhatsApp ed Email vengono salvati in Comunicazioni. \"Copia\" no.",
+    chiudi: "Chiudi",
+    subject: "Sollecito pagamento",
+  },
+  en: {
+    sollecita: "Follow up",
+    scegliTono: "Choose a tone:",
+    generando: "Generating message…",
+    genericError: "Something went wrong. Please try again.",
+    iaNonDisponibile: "AI was unavailable: ready-made messages instead.",
+    opzione: "Option",
+    copia: "Copy",
+    copiato: "Copied!",
+    soloWhatsappEmail: "Only WhatsApp and Email get saved in Communications. \"Copy\" doesn't.",
+    chiudi: "Close",
+    subject: "Payment reminder",
+  },
+};
 
 interface SollecitaResult {
   messages: string[];
@@ -14,7 +51,16 @@ interface SollecitaResult {
   clientId: string;
 }
 
-export function SollecitaButton({ kind, id }: { kind: "fattura" | "preventivo"; id: string }) {
+export function SollecitaButton({
+  kind,
+  id,
+  locale = "it",
+}: {
+  kind: "fattura" | "preventivo";
+  id: string;
+  locale?: Locale;
+}) {
+  const t = strings[locale];
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SollecitaResult | null>(null);
@@ -53,12 +99,12 @@ export function SollecitaButton({ kind, id }: { kind: "fattura" | "preventivo"; 
       });
       const data = await res.json();
       if (!res.ok || !data.messages?.length) {
-        setError(data.error ?? "Qualcosa è andato storto. Riprova.");
+        setError(data.error ?? strings[locale].genericError);
       } else {
         setResult(data);
       }
     } catch {
-      setError("Qualcosa è andato storto. Riprova.");
+      setError(strings[locale].genericError);
     } finally {
       setLoading(false);
     }
@@ -75,7 +121,7 @@ export function SollecitaButton({ kind, id }: { kind: "fattura" | "preventivo"; 
     ? `https://wa.me/${result.phone}?text=${encodeURIComponent(selectedMessage)}`
     : null;
   const mailtoUrl = result?.email
-    ? `mailto:${result.email}?subject=${encodeURIComponent("Sollecito pagamento")}&body=${encodeURIComponent(selectedMessage)}`
+    ? `mailto:${result.email}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(selectedMessage)}`
     : null;
 
   async function handleCopy() {
@@ -91,39 +137,35 @@ export function SollecitaButton({ kind, id }: { kind: "fattura" | "preventivo"; 
         onClick={() => (open ? handleClose() : setOpen(true))}
         className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white transition-transform hover:bg-stone-700 active:scale-95"
       >
-        Sollecita
+        {t.sollecita}
       </button>
 
       {open && (
         <div className="absolute right-0 z-10 mt-2 w-80 rounded-lg border border-stone-200 bg-white p-4 shadow-lg">
           {!result && !loading && (
             <>
-              <p className="mb-3 text-xs font-medium text-stone-500">Scegli il tono:</p>
+              <p className="mb-3 text-xs font-medium text-stone-500">{t.scegliTono}</p>
               <div className="grid grid-cols-2 gap-2">
-                {tones.map((t) => (
+                {tones.map((tn) => (
                   <button
-                    key={t}
-                    onClick={() => handleTone(t)}
+                    key={tn}
+                    onClick={() => handleTone(tn)}
                     className="rounded-md border border-stone-200 px-2 py-1.5 text-sm hover:bg-stone-50"
                   >
-                    {toneEmoji[t]} {t}
+                    {toneEmoji[tn]} {locale === "en" ? toneLabelEn[tn] : tn}
                   </button>
                 ))}
               </div>
             </>
           )}
 
-          {loading && <p className="text-sm text-stone-500">Generando il messaggio…</p>}
+          {loading && <p className="text-sm text-stone-500">{t.generando}</p>}
 
           {error && !loading && <p className="text-sm text-red-600">{error}</p>}
 
           {result && (
             <div>
-              {result.fallback && (
-                <p className="mb-2 text-xs text-amber-700">
-                  L&apos;IA non era disponibile: messaggi pronti dai nostri modelli.
-                </p>
-              )}
+              {result.fallback && <p className="mb-2 text-xs text-amber-700">{t.iaNonDisponibile}</p>}
 
               {result.messages.length > 1 && (
                 <div className="mb-2 flex gap-1">
@@ -137,7 +179,7 @@ export function SollecitaButton({ kind, id }: { kind: "fattura" | "preventivo"; 
                           : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                       }`}
                     >
-                      Opzione {i + 1}
+                      {t.opzione} {i + 1}
                     </button>
                   ))}
                 </div>
@@ -169,17 +211,15 @@ export function SollecitaButton({ kind, id }: { kind: "fattura" | "preventivo"; 
                   onClick={handleCopy}
                   className="rounded-md bg-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-300"
                 >
-                  {copied ? "Copiato!" : "Copia"}
+                  {copied ? t.copiato : t.copia}
                 </button>
               </div>
-              <p className="mt-2 text-xs text-stone-400">
-                Solo WhatsApp ed Email vengono salvati in Comunicazioni. &quot;Copia&quot; no.
-              </p>
+              <p className="mt-2 text-xs text-stone-400">{t.soloWhatsappEmail}</p>
             </div>
           )}
 
           <button onClick={handleClose} className="mt-3 text-xs text-stone-400 hover:text-stone-600">
-            Chiudi
+            {t.chiudi}
           </button>
         </div>
       )}

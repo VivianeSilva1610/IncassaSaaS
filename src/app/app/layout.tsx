@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-server";
 import { signOut } from "@/app/app/actions";
+import { getUserLocale } from "@/lib/locale";
 
-const navItems = [
+const navItemsIt = [
   { href: "/app", label: "Dashboard" },
   { href: "/app/clienti", label: "Clienti" },
   { href: "/app/fatture", label: "Fatture" },
@@ -13,11 +14,25 @@ const navItems = [
   { href: "/app/impostazioni", label: "Impostazioni" },
 ];
 
+const navItemsEn = [
+  { href: "/app", label: "Dashboard" },
+  { href: "/app/clienti", label: "Clients" },
+  { href: "/app/fatture", label: "Invoices" },
+  { href: "/app/preventivi", label: "Quotes" },
+  { href: "/app/uscite", label: "Expenses" },
+  { href: "/app/comunicazioni", label: "Communications" },
+  { href: "/app/abbonamento", label: "Subscription" },
+  { href: "/app/impostazioni", label: "Settings" },
+];
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const locale = user ? await getUserLocale(supabase, user.id) : "it";
+  const navItems = locale === "en" ? navItemsEn : navItemsIt;
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -34,7 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span>{user?.email}</span>
             <form action={signOut}>
               <button type="submit" className="hover:text-stone-900">
-                Esci
+                {locale === "en" ? "Log out" : "Esci"}
               </button>
             </form>
           </div>

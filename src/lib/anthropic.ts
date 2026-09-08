@@ -1,7 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { messages as kitMessages, type Tone } from "@/content/kit-incassa";
+import type { Locale } from "@/lib/locale";
 
-export type Locale = "it" | "en";
+export type { Locale };
 
 const enExamplesByTone: Record<Tone, string[]> = {
   Gentile: [
