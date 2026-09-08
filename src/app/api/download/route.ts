@@ -15,7 +15,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Accesso non valido" }, { status: 403 });
   }
 
-  const kitText = buildKitText();
+  const kitText = buildKitText(access.locale);
 
   return new NextResponse(kitText, {
     headers: {

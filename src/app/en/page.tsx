@@ -1,8 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { messagesEn } from "@/content/kit-incassa.en";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { Reveal } from "@/components/Reveal";
+import { toneBadgeClasses } from "@/lib/tone-styles";
 
 export const metadata: Metadata = {
   title: "INCASSA — You did the work. Now get paid.",
@@ -13,28 +15,27 @@ export const metadata: Metadata = {
 const SUPPORT_EMAIL = "viverevivi37@gmail.com";
 const PEC_EMAIL = "supporto@pec.incassa.eu";
 
-const galleryMessages = [
-  {
-    tone: "Friendly",
-    badgeClass: "bg-emerald-100 text-emerald-700",
-    text: "Hi [Name], hope you're doing well! Just a quick reminder that invoice #[Number] for [Amount] was due on [Date]. It probably slipped your mind with everything going on — whenever you get a minute, I'd really appreciate you taking a look 😊",
-  },
-  {
-    tone: "Direct",
-    badgeClass: "bg-amber-100 text-amber-800",
-    text: "[Name], this is the second reminder for invoice #[Number] for [Amount]. I still haven't received payment or a response. I need a firm date for when I'll receive the balance.",
-  },
-  {
-    tone: "Friendly",
-    badgeClass: "bg-emerald-100 text-emerald-700",
-    text: "Hi [Name], it's always a pleasure working with you! Just writing to remind you about invoice #[Number] for [Amount], still open. Whenever works for you, let's get it sorted 😊",
-  },
-  {
-    tone: "Formal",
-    badgeClass: "bg-stone-200 text-stone-700",
-    text: "Dear [Company Name], this is to inform you that invoice #[Number], issued on [Issue Date] and due on [Date], for an amount of [Amount], remains unpaid as of today. Please regularize the position and kindly confirm by email.",
-  },
+const toneLabelEn = {
+  Gentile: "Friendly",
+  Cordiale: "Polite",
+  Diretto: "Direct",
+  Formale: "Formal",
+};
+
+const galleryIds = [
+  "ritardo-lieve-gentile",
+  "secondo-sollecito-diretto",
+  "cliente-abituale-gentile",
+  "azienda-formale",
 ];
+const galleryMessages = galleryIds.map((id) => {
+  const m = messagesEn.find((msg) => msg.id === id)!;
+  return {
+    tone: m.tone ? toneLabelEn[m.tone] : undefined,
+    badgeClass: m.tone ? toneBadgeClasses[m.tone] : "",
+    text: m.text,
+  };
+});
 
 const problemi = [
   {
@@ -291,7 +292,10 @@ export default function HomeEn() {
           different tones. One-time payment, no subscription.
         </p>
         <div className="mt-4">
-          <CheckoutButton className="rounded-lg bg-stone-900 px-5 py-2.5 text-sm font-semibold text-white transition-transform hover:bg-stone-700 active:scale-[0.98] disabled:opacity-60" />
+          <CheckoutButton
+            locale="en"
+            className="rounded-lg bg-stone-900 px-5 py-2.5 text-sm font-semibold text-white transition-transform hover:bg-stone-700 active:scale-[0.98] disabled:opacity-60"
+          />
         </div>
       </Reveal>
 

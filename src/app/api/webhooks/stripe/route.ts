@@ -4,10 +4,12 @@ import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendKitEmail } from "@/lib/email";
 import { sendMetaEvent } from "@/lib/meta-capi";
+import type { Locale } from "@/lib/locale";
 
 async function handleKitIncassaCheckout(session: Stripe.Checkout.Session) {
   const email = session.customer_details?.email ?? session.customer_email;
   if (!email || session.payment_status !== "paid") return;
+  const locale: Locale = session.metadata?.locale === "en" ? "en" : "it";
 
   const supabase = getSupabaseAdmin();
 
@@ -26,7 +28,7 @@ async function handleKitIncassaCheckout(session: Stripe.Checkout.Session) {
     .single();
 
   if (!error && purchase && !purchase.email_sent_at) {
-    const result = await sendKitEmail(email, session.id);
+    const result = await sendKitEmail(email, session.id, locale);
     if (result.ok) {
       await supabase.from("purchases").update({ email_sent_at: new Date().toISOString() }).eq("id", purchase.id);
     } else {

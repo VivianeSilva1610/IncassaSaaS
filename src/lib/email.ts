@@ -1,21 +1,42 @@
 import { Resend } from "resend";
 import { buildKitText } from "@/lib/kit-file";
+import type { Locale } from "@/lib/locale";
 
-export async function sendKitEmail(email: string, sessionId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+const strings = {
+  it: {
+    subject: "Il tuo Kit Incassa è pronto",
+    thanks: "Grazie per il tuo acquisto!",
+    accessAnytime: "Puoi accedere ai tuoi 37 messaggi in qualsiasi momento da qui:",
+    attachmentNote: "In allegato trovi anche il file con tutti i messaggi pronti da copiare e incollare.",
+  },
+  en: {
+    subject: "Your Kit Incassa is ready",
+    thanks: "Thank you for your purchase!",
+    accessAnytime: "You can access your 37 messages any time from here:",
+    attachmentNote: "You'll also find attached the file with all the ready-to-send messages.",
+  },
+};
+
+export async function sendKitEmail(
+  email: string,
+  sessionId: string,
+  locale: Locale = "it",
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const t = strings[locale];
   const resend = new Resend(process.env.RESEND_API_KEY!);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const accessUrl = `${siteUrl}/acesso?session_id=${sessionId}`;
-  const kitText = buildKitText();
+  const kitText = buildKitText(locale);
 
   const { error } = await resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev",
     to: email,
-    subject: "Il tuo Kit Incassa è pronto",
+    subject: t.subject,
     html: `
-      <p>Grazie per il tuo acquisto!</p>
-      <p>Puoi accedere ai tuoi 37 messaggi in qualsiasi momento da qui:</p>
+      <p>${t.thanks}</p>
+      <p>${t.accessAnytime}</p>
       <p><a href="${accessUrl}">${accessUrl}</a></p>
-      <p>In allegato trovi anche il file con tutti i messaggi pronti da copiare e incollare.</p>
+      <p>${t.attachmentNote}</p>
     `,
     attachments: [
       {

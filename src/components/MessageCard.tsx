@@ -3,8 +3,15 @@
 import { useState } from "react";
 import type { Tone } from "@/content/kit-incassa";
 import { toneEmoji, toneBadgeClasses, toneBorderClasses } from "@/lib/tone-styles";
+import type { Locale } from "@/lib/locale";
 
-export function MessageCard({ text, tone }: { text: string; tone?: Tone }) {
+const strings = {
+  it: { copiato: "Copiato!", copiaMessaggio: "Copia messaggio" },
+  en: { copiato: "Copied!", copiaMessaggio: "Copy message" },
+};
+
+export function MessageCard({ text, tone, locale = "it" }: { text: string; tone?: Tone; locale?: Locale }) {
+  const t = strings[locale];
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -31,7 +38,7 @@ export function MessageCard({ text, tone }: { text: string; tone?: Tone }) {
         onClick={handleCopy}
         className="mt-3 rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white transition-transform hover:bg-stone-700 active:scale-95"
       >
-        {copied ? "Copiato!" : "Copia messaggio"}
+        {copied ? t.copiato : t.copiaMessaggio}
       </button>
     </div>
   );
