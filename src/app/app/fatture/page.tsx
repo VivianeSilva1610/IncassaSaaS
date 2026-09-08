@@ -1,5 +1,6 @@
 import { requireActiveSubscription } from "@/lib/subscription";
 import { createClient } from "@/lib/supabase-server";
+import { getUserLocale } from "@/lib/locale";
 import {
   addFattura,
   updateFattura,
@@ -11,9 +12,77 @@ import {
 import { formatEuro, getUrgency, urgencyEmoji } from "@/lib/urgency";
 import Link from "next/link";
 
+const strings = {
+  it: {
+    title: "Fatture",
+    importaCsv: "Importa da CSV",
+    selezionaCliente: "Seleziona cliente…",
+    importo: "Importo (€)",
+    numeroFatturaOpz: "Numero fattura (opzionale)",
+    descrizioneOpz: "Descrizione (opzionale)",
+    luogoLavoroOpz: "Luogo del lavoro (lascia vuoto se uguale all'indirizzo del cliente)",
+    aggiungiFattura: "Aggiungi fattura",
+    residuoText: (res: string, tot: string) => `${res} ancora da incassare (di ${tot})`,
+    scade: "scade",
+    annulla: "annulla",
+    modifica: "Modifica",
+    numeroFattura: "Numero fattura",
+    descrizione: "Descrizione",
+    luogoLavoro: "Luogo del lavoro",
+    salva: "Salva",
+    registraPagamentoTitle:
+      "Usa questo se il cliente paga solo una parte — tieni traccia di quanto ha versato e quanto manca ancora.",
+    registraPagamento: "Registra pagamento",
+    pagamentoParzialeHint:
+      "Per pagamenti parziali: registra qui ogni versamento e vedrai sempre quanto resta da incassare.",
+    importoMax: (max: string) => `Importo (max ${max})`,
+    registra: "Registra",
+    segnaPagataTitle: "Usa questo se il cliente ha pagato tutto in un'unica soluzione.",
+    segnaPagata: "Segna pagata",
+    elimina: "Elimina",
+    nessunaFattura: "Nessuna fattura ancora.",
+    il: "il",
+  },
+  en: {
+    title: "Invoices",
+    importaCsv: "Import from CSV",
+    selezionaCliente: "Select client…",
+    importo: "Amount (€)",
+    numeroFatturaOpz: "Invoice number (optional)",
+    descrizioneOpz: "Description (optional)",
+    luogoLavoroOpz: "Job location (leave blank if same as client's address)",
+    aggiungiFattura: "Add invoice",
+    residuoText: (res: string, tot: string) => `${res} still owed (of ${tot})`,
+    scade: "due",
+    annulla: "undo",
+    modifica: "Edit",
+    numeroFattura: "Invoice number",
+    descrizione: "Description",
+    luogoLavoro: "Job location",
+    salva: "Save",
+    registraPagamentoTitle:
+      "Use this if the client is only paying part of it — keep track of what's paid and what's still owed.",
+    registraPagamento: "Log payment",
+    pagamentoParzialeHint:
+      "For partial payments: log each payment here and you'll always see what's still owed.",
+    importoMax: (max: string) => `Amount (max ${max})`,
+    registra: "Log",
+    segnaPagataTitle: "Use this if the client paid the full amount at once.",
+    segnaPagata: "Mark as paid",
+    elimina: "Delete",
+    nessunaFattura: "No invoices yet.",
+    il: "on",
+  },
+};
+
 export default async function FatturePage() {
   await requireActiveSubscription();
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const locale = user ? await getUserLocale(supabase, user.id) : "it";
+  const t = strings[locale];
 
   const [{ data: clients }, { data: invoices }, { data: pagamenti }] = await Promise.all([
     supabase.from("clients").select("id, nome").order("nome"),
@@ -31,35 +100,35 @@ export default async function FatturePage() {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-stone-900">Fatture</h1>
+        <h1 className="text-2xl font-bold text-stone-900">{t.title}</h1>
         <Link href="/app/fatture/importa" className="text-sm text-amber-700 underline underline-offset-2">
-          Importa da CSV
+          {t.importaCsv}
         </Link>
       </div>
 
       <form action={addFattura} className="mt-6 grid gap-3 rounded-xl border border-stone-200 bg-white p-4 sm:grid-cols-2">
         <select name="client_id" required className="rounded-md border border-stone-300 px-3 py-2 text-sm">
-          <option value="">Seleziona cliente…</option>
+          <option value="">{t.selezionaCliente}</option>
           {(clients ?? []).map((c) => (
             <option key={c.id} value={c.id}>
               {c.nome}
             </option>
           ))}
         </select>
-        <input name="importo" type="number" step="0.01" min="0" required placeholder="Importo (€)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        <input name="importo" type="number" step="0.01" min="0" required placeholder={t.importo} className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
         <input name="data_scadenza" type="date" required className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
-        <input name="numero" placeholder="Numero fattura (opzionale)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
-        <input name="descrizione" placeholder="Descrizione (opzionale)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        <input name="numero" placeholder={t.numeroFatturaOpz} className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        <input name="descrizione" placeholder={t.descrizioneOpz} className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
         <input
           name="luogo_lavoro"
-          placeholder="Luogo del lavoro (lascia vuoto se uguale all'indirizzo del cliente)"
+          placeholder={t.luogoLavoroOpz}
           className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2"
         />
         <button
           type="submit"
           className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-transform hover:bg-stone-700 active:scale-[0.98] sm:col-span-2"
         >
-          Aggiungi fattura
+          {t.aggiungiFattura}
         </button>
       </form>
 
@@ -80,9 +149,9 @@ export default async function FatturePage() {
                 <p className="text-sm text-stone-500">
                   {inv.numero ? `n. ${inv.numero} · ` : ""}
                   {totalePagato > 0 && inv.status === "aperta"
-                    ? `${formatEuro(residuo)} ancora da incassare (di ${formatEuro(Number(inv.importo))})`
+                    ? t.residuoText(formatEuro(residuo), formatEuro(Number(inv.importo)))
                     : formatEuro(Number(inv.importo))}
-                  {" · scade "}
+                  {` · ${t.scade} `}
                   {inv.data_scadenza}
                   {inv.descrizione ? ` · ${inv.descrizione}` : ""}
                   {inv.luogo_lavoro ? ` · ${inv.luogo_lavoro}` : ""}
@@ -92,11 +161,11 @@ export default async function FatturePage() {
                     {pagamentiFattura.map((p) => (
                       <li key={p.id} className="flex items-center gap-2">
                         <span>
-                          ✓ {formatEuro(Number(p.importo))} il {p.data_pagamento}
+                          ✓ {formatEuro(Number(p.importo))} {t.il} {p.data_pagamento}
                         </span>
                         <form action={deletePagamento.bind(null, p.id, inv.id)}>
                           <button type="submit" className="text-red-500 hover:underline">
-                            annulla
+                            {t.annulla}
                           </button>
                         </form>
                       </li>
@@ -107,7 +176,7 @@ export default async function FatturePage() {
               <div className="flex items-center gap-3">
                 <details className="relative">
                   <summary className="cursor-pointer list-none text-xs text-amber-700 hover:underline">
-                    Modifica
+                    {t.modifica}
                   </summary>
                   <form
                     action={updateFattura.bind(null, inv.id)}
@@ -139,26 +208,26 @@ export default async function FatturePage() {
                     <input
                       name="numero"
                       defaultValue={inv.numero ?? ""}
-                      placeholder="Numero fattura"
+                      placeholder={t.numeroFattura}
                       className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
                     />
                     <input
                       name="descrizione"
                       defaultValue={inv.descrizione ?? ""}
-                      placeholder="Descrizione"
+                      placeholder={t.descrizione}
                       className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
                     />
                     <input
                       name="luogo_lavoro"
                       defaultValue={inv.luogo_lavoro ?? ""}
-                      placeholder="Luogo del lavoro"
+                      placeholder={t.luogoLavoro}
                       className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
                     />
                     <button
                       type="submit"
                       className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-700"
                     >
-                      Salva
+                      {t.salva}
                     </button>
                   </form>
                 </details>
@@ -166,18 +235,15 @@ export default async function FatturePage() {
                   <details className="relative">
                     <summary
                       className="cursor-pointer list-none text-xs text-sky-700 hover:underline"
-                      title="Usa questo se il cliente paga solo una parte — tieni traccia di quanto ha versato e quanto manca ancora."
+                      title={t.registraPagamentoTitle}
                     >
-                      Registra pagamento
+                      {t.registraPagamento}
                     </summary>
                     <form
                       action={addPagamento.bind(null, inv.id)}
                       className="absolute right-0 z-10 mt-2 grid w-64 gap-2 rounded-lg border border-stone-200 bg-white p-3 shadow-lg"
                     >
-                      <p className="text-xs text-stone-500">
-                        Per pagamenti parziali: registra qui ogni versamento e vedrai sempre quanto
-                        resta da incassare.
-                      </p>
+                      <p className="text-xs text-stone-500">{t.pagamentoParzialeHint}</p>
                       <input
                         name="importo"
                         type="number"
@@ -185,7 +251,7 @@ export default async function FatturePage() {
                         min="0"
                         max={residuo}
                         required
-                        placeholder={`Importo (max ${formatEuro(residuo)})`}
+                        placeholder={t.importoMax(formatEuro(residuo))}
                         className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
                       />
                       <input
@@ -199,7 +265,7 @@ export default async function FatturePage() {
                         type="submit"
                         className="rounded-md bg-sky-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-500"
                       >
-                        Registra
+                        {t.registra}
                       </button>
                     </form>
                   </details>
@@ -209,15 +275,15 @@ export default async function FatturePage() {
                     <button
                       type="submit"
                       className="text-xs text-emerald-700 hover:underline"
-                      title="Usa questo se il cliente ha pagato tutto in un'unica soluzione."
+                      title={t.segnaPagataTitle}
                     >
-                      Segna pagata
+                      {t.segnaPagata}
                     </button>
                   </form>
                 )}
                 <form action={deleteFattura.bind(null, inv.id)}>
                   <button type="submit" className="text-xs text-red-600 hover:underline">
-                    Elimina
+                    {t.elimina}
                   </button>
                 </form>
               </div>
@@ -225,7 +291,7 @@ export default async function FatturePage() {
           </div>
           );
         })}
-        {(invoices ?? []).length === 0 && <p className="text-sm text-stone-500">Nessuna fattura ancora.</p>}
+        {(invoices ?? []).length === 0 && <p className="text-sm text-stone-500">{t.nessunaFattura}</p>}
       </div>
     </div>
   );

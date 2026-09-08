@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { Locale } from "@/lib/locale";
 
 interface ContactPickerContact {
   name?: string[];
@@ -11,7 +12,21 @@ interface ContactsManager {
   select(properties: string[], options?: { multiple?: boolean }): Promise<ContactPickerContact[]>;
 }
 
-export function ContactPickerFields() {
+const strings = {
+  it: {
+    nome: "Nome",
+    sceglieDaRubrica: "Scegli dalla rubrica",
+    telefono: "Telefono (per WhatsApp)",
+  },
+  en: {
+    nome: "Name",
+    sceglieDaRubrica: "Choose from contacts",
+    telefono: "Phone (for WhatsApp)",
+  },
+};
+
+export function ContactPickerFields({ locale = "it" }: { locale?: Locale }) {
+  const t = strings[locale];
   const nomeRef = useRef<HTMLInputElement>(null);
   const telefonoRef = useRef<HTMLInputElement>(null);
   const [supported, setSupported] = useState(false);
@@ -47,15 +62,15 @@ export function ContactPickerFields() {
           ref={nomeRef}
           name="nome"
           required
-          placeholder="Nome"
+          placeholder={t.nome}
           className="flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm"
         />
         {supported && (
           <button
             type="button"
             onClick={handlePick}
-            title="Scegli dalla rubrica"
-            aria-label="Scegli dalla rubrica"
+            title={t.sceglieDaRubrica}
+            aria-label={t.sceglieDaRubrica}
             className="shrink-0 rounded-md border border-stone-300 px-3 py-2 text-sm hover:bg-stone-50"
           >
             📇
@@ -65,7 +80,7 @@ export function ContactPickerFields() {
       <input
         ref={telefonoRef}
         name="telefono"
-        placeholder="Telefono (per WhatsApp)"
+        placeholder={t.telefono}
         className="rounded-md border border-stone-300 px-3 py-2 text-sm"
       />
     </>
