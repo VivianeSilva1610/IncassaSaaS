@@ -1,17 +1,68 @@
 import { requireActiveSubscription } from "@/lib/subscription";
 import { createClient } from "@/lib/supabase-server";
+import { getUserLocale } from "@/lib/locale";
 import { addPreventivo, updatePreventivo, updatePreventivoStatus, deletePreventivo } from "@/app/app/actions";
 import { formatEuro } from "@/lib/urgency";
 
-const statusLabel: Record<string, string> = {
-  in_attesa: "⏳ In attesa",
-  accettato: "✅ Accettato",
-  rifiutato: "❌ Rifiutato",
+const strings = {
+  it: {
+    title: "Preventivi",
+    selezionaCliente: "Seleziona cliente…",
+    importo: "Importo (€)",
+    numeroOpz: "Numero preventivo (opzionale)",
+    descrizioneOpz: "Descrizione (opzionale)",
+    luogoLavoroOpz: "Luogo del lavoro (lascia vuoto se uguale all'indirizzo del cliente)",
+    aggiungiPreventivo: "Aggiungi preventivo",
+    modifica: "Modifica",
+    numero: "Numero preventivo",
+    descrizione: "Descrizione",
+    luogoLavoro: "Luogo del lavoro",
+    salva: "Salva",
+    accettato: "Accettato",
+    rifiutato: "Rifiutato",
+    elimina: "Elimina",
+    nessunPreventivo: "Nessun preventivo ancora.",
+    inviato: "inviato",
+    statusLabel: {
+      in_attesa: "⏳ In attesa",
+      accettato: "✅ Accettato",
+      rifiutato: "❌ Rifiutato",
+    } as Record<string, string>,
+  },
+  en: {
+    title: "Quotes",
+    selezionaCliente: "Select client…",
+    importo: "Amount (€)",
+    numeroOpz: "Quote number (optional)",
+    descrizioneOpz: "Description (optional)",
+    luogoLavoroOpz: "Job location (leave blank if same as client's address)",
+    aggiungiPreventivo: "Add quote",
+    modifica: "Edit",
+    numero: "Quote number",
+    descrizione: "Description",
+    luogoLavoro: "Job location",
+    salva: "Save",
+    accettato: "Accepted",
+    rifiutato: "Rejected",
+    elimina: "Delete",
+    nessunPreventivo: "No quotes yet.",
+    inviato: "sent",
+    statusLabel: {
+      in_attesa: "⏳ Pending",
+      accettato: "✅ Accepted",
+      rifiutato: "❌ Rejected",
+    } as Record<string, string>,
+  },
 };
 
 export default async function PreventiviPage() {
   await requireActiveSubscription();
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const locale = user ? await getUserLocale(supabase, user.id) : "it";
+  const t = strings[locale];
 
   const [{ data: clients }, { data: quotes }] = await Promise.all([
     supabase.from("clients").select("id, nome").order("nome"),
@@ -20,31 +71,31 @@ export default async function PreventiviPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-stone-900">Preventivi</h1>
+      <h1 className="text-2xl font-bold text-stone-900">{t.title}</h1>
 
       <form action={addPreventivo} className="mt-6 grid gap-3 rounded-xl border border-stone-200 bg-white p-4 sm:grid-cols-2">
         <select name="client_id" required className="rounded-md border border-stone-300 px-3 py-2 text-sm">
-          <option value="">Seleziona cliente…</option>
+          <option value="">{t.selezionaCliente}</option>
           {(clients ?? []).map((c) => (
             <option key={c.id} value={c.id}>
               {c.nome}
             </option>
           ))}
         </select>
-        <input name="importo" type="number" step="0.01" min="0" required placeholder="Importo (€)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        <input name="importo" type="number" step="0.01" min="0" required placeholder={t.importo} className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
         <input name="data_invio" type="date" required className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
-        <input name="numero" placeholder="Numero preventivo (opzionale)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
-        <input name="descrizione" placeholder="Descrizione (opzionale)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        <input name="numero" placeholder={t.numeroOpz} className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        <input name="descrizione" placeholder={t.descrizioneOpz} className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
         <input
           name="luogo_lavoro"
-          placeholder="Luogo del lavoro (lascia vuoto se uguale all'indirizzo del cliente)"
+          placeholder={t.luogoLavoroOpz}
           className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2"
         />
         <button
           type="submit"
           className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-transform hover:bg-stone-700 active:scale-[0.98] sm:col-span-2"
         >
-          Aggiungi preventivo
+          {t.aggiungiPreventivo}
         </button>
       </form>
 
@@ -54,11 +105,11 @@ export default async function PreventiviPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium text-stone-900">
-                  {statusLabel[q.status]} {q.clients?.nome}
+                  {t.statusLabel[q.status]} {q.clients?.nome}
                 </p>
                 <p className="text-sm text-stone-500">
                   {q.numero ? `n. ${q.numero} · ` : ""}
-                  {formatEuro(Number(q.importo))} · inviato {q.data_invio}
+                  {formatEuro(Number(q.importo))} · {t.inviato} {q.data_invio}
                   {q.descrizione ? ` · ${q.descrizione}` : ""}
                   {q.luogo_lavoro ? ` · ${q.luogo_lavoro}` : ""}
                 </p>
@@ -66,7 +117,7 @@ export default async function PreventiviPage() {
               <div className="flex items-center gap-3">
                 <details className="relative">
                   <summary className="cursor-pointer list-none text-xs text-amber-700 hover:underline">
-                    Modifica
+                    {t.modifica}
                   </summary>
                   <form
                     action={updatePreventivo.bind(null, q.id)}
@@ -98,26 +149,26 @@ export default async function PreventiviPage() {
                     <input
                       name="numero"
                       defaultValue={q.numero ?? ""}
-                      placeholder="Numero preventivo"
+                      placeholder={t.numero}
                       className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
                     />
                     <input
                       name="descrizione"
                       defaultValue={q.descrizione ?? ""}
-                      placeholder="Descrizione"
+                      placeholder={t.descrizione}
                       className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
                     />
                     <input
                       name="luogo_lavoro"
                       defaultValue={q.luogo_lavoro ?? ""}
-                      placeholder="Luogo del lavoro"
+                      placeholder={t.luogoLavoro}
                       className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
                     />
                     <button
                       type="submit"
                       className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-700"
                     >
-                      Salva
+                      {t.salva}
                     </button>
                   </form>
                 </details>
@@ -125,26 +176,26 @@ export default async function PreventiviPage() {
                   <>
                     <form action={updatePreventivoStatus.bind(null, q.id, "accettato")}>
                       <button type="submit" className="text-xs text-emerald-700 hover:underline">
-                        Accettato
+                        {t.accettato}
                       </button>
                     </form>
                     <form action={updatePreventivoStatus.bind(null, q.id, "rifiutato")}>
                       <button type="submit" className="text-xs text-stone-500 hover:underline">
-                        Rifiutato
+                        {t.rifiutato}
                       </button>
                     </form>
                   </>
                 )}
                 <form action={deletePreventivo.bind(null, q.id)}>
                   <button type="submit" className="text-xs text-red-600 hover:underline">
-                    Elimina
+                    {t.elimina}
                   </button>
                 </form>
               </div>
             </div>
           </div>
         ))}
-        {(quotes ?? []).length === 0 && <p className="text-sm text-stone-500">Nessun preventivo ancora.</p>}
+        {(quotes ?? []).length === 0 && <p className="text-sm text-stone-500">{t.nessunPreventivo}</p>}
       </div>
     </div>
   );
