@@ -5,9 +5,17 @@ import type { Locale } from "@/lib/locale";
 
 const termsMessage: Record<Locale, (siteUrl: string) => string> = {
   it: (siteUrl) =>
-    `Accetto i [Termini e Condizioni](${siteUrl}/termini): richiedo l'accesso immediato al contenuto digitale e riconosco di perdere il diritto di recesso di 14 giorni.`,
+    `Accetto i [Termini e Condizioni](${siteUrl}/termini), incluse le clausole indicate nella sezione ` +
+    `"Approvazione specifica ex artt. 1341 e 1342 c.c."; acconsento espressamente all'inizio ` +
+    `immediato della fornitura del contenuto digitale prima della scadenza del periodo di recesso e ` +
+    `riconosco che, con l'inizio della fornitura, perderò il diritto di recesso nei casi previsti ` +
+    `dall'art. 59 del Codice del Consumo.`,
   en: (siteUrl) =>
-    `I accept the [Terms & Conditions](${siteUrl}/en/termini): I request immediate access to the digital content and acknowledge I lose the 14-day right of withdrawal.`,
+    `I accept the [Terms & Conditions](${siteUrl}/en/termini), including the clauses listed in the ` +
+    `"Specific approval under Civil Code arts. 1341-1342" section; I expressly consent to the ` +
+    `immediate supply of the digital content before the withdrawal period ends, and I acknowledge ` +
+    `that, once supply begins, I lose the right of withdrawal under the applicable digital-content ` +
+    `exception.`,
 };
 
 export async function POST(req: Request) {

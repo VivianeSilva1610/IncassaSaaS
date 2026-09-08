@@ -7,6 +7,7 @@ import { EnableNotificationsButton } from "@/components/EnableNotificationsButto
 import { ToggleSollecitoAutomatico } from "@/components/ToggleSollecitoAutomatico";
 import { CopyTextButton } from "@/components/CopyTextButton";
 import { LocaleSelect } from "@/components/LocaleSelect";
+import Link from "next/link";
 
 const strings = {
   it: {
@@ -16,6 +17,8 @@ const strings = {
     abbonamentoTitle: "Abbonamento e fatturazione",
     abbonamentoDesc: "Aggiorna il metodo di pagamento, scarica le ricevute o cancella l'abbonamento.",
     nessunAbbonamento: "Nessun abbonamento attivo.",
+    dirittoRecesso: "Sei un Consumatore e vuoi esercitare il diritto di recesso? Usa il ",
+    dirittoRecessoLink: "modulo di recesso online",
     notificheTitle: "Notifiche",
     notificheDesc: "Ricevi una notifica sul dispositivo quando una fattura scade oggi, o quando hai un'uscita da pagare oggi.",
     sollecitiTitle: "Solleciti automatici",
@@ -36,6 +39,8 @@ const strings = {
     abbonamentoTitle: "Subscription & billing",
     abbonamentoDesc: "Update your payment method, download receipts, or cancel your subscription.",
     nessunAbbonamento: "No active subscription.",
+    dirittoRecesso: "Are you a Consumer and want to exercise your right of withdrawal? Use the ",
+    dirittoRecessoLink: "online withdrawal form",
     notificheTitle: "Notifications",
     notificheDesc: "Get a notification on your device when an invoice is due today, or when you have an expense due today.",
     sollecitiTitle: "Automatic reminders",
@@ -94,6 +99,16 @@ export default async function ImpostazioniPage() {
         ) : (
           <p className="mt-4 text-sm text-stone-400">{t.nessunAbbonamento}</p>
         )}
+        <p className="mt-4 text-xs text-stone-500">
+          {t.dirittoRecesso}
+          <Link
+            href={locale === "en" ? "/en/recesso" : "/recesso"}
+            className="text-amber-700 underline underline-offset-2"
+          >
+            {t.dirittoRecessoLink}
+          </Link>
+          .
+        </p>
       </section>
 
       <section className="mt-6 rounded-xl border border-stone-200 bg-white p-4">

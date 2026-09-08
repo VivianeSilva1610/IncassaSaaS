@@ -333,6 +333,9 @@ export default function HomeEn() {
           <Link href="/en/termini" className="underline underline-offset-2 hover:text-stone-600">
             Terms &amp; Conditions
           </Link>
+          <Link href="/en/recesso" className="underline underline-offset-2 hover:text-stone-600">
+            Right of withdrawal
+          </Link>
         </p>
       </footer>
     </main>

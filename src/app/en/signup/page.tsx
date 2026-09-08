@@ -8,11 +8,17 @@ import { trackMetaEvent } from "@/lib/meta-pixel";
 export default function SignupPageEn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [acceptsTerms, setAcceptsTerms] = useState(false);
+  const [accepts1341, setAccepts1341] = useState(false);
+  const [acceptsImmediateStart, setAcceptsImmediateStart] = useState(false);
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const canSubmit = acceptsTerms && accepts1341 && acceptsImmediateStart;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!canSubmit) return;
     setStatus("sending");
     setErrorMessage(null);
 
@@ -22,7 +28,13 @@ export default function SignupPageEn() {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/app`,
-        data: { locale: "en" },
+        data: {
+          locale: "en",
+          termini_accettati: true,
+          consenso_1341_1342: true,
+          consenso_esecuzione_immediata: true,
+          consenso_registrato_il: new Date().toISOString(),
+        },
       },
     });
 
@@ -65,9 +77,61 @@ export default function SignupPageEn() {
             placeholder="Password (at least 6 characters)"
             className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"
           />
+
+          <div className="space-y-2 rounded-md border border-stone-200 bg-stone-50 p-3">
+            <label className="flex items-start gap-2 text-xs text-stone-700">
+              <input
+                type="checkbox"
+                required
+                checked={acceptsTerms}
+                onChange={(e) => setAcceptsTerms(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                I have read and accept the{" "}
+                <Link href="/en/termini" target="_blank" className="text-amber-700 underline underline-offset-2">
+                  Terms &amp; Conditions of Service
+                </Link>
+                .
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-xs text-stone-700">
+              <input
+                type="checkbox"
+                required
+                checked={accepts1341}
+                onChange={(e) => setAccepts1341(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                For Italian-law contracts, under Civil Code arts. 1341 and 1342, I state that I have
+                read and specifically approve the clauses listed in the &quot;Specific
+                approval&quot; section of the{" "}
+                <Link href="/en/termini" target="_blank" className="text-amber-700 underline underline-offset-2">
+                  Terms &amp; Conditions
+                </Link>
+                .
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-xs text-stone-700">
+              <input
+                type="checkbox"
+                required
+                checked={acceptsImmediateStart}
+                onChange={(e) => setAcceptsImmediateStart(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                I expressly request that performance of the INCASSA service begin immediately,
+                during the withdrawal period, and I acknowledge that once the service has been
+                fully performed, where the law provides for it, I may lose my right of withdrawal.
+              </span>
+            </label>
+          </div>
+
           <button
             type="submit"
-            disabled={status === "sending"}
+            disabled={status === "sending" || !canSubmit}
             className="w-full rounded-lg bg-gradient-to-b from-amber-500 to-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-transform hover:from-amber-400 hover:to-orange-500 active:scale-[0.98] disabled:opacity-60"
           >
             {status === "sending" ? "One moment…" : "Create account"}

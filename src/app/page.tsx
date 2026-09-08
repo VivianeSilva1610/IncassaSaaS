@@ -315,6 +315,9 @@ export default function Home() {
           <Link href="/termini" className="underline underline-offset-2 hover:text-stone-600">
             Termini e Condizioni
           </Link>
+          <Link href="/recesso" className="underline underline-offset-2 hover:text-stone-600">
+            Diritto di recesso
+          </Link>
         </p>
       </footer>
     </main>

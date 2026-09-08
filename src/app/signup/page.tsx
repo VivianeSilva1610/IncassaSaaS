@@ -8,11 +8,17 @@ import { trackMetaEvent } from "@/lib/meta-pixel";
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [accettaTermini, setAccettaTermini] = useState(false);
+  const [accetta1341, setAccetta1341] = useState(false);
+  const [accettaEsecuzioneImmediata, setAccettaEsecuzioneImmediata] = useState(false);
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const puoInviare = accettaTermini && accetta1341 && accettaEsecuzioneImmediata;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!puoInviare) return;
     setStatus("sending");
     setErrorMessage(null);
 
@@ -22,7 +28,13 @@ export default function SignupPage() {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/app`,
-        data: { locale: "it" },
+        data: {
+          locale: "it",
+          termini_accettati: true,
+          consenso_1341_1342: true,
+          consenso_esecuzione_immediata: true,
+          consenso_registrato_il: new Date().toISOString(),
+        },
       },
     });
 
@@ -65,9 +77,62 @@ export default function SignupPage() {
             placeholder="Password (almeno 6 caratteri)"
             className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"
           />
+
+          <div className="space-y-2 rounded-md border border-stone-200 bg-stone-50 p-3">
+            <label className="flex items-start gap-2 text-xs text-stone-700">
+              <input
+                type="checkbox"
+                required
+                checked={accettaTermini}
+                onChange={(e) => setAccettaTermini(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                Ho letto e accetto i{" "}
+                <Link href="/termini" target="_blank" className="text-amber-700 underline underline-offset-2">
+                  Termini e Condizioni di Servizio
+                </Link>
+                .
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-xs text-stone-700">
+              <input
+                type="checkbox"
+                required
+                checked={accetta1341}
+                onChange={(e) => setAccetta1341(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                Ai sensi degli artt. 1341 e 1342 c.c., dichiaro di aver letto e approvare
+                specificamente le clausole indicate nella sezione &quot;Approvazione specifica&quot;
+                dei{" "}
+                <Link href="/termini" target="_blank" className="text-amber-700 underline underline-offset-2">
+                  Termini e Condizioni
+                </Link>
+                .
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-xs text-stone-700">
+              <input
+                type="checkbox"
+                required
+                checked={accettaEsecuzioneImmediata}
+                onChange={(e) => setAccettaEsecuzioneImmediata(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                Richiedo espressamente che l&apos;esecuzione del servizio INCASSA abbia inizio
+                immediatamente, durante il periodo di recesso, e riconosco che, una volta che il
+                servizio sarà stato interamente eseguito nei casi previsti dalla legge, potrò perdere
+                il diritto di recesso.
+              </span>
+            </label>
+          </div>
+
           <button
             type="submit"
-            disabled={status === "sending"}
+            disabled={status === "sending" || !puoInviare}
             className="w-full rounded-lg bg-gradient-to-b from-amber-500 to-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-transform hover:from-amber-400 hover:to-orange-500 active:scale-[0.98] disabled:opacity-60"
           >
             {status === "sending" ? "Un attimo…" : "Crea account"}
