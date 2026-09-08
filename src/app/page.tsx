@@ -99,9 +99,14 @@ export default function Home() {
     <main className="mx-auto max-w-3xl px-6 py-16">
       <div className="flex items-center justify-between text-sm">
         <span className="font-bold text-stone-900">INCASSA</span>
-        <Link href="/login" className="text-stone-500 hover:text-stone-900">
-          Accedi
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/en" className="text-stone-400 hover:text-stone-900">
+            English
+          </Link>
+          <Link href="/login" className="text-stone-500 hover:text-stone-900">
+            Accedi
+          </Link>
+        </div>
       </div>
 
       {/* Hero */}

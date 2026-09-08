@@ -1,0 +1,91 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase-browser";
+
+export default function LoginPageEn() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const supabase = createClient(rememberMe);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      if (error.code === "email_not_confirmed" || error.message.includes("Email not confirmed")) {
+        setError(
+          "You need to confirm your email first. Check your inbox (including spam and trash) and click the link we sent you when you signed up.",
+        );
+      } else {
+        setError("Incorrect email or password.");
+      }
+      setLoading(false);
+      return;
+    }
+
+    router.push("/app");
+    router.refresh();
+  }
+
+  return (
+    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-6 py-16">
+      <h1 className="text-2xl font-bold text-stone-900">Log in to INCASSA</h1>
+      <p className="mt-2 text-sm text-stone-600">Enter your email and password.</p>
+
+      <form onSubmit={handleSubmit} className="mt-6 space-y-3">
+        <input
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"
+        />
+        <input
+          type="password"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
+          className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"
+        />
+        <label className="flex items-center gap-2 text-sm text-stone-600">
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+            className="h-4 w-4 rounded border-stone-300"
+          />
+          Stay signed in on this device
+        </label>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-lg bg-gradient-to-b from-amber-500 to-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-transform hover:from-amber-400 hover:to-orange-500 active:scale-[0.98] disabled:opacity-60"
+        >
+          {loading ? "One moment…" : "Log in"}
+        </button>
+        {error && <p className="text-sm text-red-600">{error}</p>}
+      </form>
+
+      <div className="mt-4 flex justify-between text-xs text-stone-500">
+        <Link href="/en/signup" className="text-amber-700 underline underline-offset-2">
+          Create an account
+        </Link>
+        <Link href="/en/recupera-password" className="text-amber-700 underline underline-offset-2">
+          Forgot password?
+        </Link>
+      </div>
+    </main>
+  );
+}
