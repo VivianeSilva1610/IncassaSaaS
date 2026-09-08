@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendPushToUser } from "@/lib/web-push";
 import { formatEuro } from "@/lib/urgency";
+import type { Locale } from "@/lib/locale";
+
+const pushStrings = {
+  it: { fatturaTitle: "Fattura in scadenza oggi", uscitaTitle: "Uscita da pagare oggi" },
+  en: { fatturaTitle: "Invoice due today", uscitaTitle: "Expense due today" },
+};
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get("authorization");
@@ -28,6 +34,12 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: usciteError.message }, { status: 500 });
   }
 
+  const userIds = Array.from(
+    new Set([...(invoices ?? []).map((i) => i.user_id), ...(uscite ?? []).map((u) => u.user_id)]),
+  );
+  const { data: profiles } = await supabase.from("profiles").select("id, locale").in("id", userIds);
+  const localeByUserId = new Map((profiles ?? []).map((p) => [p.id, (p.locale as Locale) ?? "it"]));
+
   let sent = 0;
   for (const inv of invoices ?? []) {
     const cliente = inv.clients as unknown as { nome: string; user_id: string } | null;
@@ -36,8 +48,9 @@ export async function GET(req: Request) {
       continue;
     }
     const clienteNome = cliente.nome;
+    const locale = localeByUserId.get(inv.user_id) ?? "it";
     await sendPushToUser(inv.user_id, {
-      title: "Fattura in scadenza oggi",
+      title: pushStrings[locale].fatturaTitle,
       body: `${clienteNome} — ${formatEuro(Number(inv.importo))}`,
       url: "/app",
     });
@@ -45,8 +58,9 @@ export async function GET(req: Request) {
   }
 
   for (const u of uscite ?? []) {
+    const locale = localeByUserId.get(u.user_id) ?? "it";
     await sendPushToUser(u.user_id, {
-      title: "Uscita da pagare oggi",
+      title: pushStrings[locale].uscitaTitle,
       body: `${u.descrizione} — ${formatEuro(Number(u.importo))}`,
       url: "/app/uscite",
     });
