@@ -95,7 +95,7 @@ const faqs = [
   },
   {
     q: "How much does it cost?",
-    a: "$19.90/month, with a 7-day free trial. No commitment: cancel anytime from your account settings.",
+    a: "€19.90/month, with a 7-day free trial. No commitment: cancel anytime from your account settings.",
   },
   {
     q: "Do I need to install anything?",
@@ -235,7 +235,7 @@ export default function HomeEn() {
       {/* Prezzo */}
       <Reveal className="mt-16 rounded-xl bg-gradient-to-b from-stone-900 to-stone-800 p-6 text-center text-white shadow-xl sm:p-10">
         <h2 className="text-xl font-semibold">INCASSA</h2>
-        <p className="mt-2 text-4xl font-bold">$19.90</p>
+        <p className="mt-2 text-4xl font-bold">€19.90</p>
         <p className="mt-1 text-sm text-stone-300">per month, 7-day free trial</p>
         <p className="mt-3 inline-block rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-300">
           No limit on clients, invoices or messages

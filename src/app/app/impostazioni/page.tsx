@@ -5,6 +5,7 @@ import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 import { EnableNotificationsButton } from "@/components/EnableNotificationsButton";
 import { ToggleSollecitoAutomatico } from "@/components/ToggleSollecitoAutomatico";
 import { CopyTextButton } from "@/components/CopyTextButton";
+import { LocaleSelect } from "@/components/LocaleSelect";
 
 const testoInformativa =
   "I dati forniti potranno essere utilizzati per l'invio di promemoria di pagamento, " +
@@ -19,13 +20,25 @@ export default async function ImpostazioniPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("stripe_customer_id, sollecito_automatico_attivo")
+    .select("stripe_customer_id, sollecito_automatico_attivo, locale")
     .eq("id", user.id)
     .single();
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-stone-900">Impostazioni</h1>
+
+      <section className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="font-semibold text-stone-900">Lingua dei messaggi</h2>
+            <p className="mt-1 text-sm text-stone-600">
+              Lingua usata dall&apos;IA per generare i solleciti (manuali e automatici).
+            </p>
+          </div>
+          <LocaleSelect initialLocale={(profile?.locale as "it" | "en") ?? "it"} />
+        </div>
+      </section>
 
       <section className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
         <h2 className="font-semibold text-stone-900">Abbonamento e fatturazione</h2>

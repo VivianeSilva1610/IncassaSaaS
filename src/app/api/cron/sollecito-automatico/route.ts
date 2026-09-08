@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { generateSollecitoMessage } from "@/lib/anthropic";
+import { generateSollecitoMessage, type Locale } from "@/lib/anthropic";
 import { getFallbackMessages } from "@/lib/fallback-message";
 import { sendSollecitoEmail } from "@/lib/sollecito-email";
 
@@ -18,7 +18,7 @@ export async function GET(req: Request) {
 
   const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
-    .select("id, email")
+    .select("id, email, locale")
     .eq("sollecito_automatico_attivo", true);
 
   if (profilesError) {
@@ -30,6 +30,7 @@ export async function GET(req: Request) {
   }
 
   const emailByUserId = new Map(profiles.map((p) => [p.id, p.email]));
+  const localeByUserId = new Map(profiles.map((p) => [p.id, (p.locale as Locale) ?? "it"]));
   const sogliaData = new Date();
   sogliaData.setDate(sogliaData.getDate() - GIORNI_SOGLIA_SOLLECITO_AUTOMATICO);
   const sogliaStr = sogliaData.toISOString().slice(0, 10);
@@ -71,6 +72,7 @@ export async function GET(req: Request) {
 
     const artigianoEmail = emailByUserId.get(inv.user_id);
     if (!artigianoEmail) continue;
+    const locale = localeByUserId.get(inv.user_id) ?? "it";
 
     const importoResiduo = Number(inv.importo) - (pagatoByInvoice.get(inv.id) ?? 0);
     if (importoResiduo <= 0) continue;
@@ -90,6 +92,7 @@ export async function GET(req: Request) {
         tipoDocumento: "fattura",
         giorniRitardo,
         numero: inv.numero,
+        locale,
       });
     } catch (err) {
       console.error("generateSollecitoMessage failed in cron, using fallback:", err);
@@ -102,6 +105,7 @@ export async function GET(req: Request) {
           giorniRitardo,
           numero: inv.numero,
           tipoDocumento: "fattura",
+          locale,
         })[0] ?? "";
     }
 
@@ -112,6 +116,7 @@ export async function GET(req: Request) {
       clienteNome: cliente.nome,
       messaggio,
       replyTo: artigianoEmail,
+      locale,
     });
 
     if (!result.ok) {

@@ -22,6 +22,7 @@ export default function SignupPageEn() {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/app`,
+        data: { locale: "en" },
       },
     });
 

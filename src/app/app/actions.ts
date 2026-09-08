@@ -448,6 +448,12 @@ export async function updateSollecitoAutomatico(enabled: boolean) {
   revalidatePath("/app/impostazioni");
 }
 
+export async function updateLocale(locale: "it" | "en") {
+  const { supabase, user } = await requireUser();
+  await supabase.from("profiles").update({ locale }).eq("id", user.id);
+  revalidatePath("/app/impostazioni");
+}
+
 export async function addUscita(formData: FormData) {
   const { supabase, user } = await requireUser();
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
-import { generateSollecitoMessage } from "@/lib/anthropic";
+import { generateSollecitoMessage, type Locale } from "@/lib/anthropic";
 import { getFallbackMessages } from "@/lib/fallback-message";
 import { normalizePhoneForWhatsapp } from "@/lib/phone";
 import type { Tone } from "@/content/kit-incassa";
@@ -14,6 +14,9 @@ export async function POST(req: Request) {
   if (!user) {
     return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
   }
+
+  const { data: profile } = await supabase.from("profiles").select("locale").eq("id", user.id).single();
+  const locale = (profile?.locale as Locale | undefined) ?? "it";
 
   const body = (await req.json()) as { kind: "fattura" | "preventivo"; id: string; tono: Tone };
   const { kind, id, tono } = body;
@@ -57,6 +60,7 @@ export async function POST(req: Request) {
       tipoDocumento: kind,
       giorniRitardo,
       numero: record.numero,
+      locale,
     });
     messages = [aiMessage];
   } catch (err) {
@@ -69,6 +73,7 @@ export async function POST(req: Request) {
       giorniRitardo,
       numero: record.numero,
       tipoDocumento: kind,
+      locale,
     });
     fallback = true;
 
