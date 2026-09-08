@@ -95,22 +95,48 @@ export default function TerminiPageEn() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-stone-900">7. No legal or financial advice — limitation of liability</h2>
+          <h2 className="text-base font-semibold text-stone-900">
+            7. No legal or financial advice — limitation of liability
+          </h2>
           <p className="mt-2">
-            INCASSA and the Kit Incassa provide generic message templates and a tool for tracking
-            invoices, for informational and practical purposes only. They do not constitute legal,
-            tax, financial, or debt-collection advice of any kind, and we do not guarantee that you
-            will actually recover any amount owed to you.
+            INCASSA and the Kit Incassa provide generic message templates and a tool for managing
+            invoices and payment reminders, for informational and practical purposes only. They do
+            not constitute legal, tax, financial, or debt-collection advice of any kind, and we do
+            not guarantee that you will actually recover any amount owed to you. INCASSA is not a
+            debt-collection agency and does not act as one.
           </p>
           <p className="mt-2">
-            <strong>You are solely responsible</strong> for how you use INCASSA and the messages it
-            generates or sends — including making sure that your communications with your own
-            clients or debtors comply with the laws applicable to you, your business, and your
-            clients (for example, rules on debt-collection communications, consumer protection, or
-            unsolicited commercial messages in your country or state). This applies whether a
-            message is sent manually by you or automatically by the optional automated-reminder
-            feature you choose to activate. We are not a debt-collection agency and do not act as
-            one.
+            <strong>Accuracy of the data you enter.</strong> You are solely responsible for the
+            accuracy, completeness, and up-to-date status of the data you enter into the Service —
+            including, for example, your clients&apos; names and contact details, invoice amounts,
+            due dates, and payment status. INCASSA does not verify or guarantee the correctness of
+            that data and is not responsible for incorrect, unwarranted, or embarrassing reminders
+            generated or sent because of inaccurate, incomplete, or outdated data you provided. It
+            is your responsibility to update invoice status promptly (for example, marking an
+            invoice as paid) to avoid sending reminders that are no longer owed.
+          </p>
+          <p className="mt-2">
+            <strong>Content and sending of reminders.</strong> You are solely responsible for the
+            content, tone, and consequences of every reminder message sent to your clients through
+            INCASSA — whether it was AI-generated, edited by you, and sent manually, or sent
+            automatically through the optional automated-sending feature you chose to activate. You
+            acknowledge and accept that, once activated, the automated-sending feature generates and
+            sends messages based on the data in your account <strong>without human review by you
+            before sending</strong>, and that such sending is a direct consequence of the
+            configuration you chose and the data you entered or failed to update. You can review,
+            modify, pause, or turn off automated sending at any time from your account settings, and
+            you remain solely responsible for making sure that every reminder sent — automatically or
+            manually — complies with the laws applicable to your own commercial and debt-collection
+            communications (including, for example, consumer-protection rules, unsolicited commercial
+            communications, and the handling of your clients&apos; personal data).
+          </p>
+          <p className="mt-2">
+            <strong>Indemnification.</strong> You agree to indemnify and hold INCASSA harmless from
+            any claim, damages, penalty, cost, or expense (including legal fees) arising from: (i)
+            inaccurate, incomplete, or outdated data you entered into the Service; (ii) the content,
+            tone, or consequences of reminders sent to your clients, whether manually or through
+            automated sending; or (iii) your violation of the laws applicable to your own commercial
+            communications.
           </p>
           <p className="mt-2">
             To the maximum extent permitted by applicable law, INCASSA is provided &quot;as
