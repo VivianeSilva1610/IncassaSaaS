@@ -1,6 +1,7 @@
 import { requireDeliveryAdmin } from "@/lib/delivery/auth";
 import { addProduct, updateProduct, toggleProductAtivo, deleteProduct, updateOrderStatus, deleteOrder } from "@/app/delivery-admin/actions";
 import { NewOrderForm } from "@/components/delivery/NewOrderForm";
+import { PRICING_CONFIG_ID } from "@/lib/delivery/pricing";
 
 function formatReal(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -11,23 +12,25 @@ const STATUSES = ["novo", "em preparo", "pronto", "entregue", "cancelado"];
 export default async function VendasPage() {
   const { supabase } = await requireDeliveryAdmin();
 
-  const [{ data: products }, { data: orders }] = await Promise.all([
+  const [{ data: products }, { data: orders }, { data: pricingConfig }] = await Promise.all([
     supabase.from("del_products").select("*").order("nome"),
     supabase
       .from("del_orders")
       .select("*, del_order_items(quantidade, preco_unitario, del_products(nome))")
       .order("created_at", { ascending: false })
       .limit(30),
+    supabase.from("del_pricing_config").select("nome_negocio").eq("id", PRICING_CONFIG_ID).maybeSingle(),
   ]);
 
   const activeProducts = (products ?? []).filter((p) => p.ativo);
+  const nomeNegocio = pricingConfig?.nome_negocio;
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-stone-900">Vendas</h1>
 
       <section className="mt-6">
-        <h2 className="font-semibold text-stone-900">Menu</h2>
+        <h2 className="font-semibold text-stone-900">{nomeNegocio ? `${nomeNegocio} — Menu` : "Menu"}</h2>
         <form action={addProduct} className="mt-2 grid gap-3 rounded-xl border border-stone-200 bg-white p-4 sm:grid-cols-2">
           <input name="nome" required placeholder="Nome do prato" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
           <input name="preco" type="number" step="0.01" min="0" required placeholder="Preço (R$)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />

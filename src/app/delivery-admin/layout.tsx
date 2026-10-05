@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireDeliveryAdmin } from "@/lib/delivery/auth";
 import { signOut } from "@/app/app/actions";
+import { PRICING_CONFIG_ID } from "@/lib/delivery/pricing";
 
 const navItems = [
   { href: "/delivery-admin", label: "Visão geral" },
@@ -10,14 +11,21 @@ const navItems = [
 ];
 
 export default async function DeliveryAdminLayout({ children }: { children: React.ReactNode }) {
-  const { user } = await requireDeliveryAdmin();
+  const { user, supabase } = await requireDeliveryAdmin();
+
+  const { data: pricingConfig } = await supabase
+    .from("del_pricing_config")
+    .select("nome_negocio")
+    .eq("id", PRICING_CONFIG_ID)
+    .maybeSingle();
+  const nomeNegocio = pricingConfig?.nome_negocio || "Gestão interna";
 
   return (
     <div className="min-h-screen bg-stone-50">
       <header className="border-b border-stone-200 bg-white">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-6 py-4">
           <div className="flex flex-wrap items-center gap-4">
-            <span className="text-sm font-semibold text-stone-900">🍽️ Gestão interna</span>
+            <span className="text-sm font-semibold text-stone-900">🍽️ {nomeNegocio}</span>
             <nav className="flex flex-wrap gap-4 text-sm font-medium text-stone-600">
               {navItems.map((item) => (
                 <Link key={item.href} href={item.href} className="hover:text-stone-900">

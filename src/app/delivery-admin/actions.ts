@@ -142,15 +142,19 @@ export async function updatePricingConfig(formData: FormData) {
 
   const volumeMensalEstimado = Number(formData.get("volume_mensal_estimado") ?? 0);
   const margemPercentual = Number(formData.get("margem_desejada") ?? 0);
+  const nomeNegocio = String(formData.get("nome_negocio") ?? "").trim() || null;
 
   await supabase.from("del_pricing_config").upsert({
     id: PRICING_CONFIG_ID,
     volume_mensal_estimado: volumeMensalEstimado,
     margem_desejada: margemPercentual / 100,
+    nome_negocio: nomeNegocio,
     updated_at: new Date().toISOString(),
   });
 
   revalidatePath("/delivery-admin/custos");
+  revalidatePath("/delivery-admin");
+  revalidatePath("/delivery-admin/vendas");
 }
 
 export async function addProductIngredient(formData: FormData) {

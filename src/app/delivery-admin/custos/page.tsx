@@ -27,12 +27,33 @@ export default async function CustosPage() {
   const totalCustosFixos = (fixedCosts ?? []).reduce((sum, c) => sum + Number(c.valor_mensal), 0);
   const volumeMensalEstimado = Number(pricingConfig?.volume_mensal_estimado ?? 0);
   const margemDesejada = Number(pricingConfig?.margem_desejada ?? 0.3);
+  const nomeNegocio = pricingConfig?.nome_negocio ?? "";
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-stone-900">Custos e preço sugerido</h1>
 
       <section className="mt-6">
+        <h2 className="font-semibold text-stone-900">Nome do menu/negócio</h2>
+        <p className="mt-1 text-sm text-stone-600">
+          Ainda não decidiu o nome definitivo? Sem problema, pode trocar aqui a qualquer momento.
+        </p>
+        <form action={updatePricingConfig} className="mt-2 flex flex-wrap gap-2 rounded-xl border border-stone-200 bg-white p-4">
+          <input type="hidden" name="volume_mensal_estimado" value={volumeMensalEstimado} />
+          <input type="hidden" name="margem_desejada" value={(margemDesejada * 100).toFixed(0)} />
+          <input
+            name="nome_negocio"
+            defaultValue={nomeNegocio}
+            placeholder="Ex: Menu della Nonna"
+            className="min-w-48 flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm"
+          />
+          <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-transform hover:bg-stone-700 active:scale-[0.98]">
+            Salvar nome
+          </button>
+        </form>
+      </section>
+
+      <section className="mt-8">
         <h2 className="font-semibold text-stone-900">Custos fixos mensais</h2>
         <p className="mt-1 text-sm text-stone-600">Aluguel, contas, internet, MEI, etc. — some tudo por mês.</p>
         <form action={addFixedCost} className="mt-2 grid gap-3 rounded-xl border border-stone-200 bg-white p-4 sm:grid-cols-2">
@@ -59,6 +80,7 @@ export default async function CustosPage() {
       <section className="mt-8">
         <h2 className="font-semibold text-stone-900">Parâmetros de precificação</h2>
         <form action={updatePricingConfig} className="mt-2 grid gap-3 rounded-xl border border-stone-200 bg-white p-4 sm:grid-cols-2">
+          <input type="hidden" name="nome_negocio" value={nomeNegocio} />
           <label className="text-sm text-stone-600">
             <span className="mb-1 block text-xs text-stone-500">Quantas marmitas você estima vender por mês?</span>
             <input
