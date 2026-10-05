@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-type Product = { id: string; nome: string; preco: number; categoria: string };
+type Product = { id: string; nome: string; descricao?: string | null; preco: number; categoria: string };
 
 function formatReal(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -84,12 +84,13 @@ export function MesaMenuForm({ qrToken, products }: { qrToken: string; products:
             <p className="text-xs font-medium uppercase tracking-wide text-stone-400">{label}</p>
             <div className="mt-1.5 space-y-1.5">
               {itensDaCategoria.map((p) => (
-                <div key={p.id} className="flex items-center justify-between rounded-lg border border-stone-200 bg-white px-3 py-2">
-                  <div>
+                <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 bg-white px-3 py-2">
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-stone-900">{p.nome}</p>
-                    <p className="text-xs text-stone-500">{formatReal(p.preco)}</p>
+                    {p.descricao && <p className="mt-0.5 text-xs text-stone-500">{p.descricao}</p>}
+                    <p className="mt-0.5 text-xs font-medium text-stone-700">{formatReal(p.preco)}</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-2">
                     <button
                       type="button"
                       onClick={() => alterarQuantidade(p.id, -1)}

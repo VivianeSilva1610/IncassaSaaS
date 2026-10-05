@@ -77,11 +77,12 @@ export default async function VendasPage() {
               <p className="text-xs font-medium uppercase tracking-wide text-stone-400">{label}</p>
               <div className="mt-1.5 space-y-1.5">
                 {itensDaCategoria.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm">
+                  <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm">
                     <span className={p.ativo ? "text-stone-900" : "text-stone-400 line-through"}>
                       {p.nome} — {formatReal(Number(p.preco))}
+                      {p.descrizione && <span className="block text-xs text-stone-500">{p.descrizione}</span>}
                     </span>
-                    <div className="flex items-center gap-3">
+                    <div className="flex shrink-0 items-center gap-3">
                       <details className="relative">
                         <summary className="cursor-pointer list-none text-xs text-amber-700 hover:underline">
                           Editar
