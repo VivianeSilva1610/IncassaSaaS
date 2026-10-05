@@ -42,22 +42,41 @@ export async function addStockMovement(formData: FormData) {
   revalidatePath("/restaurante/estoque");
 }
 
+const VALID_CATEGORIAS = ["prato", "bebida", "tamanho", "principal", "acompanhamento", "extra"];
+
+function parseCategoria(formData: FormData): string {
+  const categoria = String(formData.get("categoria") ?? "prato");
+  return VALID_CATEGORIAS.includes(categoria) ? categoria : "prato";
+}
+
 export async function addProduct(formData: FormData) {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+
+  const categoria = parseCategoria(formData);
+  const maxAcompanhamentos = formData.get("max_acompanhamentos")
+    ? Number(formData.get("max_acompanhamentos"))
+    : null;
 
   await supabase.from("del_products").insert({
     owner_id: restaurantOwnerId,
     nome: String(formData.get("nome") ?? ""),
     descrizione: String(formData.get("descrizione") ?? "") || null,
     preco: Number(formData.get("preco") ?? 0),
-    categoria: formData.get("categoria") === "bebida" ? "bebida" : "prato",
+    categoria,
+    max_acompanhamentos: categoria === "tamanho" ? maxAcompanhamentos : null,
   });
 
   revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/cardapio");
 }
 
 export async function updateProduct(id: string, formData: FormData) {
   const { supabase } = await requireRestaurantSubscription();
+
+  const categoria = parseCategoria(formData);
+  const maxAcompanhamentos = formData.get("max_acompanhamentos")
+    ? Number(formData.get("max_acompanhamentos"))
+    : null;
 
   await supabase
     .from("del_products")
@@ -65,12 +84,14 @@ export async function updateProduct(id: string, formData: FormData) {
       nome: String(formData.get("nome") ?? ""),
       preco: Number(formData.get("preco") ?? 0),
       descrizione: String(formData.get("descrizione") ?? "") || null,
-      categoria: formData.get("categoria") === "bebida" ? "bebida" : "prato",
+      categoria,
+      max_acompanhamentos: categoria === "tamanho" ? maxAcompanhamentos : null,
     })
     .eq("id", id);
 
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/custos");
+  revalidatePath("/restaurante/cardapio");
 }
 
 export async function toggleProductAtivo(id: string, ativo: boolean) {
@@ -256,4 +277,29 @@ export async function removeStaff(id: string) {
 
   await supabase.from("del_staff").delete().eq("id", id);
   revalidatePath("/restaurante/equipe");
+}
+
+export async function addCardapioDia(formData: FormData) {
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+
+  const diaSemana = Number(formData.get("dia_semana") ?? 0);
+  const productId = String(formData.get("product_id") ?? "");
+
+  if (!productId) {
+    throw new Error("Selecione um prato principal.");
+  }
+
+  await supabase.from("del_cardapio_semana").insert({
+    owner_id: restaurantOwnerId,
+    dia_semana: diaSemana,
+    product_id: productId,
+  });
+
+  revalidatePath("/restaurante/cardapio");
+}
+
+export async function removeCardapioDia(id: string) {
+  const { supabase } = await requireRestaurantSubscription();
+  await supabase.from("del_cardapio_semana").delete().eq("id", id);
+  revalidatePath("/restaurante/cardapio");
 }

@@ -11,7 +11,7 @@ const STATUSES = ["novo", "em preparo", "pronto", "entregue", "cancelado"];
 export default async function VendasPage() {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
-  const [{ data: products }, { data: orders }, { data: pricingConfig }] = await Promise.all([
+  const [{ data: products }, { data: orders }, { data: pricingConfig }, { data: cardapioSemana }] = await Promise.all([
     supabase.from("del_products").select("*").order("nome"),
     supabase
       .from("del_orders")
@@ -19,10 +19,28 @@ export default async function VendasPage() {
       .order("created_at", { ascending: false })
       .limit(30),
     supabase.from("del_pricing_config").select("nome_negocio").eq("owner_id", restaurantOwnerId).maybeSingle(),
+    supabase.from("del_cardapio_semana").select("dia_semana, product_id"),
   ]);
 
   const activeProducts = (products ?? []).filter((p) => p.ativo);
   const nomeNegocio = pricingConfig?.nome_negocio;
+
+  const itensAvulsos = activeProducts
+    .filter((p) => p.categoria === "prato" || p.categoria === "bebida")
+    .map((p) => ({ id: p.id, nome: p.nome, preco: Number(p.preco) }));
+  const tamanhos = activeProducts
+    .filter((p) => p.categoria === "tamanho")
+    .map((p) => ({ id: p.id, nome: p.nome, preco: Number(p.preco), maxAcompanhamentos: Number(p.max_acompanhamentos ?? 0) }));
+  const principais = activeProducts
+    .filter((p) => p.categoria === "principal")
+    .map((p) => ({ id: p.id, nome: p.nome, preco: 0 }));
+  const acompanhamentos = activeProducts
+    .filter((p) => p.categoria === "acompanhamento")
+    .map((p) => ({ id: p.id, nome: p.nome, preco: 0 }));
+  const extras = activeProducts
+    .filter((p) => p.categoria === "extra")
+    .map((p) => ({ id: p.id, nome: p.nome, preco: Number(p.preco) }));
+  const cardapioSemanaMapeado = (cardapioSemana ?? []).map((c) => ({ diaSemana: c.dia_semana, productId: c.product_id }));
 
   return (
     <div>
@@ -117,7 +135,14 @@ export default async function VendasPage() {
 
       <section className="mt-8">
         <h2 className="font-semibold text-stone-900">Novo pedido</h2>
-        <NewOrderForm products={activeProducts.map((p) => ({ id: p.id, nome: p.nome, preco: Number(p.preco) }))} />
+        <NewOrderForm
+          products={itensAvulsos}
+          tamanhos={tamanhos}
+          principais={principais}
+          acompanhamentos={acompanhamentos}
+          extras={extras}
+          cardapioSemana={cardapioSemanaMapeado}
+        />
       </section>
 
       <section className="mt-8">
