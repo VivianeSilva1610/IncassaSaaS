@@ -54,6 +54,22 @@ export async function addProduct(formData: FormData) {
   revalidatePath("/delivery-admin/vendas");
 }
 
+export async function updateProduct(id: string, formData: FormData) {
+  const { supabase } = await requireDeliveryAdmin();
+
+  await supabase
+    .from("del_products")
+    .update({
+      nome: String(formData.get("nome") ?? ""),
+      preco: Number(formData.get("preco") ?? 0),
+      descrizione: String(formData.get("descrizione") ?? "") || null,
+    })
+    .eq("id", id);
+
+  revalidatePath("/delivery-admin/vendas");
+  revalidatePath("/delivery-admin/custos");
+}
+
 export async function toggleProductAtivo(id: string, ativo: boolean) {
   const { supabase } = await requireDeliveryAdmin();
   await supabase.from("del_products").update({ ativo: !ativo }).eq("id", id);

@@ -1,5 +1,5 @@
 import { requireDeliveryAdmin } from "@/lib/delivery/auth";
-import { addProduct, toggleProductAtivo, deleteProduct, updateOrderStatus, deleteOrder } from "@/app/delivery-admin/actions";
+import { addProduct, updateProduct, toggleProductAtivo, deleteProduct, updateOrderStatus, deleteOrder } from "@/app/delivery-admin/actions";
 import { NewOrderForm } from "@/components/delivery/NewOrderForm";
 
 function formatReal(value: number) {
@@ -47,6 +47,35 @@ export default async function VendasPage() {
                 {p.nome} — {formatReal(Number(p.preco))}
               </span>
               <div className="flex items-center gap-3">
+                <details className="relative">
+                  <summary className="cursor-pointer list-none text-xs text-amber-700 hover:underline">
+                    Editar
+                  </summary>
+                  <form
+                    action={updateProduct.bind(null, p.id)}
+                    className="absolute right-0 z-10 mt-2 grid w-64 gap-2 rounded-lg border border-stone-200 bg-white p-3 shadow-lg"
+                  >
+                    <input name="nome" required defaultValue={p.nome} className="rounded-md border border-stone-300 px-2 py-1.5 text-sm" />
+                    <input
+                      name="preco"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      required
+                      defaultValue={p.preco}
+                      className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
+                    />
+                    <input
+                      name="descrizione"
+                      defaultValue={p.descrizione ?? ""}
+                      placeholder="Descrição"
+                      className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
+                    />
+                    <button type="submit" className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-700">
+                      Salvar
+                    </button>
+                  </form>
+                </details>
                 <form action={toggleProductAtivo.bind(null, p.id, p.ativo)}>
                   <button type="submit" className="text-xs text-amber-700 hover:underline">
                     {p.ativo ? "Desativar" : "Ativar"}
