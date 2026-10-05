@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { deduzirEstoquePorVenda } from "@/lib/delivery/stock";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -90,6 +91,12 @@ export async function POST(req: Request) {
   if (itemsError) {
     return NextResponse.json({ error: "Não foi possível salvar os itens do pedido." }, { status: 500 });
   }
+
+  await deduzirEstoquePorVenda(admin, {
+    ownerId: mesa.owner_id,
+    orderId: order.id,
+    items: items.map((item) => ({ productId: item.productId, quantidade: item.quantidade })),
+  });
 
   return NextResponse.json({ ok: true, orderId: order.id });
 }

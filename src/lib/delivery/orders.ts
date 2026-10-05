@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { deduzirEstoquePorVenda } from "@/lib/delivery/stock";
 
 export type NewOrderItem = {
   productId: string;
@@ -54,6 +55,12 @@ export async function createOrderWithItems(
   if (itemsError) {
     throw new Error("Não foi possível salvar os itens do pedido.");
   }
+
+  await deduzirEstoquePorVenda(supabase, {
+    ownerId: params.ownerId,
+    orderId: order.id,
+    items: params.items.map((item) => ({ productId: item.productId, quantidade: item.quantidade })),
+  });
 
   return { orderId: order.id as string, totale };
 }

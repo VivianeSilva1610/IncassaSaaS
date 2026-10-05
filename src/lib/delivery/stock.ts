@@ -42,3 +42,38 @@ export async function registerStockMovement(
     .eq("id", params.ingredientId);
   if (updateError) throw updateError;
 }
+
+// Desconta do estoque, automaticamente, os ingredientes de cada item vendido
+// que tiver ficha técnica cadastrada (del_product_ingredients). Itens sem
+// ficha técnica são ignorados — nada a descontar.
+export async function deduzirEstoquePorVenda(
+  supabase: SupabaseClient,
+  params: {
+    ownerId: string;
+    orderId: string;
+    items: { productId: string; quantidade: number }[];
+  },
+) {
+  const productIds = [...new Set(params.items.map((i) => i.productId))];
+
+  const { data: receitas } = await supabase
+    .from("del_product_ingredients")
+    .select("product_id, ingredient_id, quantidade_necessaria")
+    .in("product_id", productIds);
+
+  if (!receitas || receitas.length === 0) return;
+
+  for (const item of params.items) {
+    const ingredientesDoItem = receitas.filter((r) => r.product_id === item.productId);
+    for (const r of ingredientesDoItem) {
+      await registerStockMovement(supabase, {
+        ownerId: params.ownerId,
+        ingredientId: r.ingredient_id,
+        tipo: "saida",
+        quantidade: Number(r.quantidade_necessaria) * item.quantidade,
+        motivo: "Venda automática",
+        orderId: params.orderId,
+      });
+    }
+  }
+}
