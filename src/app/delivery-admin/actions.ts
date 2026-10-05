@@ -83,7 +83,7 @@ export async function deleteProduct(id: string) {
 }
 
 export async function createOrder(formData: FormData) {
-  const { supabase } = await requireDeliveryAdmin();
+  const { supabase, user } = await requireDeliveryAdmin();
 
   const productIds = formData.getAll("product_id").map(String);
   const quantities = formData.getAll("quantidade").map((v) => Number(v));
@@ -97,9 +97,32 @@ export async function createOrder(formData: FormData) {
     throw new Error("Adicione pelo menos um item ao pedido.");
   }
 
+  const clienteIdRaw = String(formData.get("cliente_id") ?? "");
+  let clienteId: string | null = null;
+  let clienteNome = String(formData.get("cliente_nome") ?? "") || null;
+  let clienteTelefone = String(formData.get("cliente_telefone") ?? "") || null;
+
+  if (clienteIdRaw) {
+    const { data: cliente } = await supabase
+      .from("clients")
+      .select("id, nome, telefono")
+      .eq("id", clienteIdRaw)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!cliente) {
+      throw new Error("Cliente não encontrado.");
+    }
+
+    clienteId = cliente.id;
+    clienteNome = clienteNome || cliente.nome;
+    clienteTelefone = clienteTelefone || cliente.telefono;
+  }
+
   await createOrderWithItems(supabase, {
-    clienteNome: String(formData.get("cliente_nome") ?? "") || null,
-    clienteTelefone: String(formData.get("cliente_telefone") ?? "") || null,
+    clienteId,
+    clienteNome,
+    clienteTelefone,
     canale: String(formData.get("canal") ?? "telefone"),
     note: String(formData.get("note") ?? "") || null,
     items,
