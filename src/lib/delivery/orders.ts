@@ -13,10 +13,12 @@ export async function createOrderWithItems(
     clienteTelefone?: string | null;
     canale: string;
     note?: string | null;
+    taxaEntrega?: number;
     items: NewOrderItem[];
   },
 ) {
-  const totale = params.items.reduce((sum, item) => sum + item.quantidade * item.precoUnitario, 0);
+  const taxaEntrega = params.taxaEntrega ?? 0;
+  const totale = params.items.reduce((sum, item) => sum + item.quantidade * item.precoUnitario, 0) + taxaEntrega;
 
   const { data: order, error: orderError } = await supabase
     .from("del_orders")
@@ -25,6 +27,7 @@ export async function createOrderWithItems(
       cliente_telefone: params.clienteTelefone ?? null,
       canal: params.canale,
       note: params.note ?? null,
+      taxa_entrega: taxaEntrega,
       totale,
     })
     .select("id")

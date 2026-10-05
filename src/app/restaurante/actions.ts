@@ -48,6 +48,7 @@ export async function addProduct(formData: FormData) {
     nome: String(formData.get("nome") ?? ""),
     descrizione: String(formData.get("descrizione") ?? "") || null,
     preco: Number(formData.get("preco") ?? 0),
+    categoria: formData.get("categoria") === "bebida" ? "bebida" : "prato",
   });
 
   revalidatePath("/restaurante/vendas");
@@ -62,6 +63,7 @@ export async function updateProduct(id: string, formData: FormData) {
       nome: String(formData.get("nome") ?? ""),
       preco: Number(formData.get("preco") ?? 0),
       descrizione: String(formData.get("descrizione") ?? "") || null,
+      categoria: formData.get("categoria") === "bebida" ? "bebida" : "prato",
     })
     .eq("id", id);
 
@@ -101,6 +103,7 @@ export async function createOrder(formData: FormData) {
     clienteTelefone: String(formData.get("cliente_telefone") ?? "") || null,
     canale: String(formData.get("canal") ?? "telefone"),
     note: String(formData.get("note") ?? "") || null,
+    taxaEntrega: Number(formData.get("taxa_entrega") ?? 0),
     items,
   });
 

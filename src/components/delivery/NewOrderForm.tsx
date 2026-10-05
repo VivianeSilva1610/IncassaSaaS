@@ -35,7 +35,16 @@ export function NewOrderForm({ products }: { products: Product[] }) {
           <option value="telefone">Telefone</option>
           <option value="whatsapp">WhatsApp</option>
         </select>
-        <input name="note" placeholder="Observações (opcional)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        <input
+          name="taxa_entrega"
+          type="number"
+          step="0.01"
+          min="0"
+          defaultValue={0}
+          placeholder="Taxa de entrega (R$)"
+          className="rounded-md border border-stone-300 px-3 py-2 text-sm"
+        />
+        <input name="note" placeholder="Observações (opcional)" className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2" />
       </div>
 
       <div className="space-y-2">
