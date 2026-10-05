@@ -8,6 +8,14 @@ const PROXIMO_STATUS: Record<string, string> = {
   pronto: "entregue",
 };
 
+function infoEmbalagem(pedido: { mesa_id: string | null; canal: string }) {
+  const isDelivery = !pedido.mesa_id && (pedido.canal === "telefone" || pedido.canal === "whatsapp");
+  if (isDelivery) {
+    return { label: "VASILHA — ENTREGA", emoji: "📦", classe: "bg-sky-100 text-sky-800 border-sky-300" };
+  }
+  return { label: "PRATO — CONSUMO LOCAL", emoji: "🍽️", classe: "bg-emerald-100 text-emerald-800 border-emerald-300" };
+}
+
 export default async function CozinhaPage() {
   const { supabase } = await requireRestaurantSubscription();
 
@@ -24,37 +32,47 @@ export default async function CozinhaPage() {
       <p className="mt-1 text-sm text-stone-600">Atualiza automaticamente a cada 15 segundos.</p>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        {(pedidos ?? []).map((p) => (
-          <div key={p.id} className="rounded-xl border border-stone-200 bg-white p-4">
-            <div className="flex items-center justify-between">
-              <p className="font-semibold text-stone-900">
-                {p.del_mesas?.numero ? `Mesa ${p.del_mesas.numero}` : p.cliente_nome || "Balcão/Delivery"}
-              </p>
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">{p.status}</span>
-            </div>
-            <ul className="mt-2 space-y-0.5 text-sm text-stone-700">
-              {(p.del_order_items ?? []).map(
-                (it: { quantidade: number; del_products: { nome: string } | null }, i: number) => (
-                  <li key={i}>{it.quantidade}x {it.del_products?.nome ?? "?"}</li>
-                ),
+        {(pedidos ?? []).map((p) => {
+          const embalagem = infoEmbalagem(p);
+          return (
+            <div key={p.id} className="rounded-xl border border-stone-200 bg-white p-4">
+              <div className={`-mx-4 -mt-4 mb-3 rounded-t-xl border-b px-4 py-2 text-center text-sm font-bold ${embalagem.classe}`}>
+                {embalagem.emoji} {embalagem.label}
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="font-semibold text-stone-900">
+                  {p.del_mesas?.numero
+                    ? `Mesa ${p.del_mesas.numero}`
+                    : p.cliente_nome
+                      ? `${p.cliente_nome}${p.cliente_telefone ? ` · ${p.cliente_telefone}` : ""}`
+                      : "Sem nome"}
+                </p>
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">{p.status}</span>
+              </div>
+              <ul className="mt-2 space-y-0.5 text-sm text-stone-700">
+                {(p.del_order_items ?? []).map(
+                  (it: { quantidade: number; del_products: { nome: string } | null }, i: number) => (
+                    <li key={i}>{it.quantidade}x {it.del_products?.nome ?? "?"}</li>
+                  ),
+                )}
+              </ul>
+              {p.note && <p className="mt-1 text-xs italic text-stone-500">{p.note}</p>}
+              {PROXIMO_STATUS[p.status] && (
+                <form
+                  action={async () => {
+                    "use server";
+                    await updateOrderStatus(p.id, PROXIMO_STATUS[p.status]);
+                  }}
+                  className="mt-3"
+                >
+                  <button type="submit" className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white">
+                    Marcar como {PROXIMO_STATUS[p.status]}
+                  </button>
+                </form>
               )}
-            </ul>
-            {p.note && <p className="mt-1 text-xs italic text-stone-500">{p.note}</p>}
-            {PROXIMO_STATUS[p.status] && (
-              <form
-                action={async () => {
-                  "use server";
-                  await updateOrderStatus(p.id, PROXIMO_STATUS[p.status]);
-                }}
-                className="mt-3"
-              >
-                <button type="submit" className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white">
-                  Marcar como {PROXIMO_STATUS[p.status]}
-                </button>
-              </form>
-            )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
         {(pedidos ?? []).length === 0 && <p className="text-sm text-stone-500">Nenhum pedido em andamento.</p>}
       </div>
     </div>

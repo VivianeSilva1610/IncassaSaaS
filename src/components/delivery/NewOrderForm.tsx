@@ -132,8 +132,9 @@ export function NewOrderForm({
         <input name="cliente_nome" placeholder="Nome do cliente (opcional)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
         <input name="cliente_telefone" placeholder="Telefone (opcional)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
         <select name="canal" className="rounded-md border border-stone-300 px-3 py-2 text-sm">
-          <option value="telefone">Telefone</option>
-          <option value="whatsapp">WhatsApp</option>
+          <option value="telefone">Telefone (delivery — vasilha)</option>
+          <option value="whatsapp">WhatsApp (delivery — vasilha)</option>
+          <option value="balcao">Balcão (consumo local — prato)</option>
         </select>
         <input
           name="taxa_entrega"
