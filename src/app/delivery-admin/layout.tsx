@@ -6,6 +6,7 @@ const navItems = [
   { href: "/delivery-admin", label: "Visão geral" },
   { href: "/delivery-admin/estoque", label: "Estoque" },
   { href: "/delivery-admin/vendas", label: "Vendas" },
+  { href: "/delivery-admin/custos", label: "Custos" },
 ];
 
 export default async function DeliveryAdminLayout({ children }: { children: React.ReactNode }) {

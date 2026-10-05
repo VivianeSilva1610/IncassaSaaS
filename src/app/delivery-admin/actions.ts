@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireDeliveryAdmin } from "@/lib/delivery/auth";
 import { registerStockMovement } from "@/lib/delivery/stock";
 import { createOrderWithItems } from "@/lib/delivery/orders";
+import { PRICING_CONFIG_ID } from "@/lib/delivery/pricing";
 
 export async function addIngredient(formData: FormData) {
   const { supabase } = await requireDeliveryAdmin();
@@ -101,4 +102,64 @@ export async function deleteOrder(id: string) {
   const { supabase } = await requireDeliveryAdmin();
   await supabase.from("del_orders").delete().eq("id", id);
   revalidatePath("/delivery-admin/vendas");
+}
+
+export async function addFixedCost(formData: FormData) {
+  const { supabase } = await requireDeliveryAdmin();
+
+  await supabase.from("del_fixed_costs").insert({
+    descricao: String(formData.get("descricao") ?? ""),
+    valor_mensal: Number(formData.get("valor_mensal") ?? 0),
+  });
+
+  revalidatePath("/delivery-admin/custos");
+}
+
+export async function deleteFixedCost(id: string) {
+  const { supabase } = await requireDeliveryAdmin();
+  await supabase.from("del_fixed_costs").delete().eq("id", id);
+  revalidatePath("/delivery-admin/custos");
+}
+
+export async function updatePricingConfig(formData: FormData) {
+  const { supabase } = await requireDeliveryAdmin();
+
+  const volumeMensalEstimado = Number(formData.get("volume_mensal_estimado") ?? 0);
+  const margemPercentual = Number(formData.get("margem_desejada") ?? 0);
+
+  await supabase.from("del_pricing_config").upsert({
+    id: PRICING_CONFIG_ID,
+    volume_mensal_estimado: volumeMensalEstimado,
+    margem_desejada: margemPercentual / 100,
+    updated_at: new Date().toISOString(),
+  });
+
+  revalidatePath("/delivery-admin/custos");
+}
+
+export async function addProductIngredient(formData: FormData) {
+  const { supabase } = await requireDeliveryAdmin();
+
+  const productId = String(formData.get("product_id") ?? "");
+  const ingredientId = String(formData.get("ingredient_id") ?? "");
+  const quantidadeNecessaria = Number(formData.get("quantidade_necessaria") ?? 0);
+
+  if (!productId || !ingredientId || quantidadeNecessaria <= 0) {
+    throw new Error("Dados inválidos.");
+  }
+
+  await supabase
+    .from("del_product_ingredients")
+    .upsert(
+      { product_id: productId, ingredient_id: ingredientId, quantidade_necessaria: quantidadeNecessaria },
+      { onConflict: "product_id,ingredient_id" },
+    );
+
+  revalidatePath("/delivery-admin/custos");
+}
+
+export async function deleteProductIngredient(id: string) {
+  const { supabase } = await requireDeliveryAdmin();
+  await supabase.from("del_product_ingredients").delete().eq("id", id);
+  revalidatePath("/delivery-admin/custos");
 }
