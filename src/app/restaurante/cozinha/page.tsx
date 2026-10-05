@@ -9,7 +9,7 @@ const PROXIMO_STATUS: Record<string, string> = {
 };
 
 function infoEmbalagem(pedido: { mesa_id: string | null; canal: string }) {
-  const isDelivery = !pedido.mesa_id && (pedido.canal === "telefone" || pedido.canal === "whatsapp");
+  const isDelivery = !pedido.mesa_id && ["telefone", "whatsapp", "site"].includes(pedido.canal);
   if (isDelivery) {
     return { label: "VASILHA — ENTREGA", emoji: "📦", classe: "bg-sky-100 text-sky-800 border-sky-300" };
   }
@@ -56,6 +56,7 @@ export default async function CozinhaPage() {
                   ),
                 )}
               </ul>
+              {p.endereco && <p className="mt-1 text-xs text-stone-600">📍 {p.endereco}</p>}
               {p.note && <p className="mt-1 text-xs italic text-stone-500">{p.note}</p>}
               {PROXIMO_STATUS[p.status] && (
                 <form

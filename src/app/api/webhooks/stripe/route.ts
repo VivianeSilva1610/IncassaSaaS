@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendKitEmail } from "@/lib/email";
 import { sendMetaEvent } from "@/lib/meta-capi";
 import type { Locale } from "@/lib/locale";
+import { deduzirEstoquePorVenda } from "@/lib/delivery/stock";
 
 async function handleKitIncassaCheckout(session: Stripe.Checkout.Session) {
   const email = session.customer_details?.email ?? session.customer_email;
@@ -45,6 +46,44 @@ async function handleKitIncassaCheckout(session: Stripe.Checkout.Session) {
     value: (session.amount_total ?? 0) / 100,
     currency: session.currency?.toUpperCase() ?? "EUR",
   });
+}
+
+// Pix é um método de pagamento assíncrono: checkout.session.completed
+// dispara antes de o cliente realmente pagar (payment_status ainda
+// "unpaid"), e a confirmação real chega depois via
+// checkout.session.async_payment_succeeded. Por isso esta função é
+// chamada nos dois eventos, e só age quando payment_status === "paid".
+async function handlePranzoPedidoCheckout(session: Stripe.Checkout.Session) {
+  if (session.payment_status !== "paid") return;
+
+  const orderId = session.metadata?.orderId;
+  if (!orderId) return;
+
+  const supabase = getSupabaseAdmin();
+
+  const { data: order } = await supabase
+    .from("del_orders")
+    .select("id, owner_id, status")
+    .eq("id", orderId)
+    .eq("stripe_session_id", session.id)
+    .maybeSingle();
+
+  if (!order || order.status !== "aguardando_pagamento") return;
+
+  await supabase.from("del_orders").update({ status: "novo" }).eq("id", order.id);
+
+  const { data: items } = await supabase
+    .from("del_order_items")
+    .select("product_id, quantidade")
+    .eq("order_id", order.id);
+
+  if (items && items.length > 0) {
+    await deduzirEstoquePorVenda(supabase, {
+      ownerId: order.owner_id,
+      orderId: order.id,
+      items: items.map((i) => ({ productId: i.product_id, quantidade: Number(i.quantidade) })),
+    });
+  }
 }
 
 async function handleSubscriptionCheckout(session: Stripe.Checkout.Session) {
@@ -170,9 +209,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  if (event.type === "checkout.session.completed") {
+  if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
     const session = event.data.object as Stripe.Checkout.Session;
-    if (session.mode === "subscription") {
+    if (session.metadata?.product === "pranzo_pedido") {
+      await handlePranzoPedidoCheckout(session);
+    } else if (session.mode === "subscription") {
       await handleSubscriptionCheckout(session);
     } else {
       await handleKitIncassaCheckout(session);

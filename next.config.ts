@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
         destination: "/restaurante/:path*",
         permanent: true,
       },
+      {
+        source: "/marmitex",
+        destination: "/pranzo",
+        permanent: true,
+      },
     ];
   },
 };
