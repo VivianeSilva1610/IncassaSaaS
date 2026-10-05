@@ -23,6 +23,9 @@ export default async function DeliveryAdminLayout({ children }: { children: Reac
                   {item.label}
                 </Link>
               ))}
+              <Link href="/app" className="hover:text-stone-900">
+                ← INCASSA
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-3 text-sm text-stone-500">

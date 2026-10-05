@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase-server";
 import { signOut } from "@/app/app/actions";
 import { getUserLocale } from "@/lib/locale";
+import { isDeliveryAdminEmail } from "@/lib/delivery/auth";
 
 const navItemsIt = [
   { href: "/app", label: "Dashboard" },
@@ -33,6 +34,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const locale = user ? await getUserLocale(supabase, user.id) : "it";
   const navItems = locale === "en" ? navItemsEn : navItemsIt;
+  const showDeliveryLink = isDeliveryAdminEmail(user?.email);
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -44,6 +46,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 {item.label}
               </Link>
             ))}
+            {showDeliveryLink && (
+              <Link href="/delivery-admin" className="hover:text-stone-900">
+                🍱 Delivery
+              </Link>
+            )}
           </nav>
           <div className="flex items-center gap-3 text-sm text-stone-500">
             <span>{user?.email}</span>
