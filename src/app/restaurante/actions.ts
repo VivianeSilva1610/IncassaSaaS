@@ -188,3 +188,30 @@ export async function deleteProductIngredient(id: string) {
   await supabase.from("del_product_ingredients").delete().eq("id", id);
   revalidatePath("/restaurante/custos");
 }
+
+export async function addCaixaMovimento(formData: FormData) {
+  const { supabase } = await requireRestaurantSubscription();
+
+  const tipo = formData.get("tipo") === "saida" ? "saida" : "entrada";
+  const valor = Number(formData.get("valor") ?? 0);
+
+  if (valor <= 0) {
+    throw new Error("Valor inválido.");
+  }
+
+  await supabase.from("del_caixa_movimentos").insert({
+    tipo,
+    categoria: String(formData.get("categoria") ?? "outro"),
+    valor,
+    descrizione: String(formData.get("descrizione") ?? "") || null,
+    data: String(formData.get("data") ?? "") || new Date().toISOString().slice(0, 10),
+  });
+
+  revalidatePath("/restaurante/caixa");
+}
+
+export async function deleteCaixaMovimento(id: string) {
+  const { supabase } = await requireRestaurantSubscription();
+  await supabase.from("del_caixa_movimentos").delete().eq("id", id);
+  revalidatePath("/restaurante/caixa");
+}

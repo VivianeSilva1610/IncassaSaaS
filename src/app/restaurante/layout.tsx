@@ -7,6 +7,7 @@ const navItems = [
   { href: "/restaurante/estoque", label: "Estoque" },
   { href: "/restaurante/vendas", label: "Vendas" },
   { href: "/restaurante/custos", label: "Custos" },
+  { href: "/restaurante/caixa", label: "Caixa" },
 ];
 
 export default async function RestauranteLayout({ children }: { children: React.ReactNode }) {
