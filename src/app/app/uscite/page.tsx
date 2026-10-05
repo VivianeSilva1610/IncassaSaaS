@@ -20,6 +20,7 @@ const strings = {
     elimina: "Elimina",
     nessunaUscita: "Nessuna uscita ancora.",
     scade: "scade",
+    totaleMese: "Totale da pagare questo mese",
   },
   en: {
     title: "Expenses",
@@ -36,6 +37,7 @@ const strings = {
     elimina: "Delete",
     nessunaUscita: "No expenses yet.",
     scade: "due",
+    totaleMese: "Total due this month",
   },
 };
 
@@ -50,10 +52,20 @@ export default async function UscitePage() {
 
   const { data: uscite } = await supabase.from("uscite").select("*").order("data_scadenza");
 
+  const anoMesAtual = new Date().toISOString().slice(0, 7);
+  const totaleMese = (uscite ?? [])
+    .filter((u) => u.status === "da_pagare" && u.data_scadenza.startsWith(anoMesAtual))
+    .reduce((sum, u) => sum + Number(u.importo), 0);
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-stone-900">{t.title}</h1>
       <p className="mt-1 text-sm text-stone-600">{t.intro}</p>
+
+      <div className="mt-4 rounded-xl border border-stone-200 bg-white p-4">
+        <p className="text-sm text-stone-500">{t.totaleMese}</p>
+        <p className="mt-1 text-2xl font-bold text-stone-900">{formatEuro(totaleMese)}</p>
+      </div>
 
       <form action={addUscita} className="mt-6 grid gap-3 rounded-xl border border-stone-200 bg-white p-4 sm:grid-cols-2">
         <input name="descrizione" required placeholder={t.descrizionePlaceholder} className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2" />
