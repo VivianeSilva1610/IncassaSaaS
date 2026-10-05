@@ -18,7 +18,7 @@ export default async function MesaPage({ params }: { params: Promise<{ token: st
   const [{ data: products }, { data: pricingConfig }] = await Promise.all([
     admin
       .from("del_products")
-      .select("id, nome, descrizione, preco, categoria")
+      .select("id, nome, descrizione, preco, categoria, imagem_url")
       .eq("owner_id", mesa.owner_id)
       .eq("ativo", true)
       .in("categoria", ["prato", "bebida", "sobremesa"])
@@ -41,6 +41,7 @@ export default async function MesaPage({ params }: { params: Promise<{ token: st
           descricao: p.descrizione,
           preco: Number(p.preco),
           categoria: p.categoria,
+          imagemUrl: p.imagem_url,
         }))}
       />
     </main>

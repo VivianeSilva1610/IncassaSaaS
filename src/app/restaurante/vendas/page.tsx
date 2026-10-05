@@ -78,10 +78,16 @@ export default async function VendasPage() {
               <div className="mt-1.5 space-y-1.5">
                 {itensDaCategoria.map((p) => (
                   <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm">
-                    <span className={p.ativo ? "text-stone-900" : "text-stone-400 line-through"}>
-                      {p.nome} — {formatReal(Number(p.preco))}
-                      {p.descrizione && <span className="block text-xs text-stone-500">{p.descrizione}</span>}
-                    </span>
+                    <div className="flex min-w-0 items-center gap-2">
+                      {p.imagem_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.imagem_url} alt={p.nome} width={36} height={36} className="h-9 w-9 shrink-0 rounded-md object-cover" />
+                      )}
+                      <span className={p.ativo ? "text-stone-900" : "text-stone-400 line-through"}>
+                        {p.nome} — {formatReal(Number(p.preco))}
+                        {p.descrizione && <span className="block text-xs text-stone-500">{p.descrizione}</span>}
+                      </span>
+                    </div>
                     <div className="flex shrink-0 items-center gap-3">
                       <details className="relative">
                         <summary className="cursor-pointer list-none text-xs text-amber-700 hover:underline">

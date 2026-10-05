@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 
-type Product = { id: string; nome: string; descricao?: string | null; preco: number; categoria: string };
+type Product = {
+  id: string;
+  nome: string;
+  descricao?: string | null;
+  preco: number;
+  categoria: string;
+  imagemUrl?: string | null;
+};
 
 function formatReal(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -85,10 +92,22 @@ export function MesaMenuForm({ qrToken, products }: { qrToken: string; products:
             <div className="mt-1.5 space-y-1.5">
               {itensDaCategoria.map((p) => (
                 <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 bg-white px-3 py-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-stone-900">{p.nome}</p>
-                    {p.descricao && <p className="mt-0.5 text-xs text-stone-500">{p.descricao}</p>}
-                    <p className="mt-0.5 text-xs font-medium text-stone-700">{formatReal(p.preco)}</p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    {p.imagemUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.imagemUrl}
+                        alt={p.nome}
+                        width={56}
+                        height={56}
+                        className="h-14 w-14 shrink-0 rounded-md object-cover"
+                      />
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-stone-900">{p.nome}</p>
+                      {p.descricao && <p className="mt-0.5 text-xs text-stone-500">{p.descricao}</p>}
+                      <p className="mt-0.5 text-xs font-medium text-stone-700">{formatReal(p.preco)}</p>
+                    </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <button
