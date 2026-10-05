@@ -3,9 +3,9 @@ import { requireDeliveryAdmin } from "@/lib/delivery/auth";
 import { signOut } from "@/app/app/actions";
 
 const navItems = [
-  { href: "/delivery-admin", label: "Panoramica" },
-  { href: "/delivery-admin/estoque", label: "Magazzino" },
-  { href: "/delivery-admin/vendas", label: "Vendite" },
+  { href: "/delivery-admin", label: "Visão geral" },
+  { href: "/delivery-admin/estoque", label: "Estoque" },
+  { href: "/delivery-admin/vendas", label: "Vendas" },
 ];
 
 export default async function DeliveryAdminLayout({ children }: { children: React.ReactNode }) {
@@ -16,7 +16,7 @@ export default async function DeliveryAdminLayout({ children }: { children: Reac
       <header className="border-b border-stone-200 bg-white">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-6 py-4">
           <div className="flex flex-wrap items-center gap-4">
-            <span className="text-sm font-semibold text-stone-900">🍽️ Gestione interna</span>
+            <span className="text-sm font-semibold text-stone-900">🍽️ Gestão interna</span>
             <nav className="flex flex-wrap gap-4 text-sm font-medium text-stone-600">
               {navItems.map((item) => (
                 <Link key={item.href} href={item.href} className="hover:text-stone-900">
@@ -32,7 +32,7 @@ export default async function DeliveryAdminLayout({ children }: { children: Reac
             <span>{user.email}</span>
             <form action={signOut}>
               <button type="submit" className="hover:text-stone-900">
-                Esci
+                Sair
               </button>
             </form>
           </div>

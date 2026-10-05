@@ -19,7 +19,7 @@ export async function registerStockMovement(
     .single();
 
   if (fetchError || !ingredient) {
-    throw new Error("Ingrediente non trovato.");
+    throw new Error("Ingrediente não encontrado.");
   }
 
   const delta = params.tipo === "saida" ? -params.quantidade : params.quantidade;

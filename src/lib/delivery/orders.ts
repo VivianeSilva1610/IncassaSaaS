@@ -31,7 +31,7 @@ export async function createOrderWithItems(
     .single();
 
   if (orderError || !order) {
-    throw new Error("Impossibile creare l'ordine.");
+    throw new Error("Não foi possível criar o pedido.");
   }
 
   const { error: itemsError } = await supabase.from("del_order_items").insert(
@@ -44,7 +44,7 @@ export async function createOrderWithItems(
   );
 
   if (itemsError) {
-    throw new Error("Impossibile salvare gli articoli dell'ordine.");
+    throw new Error("Não foi possível salvar os itens do pedido.");
   }
 
   return order.id as string;

@@ -34,7 +34,7 @@ export async function addStockMovement(formData: FormData) {
   const motivo = String(formData.get("motivo") ?? "") || null;
 
   if (!ingredientId || quantidade <= 0) {
-    throw new Error("Dati non validi.");
+    throw new Error("Dados inválidos.");
   }
 
   await registerStockMovement(supabase, { ingredientId, tipo, quantidade, motivo });
@@ -77,7 +77,7 @@ export async function createOrder(formData: FormData) {
     .filter((item) => item.productId && item.quantidade > 0);
 
   if (items.length === 0) {
-    throw new Error("Aggiungi almeno un prodotto all'ordine.");
+    throw new Error("Adicione pelo menos um item ao pedido.");
   }
 
   await createOrderWithItems(supabase, {
