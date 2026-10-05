@@ -23,6 +23,7 @@ export function NewOrderForm({
   acompanhamentos = [],
   extras = [],
   cardapioSemana = [],
+  isOwner = false,
 }: {
   products: Product[];
   tamanhos?: Tamanho[];
@@ -30,6 +31,7 @@ export function NewOrderForm({
   acompanhamentos?: Product[];
   extras?: Product[];
   cardapioSemana?: CardapioDia[];
+  isOwner?: boolean;
 }) {
   const [freeRows, setFreeRows] = useState<FreeRow[]>([{ key: 0 }]);
   const [fixedRows, setFixedRows] = useState<FixedRow[]>([]);
@@ -143,6 +145,12 @@ export function NewOrderForm({
           className="rounded-md border border-stone-300 px-3 py-2 text-sm"
         />
         <input name="note" placeholder="Observações (opcional)" className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2" />
+        {isOwner && (
+          <label className="flex items-center gap-2 text-xs text-stone-700 sm:col-span-2">
+            <input type="checkbox" name="a_prazo" />
+            Pedido a prazo (fiado) — gera uma fatura no INCASSA com o nome do cliente, pra cobrar depois
+          </label>
+        )}
       </div>
 
       {temMonteSeuPranzo && (

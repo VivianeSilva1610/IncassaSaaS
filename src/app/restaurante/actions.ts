@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireRestaurantSubscription } from "@/lib/subscription";
 import { registerStockMovement } from "@/lib/delivery/stock";
 import { createOrderWithItems } from "@/lib/delivery/orders";
+import { gerarFaturaParaPedido } from "@/lib/delivery/invoice-bridge";
 
 export async function addIngredient(formData: FormData) {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
@@ -107,7 +108,7 @@ export async function deleteProduct(id: string) {
 }
 
 export async function createOrder(formData: FormData) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
 
   const productIds = formData.getAll("product_id").map(String);
   const quantities = formData.getAll("quantidade").map((v) => Number(v));
@@ -121,15 +122,38 @@ export async function createOrder(formData: FormData) {
     throw new Error("Adicione pelo menos um item ao pedido.");
   }
 
-  await createOrderWithItems(supabase, {
+  const clienteNome = String(formData.get("cliente_nome") ?? "") || null;
+  const clienteTelefone = String(formData.get("cliente_telefone") ?? "") || null;
+  // "A prazo" só gera fatura no INCASSA quando quem está lançando é o
+  // próprio dono — a conta de um funcionário não tem permissão de escrita
+  // em clients/invoices do INCASSA (são tabelas de outro produto, com RLS
+  // própria por user_id, sem o mecanismo de equipe do restaurante).
+  const aPrazo = isOwner && formData.get("a_prazo") === "on";
+
+  if (aPrazo && !clienteNome) {
+    throw new Error("Informe o nome do cliente para lançar um pedido a prazo.");
+  }
+
+  const { orderId, totale } = await createOrderWithItems(supabase, {
     ownerId: restaurantOwnerId,
-    clienteNome: String(formData.get("cliente_nome") ?? "") || null,
-    clienteTelefone: String(formData.get("cliente_telefone") ?? "") || null,
+    clienteNome,
+    clienteTelefone,
     canale: String(formData.get("canal") ?? "telefone"),
     note: String(formData.get("note") ?? "") || null,
     taxaEntrega: Number(formData.get("taxa_entrega") ?? 0),
+    aPrazo,
     items,
   });
+
+  if (aPrazo && clienteNome) {
+    await gerarFaturaParaPedido(supabase, {
+      userId: restaurantOwnerId,
+      clienteNome,
+      clienteTelefone,
+      importo: totale,
+      orderId,
+    });
+  }
 
   revalidatePath("/restaurante/vendas");
 }

@@ -9,7 +9,7 @@ function formatReal(value: number) {
 const STATUSES = ["novo", "em preparo", "pronto", "entregue", "cancelado"];
 
 export default async function VendasPage() {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
 
   const [{ data: products }, { data: orders }, { data: pricingConfig }, { data: cardapioSemana }] = await Promise.all([
     supabase.from("del_products").select("*").order("nome"),
@@ -142,6 +142,7 @@ export default async function VendasPage() {
           acompanhamentos={acompanhamentos}
           extras={extras}
           cardapioSemana={cardapioSemanaMapeado}
+          isOwner={isOwner}
         />
       </section>
 
@@ -152,7 +153,14 @@ export default async function VendasPage() {
             <div key={o.id} className="rounded-lg border border-stone-200 bg-white p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-stone-900">{o.cliente_nome || "Cliente sem nome"}</p>
+                  <p className="font-medium text-stone-900">
+                    {o.cliente_nome || "Cliente sem nome"}
+                    {o.a_prazo && (
+                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                        A prazo{o.invoice_id ? " · fatura no INCASSA" : ""}
+                      </span>
+                    )}
+                  </p>
                   <p className="text-sm text-stone-500">
                     {(o.del_order_items ?? [])
                       .map((it: { quantidade: number; del_products: { nome: string } | null }) =>

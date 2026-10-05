@@ -15,6 +15,7 @@ export async function createOrderWithItems(
     canale: string;
     note?: string | null;
     taxaEntrega?: number;
+    aPrazo?: boolean;
     items: NewOrderItem[];
   },
 ) {
@@ -30,6 +31,7 @@ export async function createOrderWithItems(
       canal: params.canale,
       note: params.note ?? null,
       taxa_entrega: taxaEntrega,
+      a_prazo: params.aPrazo ?? false,
       totale,
     })
     .select("id")
@@ -53,5 +55,5 @@ export async function createOrderWithItems(
     throw new Error("Não foi possível salvar os itens do pedido.");
   }
 
-  return order.id as string;
+  return { orderId: order.id as string, totale };
 }
