@@ -9,7 +9,7 @@ import { gerarFaturaParaPedido } from "@/lib/delivery/invoice-bridge";
 export async function addIngredient(formData: FormData) {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
-  await supabase.from("del_ingredients").insert({
+  const { error } = await supabase.from("del_ingredients").insert({
     owner_id: restaurantOwnerId,
     nome: String(formData.get("nome") ?? ""),
     unidade: String(formData.get("unidade") ?? "un"),
@@ -17,6 +17,7 @@ export async function addIngredient(formData: FormData) {
     estoque_minimo: formData.get("estoque_minimo") ? Number(formData.get("estoque_minimo")) : null,
     custo_unitario: formData.get("custo_unitario") ? Number(formData.get("custo_unitario")) : null,
   });
+  if (error) throw new Error(`Não foi possível salvar o ingrediente: ${error.message}`);
 
   revalidatePath("/restaurante/estoque");
 }
@@ -58,7 +59,7 @@ export async function addProduct(formData: FormData) {
     ? Number(formData.get("max_acompanhamentos"))
     : null;
 
-  await supabase.from("del_products").insert({
+  const { error } = await supabase.from("del_products").insert({
     owner_id: restaurantOwnerId,
     nome: String(formData.get("nome") ?? ""),
     descrizione: String(formData.get("descrizione") ?? "") || null,
@@ -66,6 +67,7 @@ export async function addProduct(formData: FormData) {
     categoria,
     max_acompanhamentos: categoria === "tamanho" ? maxAcompanhamentos : null,
   });
+  if (error) throw new Error(`Não foi possível salvar o item: ${error.message}`);
 
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/cardapio");
@@ -79,7 +81,7 @@ export async function updateProduct(id: string, formData: FormData) {
     ? Number(formData.get("max_acompanhamentos"))
     : null;
 
-  await supabase
+  const { error } = await supabase
     .from("del_products")
     .update({
       nome: String(formData.get("nome") ?? ""),
@@ -89,6 +91,7 @@ export async function updateProduct(id: string, formData: FormData) {
       max_acompanhamentos: categoria === "tamanho" ? maxAcompanhamentos : null,
     })
     .eq("id", id);
+  if (error) throw new Error(`Não foi possível atualizar o item: ${error.message}`);
 
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/custos");
@@ -173,11 +176,12 @@ export async function deleteOrder(id: string) {
 export async function addFixedCost(formData: FormData) {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
-  await supabase.from("del_fixed_costs").insert({
+  const { error } = await supabase.from("del_fixed_costs").insert({
     owner_id: restaurantOwnerId,
     descricao: String(formData.get("descricao") ?? ""),
     valor_mensal: Number(formData.get("valor_mensal") ?? 0),
   });
+  if (error) throw new Error(`Não foi possível salvar o custo fixo: ${error.message}`);
 
   revalidatePath("/restaurante/custos");
 }
@@ -195,7 +199,7 @@ export async function updatePricingConfig(formData: FormData) {
   const margemPercentual = Number(formData.get("margem_desejada") ?? 0);
   const nomeNegocio = String(formData.get("nome_negocio") ?? "").trim() || null;
 
-  await supabase.from("del_pricing_config").upsert(
+  const { error } = await supabase.from("del_pricing_config").upsert(
     {
       owner_id: restaurantOwnerId,
       volume_mensal_estimado: volumeMensalEstimado,
@@ -205,6 +209,7 @@ export async function updatePricingConfig(formData: FormData) {
     },
     { onConflict: "owner_id" },
   );
+  if (error) throw new Error(`Não foi possível salvar os parâmetros: ${error.message}`);
 
   revalidatePath("/restaurante/custos");
   revalidatePath("/restaurante");
@@ -222,7 +227,7 @@ export async function addProductIngredient(formData: FormData) {
     throw new Error("Dados inválidos.");
   }
 
-  await supabase
+  const { error } = await supabase
     .from("del_product_ingredients")
     .upsert(
       {
@@ -233,6 +238,7 @@ export async function addProductIngredient(formData: FormData) {
       },
       { onConflict: "product_id,ingredient_id" },
     );
+  if (error) throw new Error(`Não foi possível salvar a ficha técnica: ${error.message}`);
 
   revalidatePath("/restaurante/custos");
 }
@@ -253,7 +259,7 @@ export async function addCaixaMovimento(formData: FormData) {
     throw new Error("Valor inválido.");
   }
 
-  await supabase.from("del_caixa_movimentos").insert({
+  const { error } = await supabase.from("del_caixa_movimentos").insert({
     owner_id: restaurantOwnerId,
     operador_email: user.email,
     tipo,
@@ -262,6 +268,7 @@ export async function addCaixaMovimento(formData: FormData) {
     descrizione: String(formData.get("descrizione") ?? "") || null,
     data: String(formData.get("data") ?? "") || new Date().toISOString().slice(0, 10),
   });
+  if (error) throw new Error(`Não foi possível registrar o lançamento: ${error.message}`);
 
   revalidatePath("/restaurante/caixa");
 }
@@ -285,10 +292,11 @@ export async function addStaff(formData: FormData) {
     throw new Error("E-mail inválido.");
   }
 
-  await supabase.from("del_staff").upsert(
+  const { error } = await supabase.from("del_staff").upsert(
     { owner_id: restaurantOwnerId, email, nome },
     { onConflict: "owner_id,email" },
   );
+  if (error) throw new Error(`Não foi possível dar acesso: ${error.message}`);
 
   revalidatePath("/restaurante/equipe");
 }
@@ -313,11 +321,12 @@ export async function addCardapioDia(formData: FormData) {
     throw new Error("Selecione um prato principal.");
   }
 
-  await supabase.from("del_cardapio_semana").insert({
+  const { error } = await supabase.from("del_cardapio_semana").insert({
     owner_id: restaurantOwnerId,
     dia_semana: diaSemana,
     product_id: productId,
   });
+  if (error) throw new Error(`Não foi possível adicionar ao cardápio da semana: ${error.message}`);
 
   revalidatePath("/restaurante/cardapio");
 }
