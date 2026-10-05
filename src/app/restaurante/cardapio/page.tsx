@@ -16,7 +16,9 @@ export default async function CardapioPage() {
   ]);
 
   const tamanhos = (products ?? []).filter((p) => p.categoria === "tamanho");
-  const principais = (products ?? []).filter((p) => p.categoria === "principal");
+  // Pratos já cadastrados como "prato" (menu normal) também valem como
+  // principal do Monte seu Pranzo — não precisa recadastrar.
+  const principais = (products ?? []).filter((p) => p.categoria === "principal" || p.categoria === "prato");
   const acompanhamentos = (products ?? []).filter((p) => p.categoria === "acompanhamento");
   const extras = (products ?? []).filter((p) => p.categoria === "extra");
 

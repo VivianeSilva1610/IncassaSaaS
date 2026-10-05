@@ -32,7 +32,7 @@ export default async function VendasPage() {
     .filter((p) => p.categoria === "tamanho")
     .map((p) => ({ id: p.id, nome: p.nome, preco: Number(p.preco), maxAcompanhamentos: Number(p.max_acompanhamentos ?? 0) }));
   const principais = activeProducts
-    .filter((p) => p.categoria === "principal")
+    .filter((p) => p.categoria === "principal" || p.categoria === "prato")
     .map((p) => ({ id: p.id, nome: p.nome, preco: 0 }));
   const acompanhamentos = activeProducts
     .filter((p) => p.categoria === "acompanhamento")
