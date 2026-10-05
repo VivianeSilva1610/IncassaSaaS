@@ -336,3 +336,35 @@ export async function removeCardapioDia(id: string) {
   await supabase.from("del_cardapio_semana").delete().eq("id", id);
   revalidatePath("/restaurante/cardapio");
 }
+
+export async function addMesa(formData: FormData) {
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+
+  const numero = String(formData.get("numero") ?? "").trim();
+  if (!numero) throw new Error("Informe o número ou nome da mesa.");
+
+  const { error } = await supabase.from("del_mesas").insert({ owner_id: restaurantOwnerId, numero });
+  if (error) throw new Error(`Não foi possível criar a mesa: ${error.message}`);
+
+  revalidatePath("/restaurante/mesas");
+}
+
+export async function deleteMesa(id: string) {
+  const { supabase } = await requireRestaurantSubscription();
+  await supabase.from("del_mesas").delete().eq("id", id);
+  revalidatePath("/restaurante/mesas");
+}
+
+export async function fecharComanda(id: string, formData: FormData) {
+  const { supabase } = await requireRestaurantSubscription();
+
+  const formaPagamento = String(formData.get("forma_pagamento") ?? "") || null;
+
+  const { error } = await supabase
+    .from("del_comandas")
+    .update({ status: "fechada", forma_pagamento: formaPagamento, fechada_em: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(`Não foi possível fechar a comanda: ${error.message}`);
+
+  revalidatePath("/restaurante/mesas");
+}
