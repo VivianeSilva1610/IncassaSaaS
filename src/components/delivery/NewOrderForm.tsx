@@ -172,14 +172,21 @@ export function NewOrderForm({
             </select>
           </div>
 
-          <select value={principalId} onChange={(e) => setPrincipalId(e.target.value)} className="mt-2 w-full rounded-md border border-stone-300 px-2 py-1.5 text-xs">
+          <select
+            value={principalId}
+            onChange={(e) => setPrincipalId(e.target.value)}
+            disabled={principaisDoDia.length === 0}
+            className="mt-2 w-full rounded-md border border-stone-300 px-2 py-1.5 text-xs disabled:bg-stone-100 disabled:text-stone-400"
+          >
             <option value="">Prato principal…</option>
-            {(principaisDoDia.length > 0 ? principaisDoDia : principais).map((p) => (
+            {principaisDoDia.map((p) => (
               <option key={p.id} value={p.id}>{p.nome}</option>
             ))}
           </select>
           {principaisDoDia.length === 0 && (
-            <p className="mt-1 text-xs text-amber-700">Nenhum principal definido para {DIAS_SEMANA[diaSemana]} — mostrando todos.</p>
+            <p className="mt-1 text-xs text-amber-700">
+              Nenhum principal definido para {DIAS_SEMANA[diaSemana]}. Cadastre em Cardápio → Cardápio da semana.
+            </p>
           )}
 
           {tamanhoSelecionado && (
