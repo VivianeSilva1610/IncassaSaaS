@@ -111,7 +111,11 @@
 .chefCopy h2 { margin: 14px 0 0; font-family: Georgia, serif; font-size: clamp(43px, 4.5vw, 62px); font-weight: 500; line-height: 1.02; letter-spacing: -.04em; }
 .chefCopy > p:not(.eyebrow) { color: var(--muted); font-size: 14px; line-height: 1.8; }
 .chefCopy .chefLead { margin: 25px 0 10px; color: var(--ink); font-family: Georgia, serif; font-size: 19px; font-style: italic; line-height: 1.5; }
-.chefCopy blockquote { position: relative; margin: 30px 0 0; padding: 20px 0 20px 28px; border-left: 3px solid var(--orange); color: var(--ink); font-family: Georgia, serif; font-size: 20px; font-style: italic; line-height: 1.55; }
+.chefCredential { display: flex; align-items: center; gap: 14px; margin-top: 28px; padding: 17px 18px; border: 1px solid #ded4c5; background: var(--cream); }
+.credentialMark { display: grid; place-items: center; width: 43px; height: 43px; flex: none; border-radius: 50%; color: white; background: var(--orange); font-family: Georgia, serif; font-size: 20px; font-style: italic; }
+.chefCredential small, .chefCredential strong { display: block; }
+.chefCredential small { margin-bottom: 4px; color: var(--orange); font-size: 8px; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
+.chefCredential strong { color: var(--ink); font-family: Georgia, serif; font-size: 15px; font-weight: 500; }
 .chefSignature { display: block; margin: 15px 0 0 31px; color: var(--orange); font-size: 10px; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
 .chefPortrait { position: relative; min-height: 650px; }
 .chefPortrait::before { content: ""; position: absolute; top: -22px; right: -22px; width: 70%; height: 72%; background: var(--yellow); }

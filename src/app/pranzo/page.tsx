@@ -119,7 +119,6 @@ const emailBody = encodeURIComponent(orderMessage);
 const contactHref = whatsappNumber
   ? `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`
   : `mailto:${contactEmail}?subject=${emailSubject}&body=${emailBody}`;
-const contactLabel = whatsappNumber ? "Pedir pelo WhatsApp" : "Pedir por e-mail";
 const contactTarget = whatsappNumber ? "_blank" : undefined;
 
 function ArrowIcon() {
@@ -298,27 +297,30 @@ export default function PranzoPage() {
       <section className={styles.chefSection}>
         <div className={styles.chefCopy}>
           <p className={styles.eyebrow}><span /> Dietro ogni piatto</p>
-          <h2>A chef por trás<br />de cada prato.</h2>
+          <h2>Chef<br />Nicolaj Mellace.</h2>
           <p className={styles.chefLead}>Cozinhar é a nossa forma de receber você à mesa.</p>
           <p>
             Na cozinha da PRANZO, cada receita começa com ingredientes bem escolhidos, respeito ao tempo de preparo e o cuidado que transforma uma refeição simples em um momento especial.
           </p>
-          <blockquote>“Quero que cada marmita chegue até você com sabor de domingo em família.”</blockquote>
-          <span className={styles.chefSignature}>La chef · PRANZO</span>
+          <div className={styles.chefCredential}>
+            <span className={styles.credentialMark}>N</span>
+            <span><small>Formação profissional</small><strong>Scuola Radio Elettra · Umbria, Italia</strong></span>
+          </div>
+          <span className={styles.chefSignature}>Lo chef · PRANZO</span>
         </div>
 
         <div className={styles.chefPortrait}>
           <div className={styles.chefImageWrap}>
             <Image
-              src="/chef-pranzo.png"
-              alt="Chef da PRANZO em uma cozinha italiana"
+              src="/chef-nicolaj-mellace.png"
+              alt="Chef Nicolaj Mellace em uma cozinha italiana"
               fill
               sizes="(max-width: 800px) 92vw, 46vw"
               className={styles.chefImage}
             />
           </div>
           <div className={styles.chefSeal} aria-hidden="true">
-            <strong>PRANZO</strong>
+            <strong>NICOLAJ</strong>
             <span>FATTO CON AMORE</span>
           </div>
         </div>
@@ -341,7 +343,7 @@ export default function PranzoPage() {
           <p>Buon appetito</p>
           <h2>Hoje a Itália chega<br />à sua mesa.</h2>
         </div>
-        <a href={contactHref} target={contactTarget} rel="noreferrer">{contactLabel} <ArrowIcon /></a>
+        <a href="#cardapio">Ver cardápio <ArrowIcon /></a>
       </section>
 
       <footer className={styles.footer}>
