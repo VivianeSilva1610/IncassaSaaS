@@ -13,6 +13,7 @@ export async function addIngredient(formData: FormData) {
     unidade: String(formData.get("unidade") ?? "un"),
     quantidade_atual: Number(formData.get("quantidade_atual") ?? 0),
     estoque_minimo: formData.get("estoque_minimo") ? Number(formData.get("estoque_minimo")) : null,
+    custo_unitario: formData.get("custo_unitario") ? Number(formData.get("custo_unitario")) : null,
   });
 
   revalidatePath("/delivery-admin/estoque");
