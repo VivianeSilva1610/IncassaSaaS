@@ -5,6 +5,7 @@ type MovementType = "entrada" | "saida" | "ajuste";
 export async function registerStockMovement(
   supabase: SupabaseClient,
   params: {
+    ownerId: string;
     ingredientId: string;
     tipo: MovementType;
     quantidade: number;
@@ -26,6 +27,7 @@ export async function registerStockMovement(
   const nuovaQuantita = Number(ingredient.quantidade_atual) + delta;
 
   const { error: insertError } = await supabase.from("del_stock_movements").insert({
+    owner_id: params.ownerId,
     ingredient_id: params.ingredientId,
     tipo: params.tipo,
     quantidade: params.quantidade,

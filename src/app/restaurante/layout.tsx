@@ -11,12 +11,12 @@ const navItems = [
 ];
 
 export default async function RestauranteLayout({ children }: { children: React.ReactNode }) {
-  const { user, supabase } = await requireRestaurantSubscription();
+  const { user, supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
 
   const { data: pricingConfig } = await supabase
     .from("del_pricing_config")
     .select("nome_negocio")
-    .eq("owner_id", user.id)
+    .eq("owner_id", restaurantOwnerId)
     .maybeSingle();
   const nomeNegocio = pricingConfig?.nome_negocio || "Gestão do restaurante";
 
@@ -32,6 +32,11 @@ export default async function RestauranteLayout({ children }: { children: React.
                   {item.label}
                 </Link>
               ))}
+              {isOwner && (
+                <Link href="/restaurante/equipe" className="hover:text-stone-900">
+                  Equipe
+                </Link>
+              )}
             </nav>
           </div>
           <div className="flex items-center gap-3 text-sm text-stone-500">

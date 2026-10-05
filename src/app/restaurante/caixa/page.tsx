@@ -87,6 +87,7 @@ export default async function CaixaPage() {
                 <span className="ml-2 text-stone-500">
                   {m.categoria} · {m.data}
                   {m.descrizione ? ` · ${m.descrizione}` : ""}
+                  {m.operador_email ? ` · ${m.operador_email}` : ""}
                 </span>
               </div>
               <form action={deleteCaixaMovimento.bind(null, m.id)}>

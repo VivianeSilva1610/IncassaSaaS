@@ -9,6 +9,7 @@ export type NewOrderItem = {
 export async function createOrderWithItems(
   supabase: SupabaseClient,
   params: {
+    ownerId: string;
     clienteNome?: string | null;
     clienteTelefone?: string | null;
     canale: string;
@@ -23,6 +24,7 @@ export async function createOrderWithItems(
   const { data: order, error: orderError } = await supabase
     .from("del_orders")
     .insert({
+      owner_id: params.ownerId,
       cliente_nome: params.clienteNome ?? null,
       cliente_telefone: params.clienteTelefone ?? null,
       canal: params.canale,
@@ -39,6 +41,7 @@ export async function createOrderWithItems(
 
   const { error: itemsError } = await supabase.from("del_order_items").insert(
     params.items.map((item) => ({
+      owner_id: params.ownerId,
       order_id: order.id,
       product_id: item.productId,
       quantidade: item.quantidade,

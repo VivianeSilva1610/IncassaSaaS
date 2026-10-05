@@ -27,6 +27,20 @@ export async function requireActiveSubscription() {
     isAdminEmail(user.email) || (!!profile && ["trialing", "active"].includes(profile.subscription_status));
 
   if (!hasAccess) {
+    // No INCASSA access — if they're a restaurant owner/staff member instead
+    // (a different product, same login), send them there rather than to the
+    // INCASSA paywall they were never trying to reach.
+    const { data: staffRow } = await supabase.from("del_staff").select("id").eq("email", user.email).maybeSingle();
+    const { data: ownRestaurantSub } = await supabase
+      .from("restaurant_subscriptions")
+      .select("subscription_status")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (staffRow || (!!ownRestaurantSub && ["trialing", "active"].includes(ownRestaurantSub.subscription_status))) {
+      redirect("/restaurante");
+    }
+
     redirect("/app/abbonamento");
   }
 
@@ -40,19 +54,33 @@ export async function requireRestaurantSubscription() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // If this email is registered as someone else's staff, they act on that
+  // restaurant's data (restaurantOwnerId), not their own — inserts must use
+  // this value explicitly, since owner_id's column default (auth.uid())
+  // would otherwise point at the staff member's own id.
+  const { data: staffRow } = await supabase
+    .from("del_staff")
+    .select("owner_id")
+    .eq("email", user.email)
+    .maybeSingle();
+
+  const restaurantOwnerId = staffRow?.owner_id ?? user.id;
+  const isOwner = !staffRow;
+
   const { data: subscription } = await supabase
     .from("restaurant_subscriptions")
     .select("subscription_status")
-    .eq("user_id", user.id)
+    .eq("user_id", restaurantOwnerId)
     .maybeSingle();
 
   const hasAccess =
     isAdminEmail(user.email) ||
+    !!staffRow ||
     (!!subscription && ["trialing", "active"].includes(subscription.subscription_status));
 
   if (!hasAccess) {
     redirect("/");
   }
 
-  return { user, supabase, subscription };
+  return { user, supabase, restaurantOwnerId, isOwner, subscription };
 }

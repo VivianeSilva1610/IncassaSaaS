@@ -13,12 +13,12 @@ function formatReal(value: number) {
 }
 
 export default async function CustosPage() {
-  const { supabase, user } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
   const [{ data: fixedCosts }, { data: pricingConfig }, { data: products }, { data: ingredients }, { data: productIngredients }] =
     await Promise.all([
       supabase.from("del_fixed_costs").select("*").order("created_at"),
-      supabase.from("del_pricing_config").select("*").eq("owner_id", user.id).maybeSingle(),
+      supabase.from("del_pricing_config").select("*").eq("owner_id", restaurantOwnerId).maybeSingle(),
       supabase.from("del_products").select("*").order("nome"),
       supabase.from("del_ingredients").select("*").order("nome"),
       supabase.from("del_product_ingredients").select("*, del_ingredients(nome, unidade, custo_unitario)"),

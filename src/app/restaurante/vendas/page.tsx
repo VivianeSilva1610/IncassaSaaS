@@ -9,7 +9,7 @@ function formatReal(value: number) {
 const STATUSES = ["novo", "em preparo", "pronto", "entregue", "cancelado"];
 
 export default async function VendasPage() {
-  const { supabase, user } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
   const [{ data: products }, { data: orders }, { data: pricingConfig }] = await Promise.all([
     supabase.from("del_products").select("*").order("nome"),
@@ -18,7 +18,7 @@ export default async function VendasPage() {
       .select("*, del_order_items(quantidade, preco_unitario, del_products(nome))")
       .order("created_at", { ascending: false })
       .limit(30),
-    supabase.from("del_pricing_config").select("nome_negocio").eq("owner_id", user.id).maybeSingle(),
+    supabase.from("del_pricing_config").select("nome_negocio").eq("owner_id", restaurantOwnerId).maybeSingle(),
   ]);
 
   const activeProducts = (products ?? []).filter((p) => p.ativo);

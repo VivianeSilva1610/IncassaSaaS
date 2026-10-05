@@ -6,9 +6,10 @@ import { registerStockMovement } from "@/lib/delivery/stock";
 import { createOrderWithItems } from "@/lib/delivery/orders";
 
 export async function addIngredient(formData: FormData) {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
   await supabase.from("del_ingredients").insert({
+    owner_id: restaurantOwnerId,
     nome: String(formData.get("nome") ?? ""),
     unidade: String(formData.get("unidade") ?? "un"),
     quantidade_atual: Number(formData.get("quantidade_atual") ?? 0),
@@ -26,7 +27,7 @@ export async function deleteIngredient(id: string) {
 }
 
 export async function addStockMovement(formData: FormData) {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
   const ingredientId = String(formData.get("ingredient_id") ?? "");
   const tipo = String(formData.get("tipo") ?? "entrada") as "entrada" | "saida" | "ajuste";
@@ -37,14 +38,15 @@ export async function addStockMovement(formData: FormData) {
     throw new Error("Dados inválidos.");
   }
 
-  await registerStockMovement(supabase, { ingredientId, tipo, quantidade, motivo });
+  await registerStockMovement(supabase, { ownerId: restaurantOwnerId, ingredientId, tipo, quantidade, motivo });
   revalidatePath("/restaurante/estoque");
 }
 
 export async function addProduct(formData: FormData) {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
   await supabase.from("del_products").insert({
+    owner_id: restaurantOwnerId,
     nome: String(formData.get("nome") ?? ""),
     descrizione: String(formData.get("descrizione") ?? "") || null,
     preco: Number(formData.get("preco") ?? 0),
@@ -84,7 +86,7 @@ export async function deleteProduct(id: string) {
 }
 
 export async function createOrder(formData: FormData) {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
   const productIds = formData.getAll("product_id").map(String);
   const quantities = formData.getAll("quantidade").map((v) => Number(v));
@@ -99,6 +101,7 @@ export async function createOrder(formData: FormData) {
   }
 
   await createOrderWithItems(supabase, {
+    ownerId: restaurantOwnerId,
     clienteNome: String(formData.get("cliente_nome") ?? "") || null,
     clienteTelefone: String(formData.get("cliente_telefone") ?? "") || null,
     canale: String(formData.get("canal") ?? "telefone"),
@@ -123,9 +126,10 @@ export async function deleteOrder(id: string) {
 }
 
 export async function addFixedCost(formData: FormData) {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
   await supabase.from("del_fixed_costs").insert({
+    owner_id: restaurantOwnerId,
     descricao: String(formData.get("descricao") ?? ""),
     valor_mensal: Number(formData.get("valor_mensal") ?? 0),
   });
@@ -140,7 +144,7 @@ export async function deleteFixedCost(id: string) {
 }
 
 export async function updatePricingConfig(formData: FormData) {
-  const { supabase, user } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
   const volumeMensalEstimado = Number(formData.get("volume_mensal_estimado") ?? 0);
   const margemPercentual = Number(formData.get("margem_desejada") ?? 0);
@@ -148,7 +152,7 @@ export async function updatePricingConfig(formData: FormData) {
 
   await supabase.from("del_pricing_config").upsert(
     {
-      owner_id: user.id,
+      owner_id: restaurantOwnerId,
       volume_mensal_estimado: volumeMensalEstimado,
       margem_desejada: margemPercentual / 100,
       nome_negocio: nomeNegocio,
@@ -163,7 +167,7 @@ export async function updatePricingConfig(formData: FormData) {
 }
 
 export async function addProductIngredient(formData: FormData) {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
   const productId = String(formData.get("product_id") ?? "");
   const ingredientId = String(formData.get("ingredient_id") ?? "");
@@ -176,7 +180,12 @@ export async function addProductIngredient(formData: FormData) {
   await supabase
     .from("del_product_ingredients")
     .upsert(
-      { product_id: productId, ingredient_id: ingredientId, quantidade_necessaria: quantidadeNecessaria },
+      {
+        owner_id: restaurantOwnerId,
+        product_id: productId,
+        ingredient_id: ingredientId,
+        quantidade_necessaria: quantidadeNecessaria,
+      },
       { onConflict: "product_id,ingredient_id" },
     );
 
@@ -190,7 +199,7 @@ export async function deleteProductIngredient(id: string) {
 }
 
 export async function addCaixaMovimento(formData: FormData) {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, user } = await requireRestaurantSubscription();
 
   const tipo = formData.get("tipo") === "saida" ? "saida" : "entrada";
   const valor = Number(formData.get("valor") ?? 0);
@@ -200,6 +209,8 @@ export async function addCaixaMovimento(formData: FormData) {
   }
 
   await supabase.from("del_caixa_movimentos").insert({
+    owner_id: restaurantOwnerId,
+    operador_email: user.email,
     tipo,
     categoria: String(formData.get("categoria") ?? "outro"),
     valor,
@@ -214,4 +225,35 @@ export async function deleteCaixaMovimento(id: string) {
   const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_caixa_movimentos").delete().eq("id", id);
   revalidatePath("/restaurante/caixa");
+}
+
+export async function addStaff(formData: FormData) {
+  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
+  if (!isOwner) {
+    throw new Error("Apenas o dono do restaurante pode gerenciar a equipe.");
+  }
+
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const nome = String(formData.get("nome") ?? "").trim() || null;
+
+  if (!email || !email.includes("@")) {
+    throw new Error("E-mail inválido.");
+  }
+
+  await supabase.from("del_staff").upsert(
+    { owner_id: restaurantOwnerId, email, nome },
+    { onConflict: "owner_id,email" },
+  );
+
+  revalidatePath("/restaurante/equipe");
+}
+
+export async function removeStaff(id: string) {
+  const { supabase, isOwner } = await requireRestaurantSubscription();
+  if (!isOwner) {
+    throw new Error("Apenas o dono do restaurante pode gerenciar a equipe.");
+  }
+
+  await supabase.from("del_staff").delete().eq("id", id);
+  revalidatePath("/restaurante/equipe");
 }
