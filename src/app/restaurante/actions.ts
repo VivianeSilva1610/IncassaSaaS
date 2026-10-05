@@ -1,13 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireDeliveryAdmin } from "@/lib/delivery/auth";
+import { requireRestaurantSubscription } from "@/lib/subscription";
 import { registerStockMovement } from "@/lib/delivery/stock";
 import { createOrderWithItems } from "@/lib/delivery/orders";
-import { PRICING_CONFIG_ID } from "@/lib/delivery/pricing";
 
 export async function addIngredient(formData: FormData) {
-  const { supabase } = await requireDeliveryAdmin();
+  const { supabase } = await requireRestaurantSubscription();
 
   await supabase.from("del_ingredients").insert({
     nome: String(formData.get("nome") ?? ""),
@@ -17,17 +16,17 @@ export async function addIngredient(formData: FormData) {
     custo_unitario: formData.get("custo_unitario") ? Number(formData.get("custo_unitario")) : null,
   });
 
-  revalidatePath("/delivery-admin/estoque");
+  revalidatePath("/restaurante/estoque");
 }
 
 export async function deleteIngredient(id: string) {
-  const { supabase } = await requireDeliveryAdmin();
+  const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_ingredients").delete().eq("id", id);
-  revalidatePath("/delivery-admin/estoque");
+  revalidatePath("/restaurante/estoque");
 }
 
 export async function addStockMovement(formData: FormData) {
-  const { supabase } = await requireDeliveryAdmin();
+  const { supabase } = await requireRestaurantSubscription();
 
   const ingredientId = String(formData.get("ingredient_id") ?? "");
   const tipo = String(formData.get("tipo") ?? "entrada") as "entrada" | "saida" | "ajuste";
@@ -39,11 +38,11 @@ export async function addStockMovement(formData: FormData) {
   }
 
   await registerStockMovement(supabase, { ingredientId, tipo, quantidade, motivo });
-  revalidatePath("/delivery-admin/estoque");
+  revalidatePath("/restaurante/estoque");
 }
 
 export async function addProduct(formData: FormData) {
-  const { supabase } = await requireDeliveryAdmin();
+  const { supabase } = await requireRestaurantSubscription();
 
   await supabase.from("del_products").insert({
     nome: String(formData.get("nome") ?? ""),
@@ -51,11 +50,11 @@ export async function addProduct(formData: FormData) {
     preco: Number(formData.get("preco") ?? 0),
   });
 
-  revalidatePath("/delivery-admin/vendas");
+  revalidatePath("/restaurante/vendas");
 }
 
 export async function updateProduct(id: string, formData: FormData) {
-  const { supabase } = await requireDeliveryAdmin();
+  const { supabase } = await requireRestaurantSubscription();
 
   await supabase
     .from("del_products")
@@ -66,24 +65,24 @@ export async function updateProduct(id: string, formData: FormData) {
     })
     .eq("id", id);
 
-  revalidatePath("/delivery-admin/vendas");
-  revalidatePath("/delivery-admin/custos");
+  revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/custos");
 }
 
 export async function toggleProductAtivo(id: string, ativo: boolean) {
-  const { supabase } = await requireDeliveryAdmin();
+  const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_products").update({ ativo: !ativo }).eq("id", id);
-  revalidatePath("/delivery-admin/vendas");
+  revalidatePath("/restaurante/vendas");
 }
 
 export async function deleteProduct(id: string) {
-  const { supabase } = await requireDeliveryAdmin();
+  const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_products").delete().eq("id", id);
-  revalidatePath("/delivery-admin/vendas");
+  revalidatePath("/restaurante/vendas");
 }
 
 export async function createOrder(formData: FormData) {
-  const { supabase, user } = await requireDeliveryAdmin();
+  const { supabase } = await requireRestaurantSubscription();
 
   const productIds = formData.getAll("product_id").map(String);
   const quantities = formData.getAll("quantidade").map((v) => Number(v));
@@ -97,91 +96,71 @@ export async function createOrder(formData: FormData) {
     throw new Error("Adicione pelo menos um item ao pedido.");
   }
 
-  const clienteIdRaw = String(formData.get("cliente_id") ?? "");
-  let clienteId: string | null = null;
-  let clienteNome = String(formData.get("cliente_nome") ?? "") || null;
-  let clienteTelefone = String(formData.get("cliente_telefone") ?? "") || null;
-
-  if (clienteIdRaw) {
-    const { data: cliente } = await supabase
-      .from("clients")
-      .select("id, nome, telefono")
-      .eq("id", clienteIdRaw)
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (!cliente) {
-      throw new Error("Cliente não encontrado.");
-    }
-
-    clienteId = cliente.id;
-    clienteNome = clienteNome || cliente.nome;
-    clienteTelefone = clienteTelefone || cliente.telefono;
-  }
-
   await createOrderWithItems(supabase, {
-    clienteId,
-    clienteNome,
-    clienteTelefone,
+    clienteNome: String(formData.get("cliente_nome") ?? "") || null,
+    clienteTelefone: String(formData.get("cliente_telefone") ?? "") || null,
     canale: String(formData.get("canal") ?? "telefone"),
     note: String(formData.get("note") ?? "") || null,
     items,
   });
 
-  revalidatePath("/delivery-admin/vendas");
+  revalidatePath("/restaurante/vendas");
 }
 
 export async function updateOrderStatus(id: string, status: string) {
-  const { supabase } = await requireDeliveryAdmin();
+  const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_orders").update({ status }).eq("id", id);
-  revalidatePath("/delivery-admin/vendas");
+  revalidatePath("/restaurante/vendas");
 }
 
 export async function deleteOrder(id: string) {
-  const { supabase } = await requireDeliveryAdmin();
+  const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_orders").delete().eq("id", id);
-  revalidatePath("/delivery-admin/vendas");
+  revalidatePath("/restaurante/vendas");
 }
 
 export async function addFixedCost(formData: FormData) {
-  const { supabase } = await requireDeliveryAdmin();
+  const { supabase } = await requireRestaurantSubscription();
 
   await supabase.from("del_fixed_costs").insert({
     descricao: String(formData.get("descricao") ?? ""),
     valor_mensal: Number(formData.get("valor_mensal") ?? 0),
   });
 
-  revalidatePath("/delivery-admin/custos");
+  revalidatePath("/restaurante/custos");
 }
 
 export async function deleteFixedCost(id: string) {
-  const { supabase } = await requireDeliveryAdmin();
+  const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_fixed_costs").delete().eq("id", id);
-  revalidatePath("/delivery-admin/custos");
+  revalidatePath("/restaurante/custos");
 }
 
 export async function updatePricingConfig(formData: FormData) {
-  const { supabase } = await requireDeliveryAdmin();
+  const { supabase, user } = await requireRestaurantSubscription();
 
   const volumeMensalEstimado = Number(formData.get("volume_mensal_estimado") ?? 0);
   const margemPercentual = Number(formData.get("margem_desejada") ?? 0);
   const nomeNegocio = String(formData.get("nome_negocio") ?? "").trim() || null;
 
-  await supabase.from("del_pricing_config").upsert({
-    id: PRICING_CONFIG_ID,
-    volume_mensal_estimado: volumeMensalEstimado,
-    margem_desejada: margemPercentual / 100,
-    nome_negocio: nomeNegocio,
-    updated_at: new Date().toISOString(),
-  });
+  await supabase.from("del_pricing_config").upsert(
+    {
+      owner_id: user.id,
+      volume_mensal_estimado: volumeMensalEstimado,
+      margem_desejada: margemPercentual / 100,
+      nome_negocio: nomeNegocio,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "owner_id" },
+  );
 
-  revalidatePath("/delivery-admin/custos");
-  revalidatePath("/delivery-admin");
-  revalidatePath("/delivery-admin/vendas");
+  revalidatePath("/restaurante/custos");
+  revalidatePath("/restaurante");
+  revalidatePath("/restaurante/vendas");
 }
 
 export async function addProductIngredient(formData: FormData) {
-  const { supabase } = await requireDeliveryAdmin();
+  const { supabase } = await requireRestaurantSubscription();
 
   const productId = String(formData.get("product_id") ?? "");
   const ingredientId = String(formData.get("ingredient_id") ?? "");
@@ -198,11 +177,11 @@ export async function addProductIngredient(formData: FormData) {
       { onConflict: "product_id,ingredient_id" },
     );
 
-  revalidatePath("/delivery-admin/custos");
+  revalidatePath("/restaurante/custos");
 }
 
 export async function deleteProductIngredient(id: string) {
-  const { supabase } = await requireDeliveryAdmin();
+  const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_product_ingredients").delete().eq("id", id);
-  revalidatePath("/delivery-admin/custos");
+  revalidatePath("/restaurante/custos");
 }

@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { requireDeliveryAdmin } from "@/lib/delivery/auth";
+import { requireRestaurantSubscription } from "@/lib/subscription";
 
 function formatReal(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
-export default async function DeliveryAdminOverviewPage() {
-  const { supabase } = await requireDeliveryAdmin();
+export default async function RestauranteOverviewPage() {
+  const { supabase } = await requireRestaurantSubscription();
 
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
@@ -52,7 +52,7 @@ export default async function DeliveryAdminOverviewPage() {
               </li>
             ))}
           </ul>
-          <Link href="/delivery-admin/estoque" className="mt-2 inline-block text-sm text-amber-700 underline underline-offset-2">
+          <Link href="/restaurante/estoque" className="mt-2 inline-block text-sm text-amber-700 underline underline-offset-2">
             Ir para o estoque
           </Link>
         </div>
@@ -72,7 +72,7 @@ export default async function DeliveryAdminOverviewPage() {
           ))}
           {(recentOrders ?? []).length === 0 && <p className="text-sm text-stone-500">Nenhum pedido ainda.</p>}
         </div>
-        <Link href="/delivery-admin/vendas" className="mt-2 inline-block text-sm text-amber-700 underline underline-offset-2">
+        <Link href="/restaurante/vendas" className="mt-2 inline-block text-sm text-amber-700 underline underline-offset-2">
           Ir para vendas
         </Link>
       </div>

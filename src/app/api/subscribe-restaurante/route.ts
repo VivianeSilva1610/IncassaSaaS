@@ -17,12 +17,12 @@ export async function POST() {
   const cookieStore = await cookies();
 
   const session = await createSubscriptionCheckout({
-    priceId: process.env.STRIPE_PRICE_INCASSA_SAAS!,
+    priceId: process.env.STRIPE_PRICE_RESTAURANTE_SAAS!,
     userId: user.id,
     email: user.email,
-    successUrl: `${siteUrl}/app?subscribed=1`,
-    cancelUrl: `${siteUrl}/app/abbonamento?checkout=cancelled`,
-    product: "incassa",
+    successUrl: `${siteUrl}/restaurante?subscribed=1`,
+    cancelUrl: `${siteUrl}/restaurante?checkout=cancelled`,
+    product: "restaurante",
     trialPeriodDays: 7,
     fbp: cookieStore.get("_fbp")?.value ?? "",
     fbc: cookieStore.get("_fbc")?.value ?? "",

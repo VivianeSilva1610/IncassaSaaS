@@ -1,24 +1,23 @@
 import Link from "next/link";
-import { requireDeliveryAdmin } from "@/lib/delivery/auth";
+import { requireRestaurantSubscription } from "@/lib/subscription";
 import { signOut } from "@/app/app/actions";
-import { PRICING_CONFIG_ID } from "@/lib/delivery/pricing";
 
 const navItems = [
-  { href: "/delivery-admin", label: "Visão geral" },
-  { href: "/delivery-admin/estoque", label: "Estoque" },
-  { href: "/delivery-admin/vendas", label: "Vendas" },
-  { href: "/delivery-admin/custos", label: "Custos" },
+  { href: "/restaurante", label: "Visão geral" },
+  { href: "/restaurante/estoque", label: "Estoque" },
+  { href: "/restaurante/vendas", label: "Vendas" },
+  { href: "/restaurante/custos", label: "Custos" },
 ];
 
-export default async function DeliveryAdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, supabase } = await requireDeliveryAdmin();
+export default async function RestauranteLayout({ children }: { children: React.ReactNode }) {
+  const { user, supabase } = await requireRestaurantSubscription();
 
   const { data: pricingConfig } = await supabase
     .from("del_pricing_config")
     .select("nome_negocio")
-    .eq("id", PRICING_CONFIG_ID)
+    .eq("owner_id", user.id)
     .maybeSingle();
-  const nomeNegocio = pricingConfig?.nome_negocio || "Gestão interna";
+  const nomeNegocio = pricingConfig?.nome_negocio || "Gestão do restaurante";
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -32,9 +31,6 @@ export default async function DeliveryAdminLayout({ children }: { children: Reac
                   {item.label}
                 </Link>
               ))}
-              <Link href="/app" className="hover:text-stone-900">
-                ← INCASSA
-              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-3 text-sm text-stone-500">

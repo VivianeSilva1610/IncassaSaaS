@@ -51,10 +51,28 @@ async function handleSubscriptionCheckout(session: Stripe.Checkout.Session) {
   const userId = session.client_reference_id;
   if (!userId) return;
 
+  const product = session.metadata?.product === "restaurante" ? "restaurante" : "incassa";
+
   const stripe = getStripe();
   const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
 
-  await getSupabaseAdmin()
+  const supabase = getSupabaseAdmin();
+
+  if (product === "restaurante") {
+    await supabase.from("restaurant_subscriptions").upsert(
+      {
+        user_id: userId,
+        stripe_customer_id: session.customer as string,
+        stripe_subscription_id: subscription.id,
+        subscription_status: subscription.status,
+        trial_ends_at: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
+      },
+      { onConflict: "user_id" },
+    );
+    return;
+  }
+
+  await supabase
     .from("profiles")
     .update({
       stripe_customer_id: session.customer as string,
@@ -83,6 +101,18 @@ async function handleSubscriptionUpdated(
   if (!userId) return;
 
   const supabase = getSupabaseAdmin();
+  const product = subscription.metadata?.product === "restaurante" ? "restaurante" : "incassa";
+
+  if (product === "restaurante") {
+    await supabase
+      .from("restaurant_subscriptions")
+      .update({
+        subscription_status: subscription.status,
+        trial_ends_at: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
+      })
+      .eq("user_id", userId);
+    return;
+  }
 
   await supabase
     .from("profiles")
@@ -114,7 +144,15 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const userId = subscription.metadata?.user_id;
   if (!userId) return;
 
-  await getSupabaseAdmin().from("profiles").update({ subscription_status: "canceled" }).eq("id", userId);
+  const product = subscription.metadata?.product === "restaurante" ? "restaurante" : "incassa";
+  const supabase = getSupabaseAdmin();
+
+  if (product === "restaurante") {
+    await supabase.from("restaurant_subscriptions").update({ subscription_status: "canceled" }).eq("user_id", userId);
+    return;
+  }
+
+  await supabase.from("profiles").update({ subscription_status: "canceled" }).eq("id", userId);
 }
 
 export async function POST(req: Request) {

@@ -1,5 +1,3 @@
-export const PRICING_CONFIG_ID = "00000000-0000-0000-0000-000000000001";
-
 export function calculateProductCost(params: {
   ingredientes: { quantidade_necessaria: number; custo_unitario: number | null }[];
   totalCustosFixos: number;

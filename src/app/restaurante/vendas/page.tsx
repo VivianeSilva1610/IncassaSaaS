@@ -1,7 +1,6 @@
-import { requireDeliveryAdmin } from "@/lib/delivery/auth";
-import { addProduct, updateProduct, toggleProductAtivo, deleteProduct, updateOrderStatus, deleteOrder } from "@/app/delivery-admin/actions";
+import { requireRestaurantSubscription } from "@/lib/subscription";
+import { addProduct, updateProduct, toggleProductAtivo, deleteProduct, updateOrderStatus, deleteOrder } from "@/app/restaurante/actions";
 import { NewOrderForm } from "@/components/delivery/NewOrderForm";
-import { PRICING_CONFIG_ID } from "@/lib/delivery/pricing";
 
 function formatReal(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -10,17 +9,16 @@ function formatReal(value: number) {
 const STATUSES = ["novo", "em preparo", "pronto", "entregue", "cancelado"];
 
 export default async function VendasPage() {
-  const { supabase } = await requireDeliveryAdmin();
+  const { supabase, user } = await requireRestaurantSubscription();
 
-  const [{ data: products }, { data: orders }, { data: pricingConfig }, { data: clientes }] = await Promise.all([
+  const [{ data: products }, { data: orders }, { data: pricingConfig }] = await Promise.all([
     supabase.from("del_products").select("*").order("nome"),
     supabase
       .from("del_orders")
       .select("*, del_order_items(quantidade, preco_unitario, del_products(nome))")
       .order("created_at", { ascending: false })
       .limit(30),
-    supabase.from("del_pricing_config").select("nome_negocio").eq("id", PRICING_CONFIG_ID).maybeSingle(),
-    supabase.from("clients").select("id, nome, telefono").order("nome"),
+    supabase.from("del_pricing_config").select("nome_negocio").eq("owner_id", user.id).maybeSingle(),
   ]);
 
   const activeProducts = (products ?? []).filter((p) => p.ativo);
@@ -99,10 +97,7 @@ export default async function VendasPage() {
 
       <section className="mt-8">
         <h2 className="font-semibold text-stone-900">Novo pedido</h2>
-        <NewOrderForm
-          products={activeProducts.map((p) => ({ id: p.id, nome: p.nome, preco: Number(p.preco) }))}
-          clientes={clientes ?? []}
-        />
+        <NewOrderForm products={activeProducts.map((p) => ({ id: p.id, nome: p.nome, preco: Number(p.preco) }))} />
       </section>
 
       <section className="mt-8">

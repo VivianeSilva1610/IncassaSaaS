@@ -1,8 +1,8 @@
-import { requireDeliveryAdmin } from "@/lib/delivery/auth";
-import { addIngredient, deleteIngredient, addStockMovement } from "@/app/delivery-admin/actions";
+import { requireRestaurantSubscription } from "@/lib/subscription";
+import { addIngredient, deleteIngredient, addStockMovement } from "@/app/restaurante/actions";
 
 export default async function EstoquePage() {
-  const { supabase } = await requireDeliveryAdmin();
+  const { supabase } = await requireRestaurantSubscription();
 
   const { data: ingredients } = await supabase
     .from("del_ingredients")

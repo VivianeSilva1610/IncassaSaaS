@@ -1,24 +1,24 @@
-import { requireDeliveryAdmin } from "@/lib/delivery/auth";
+import { requireRestaurantSubscription } from "@/lib/subscription";
 import {
   addFixedCost,
   deleteFixedCost,
   updatePricingConfig,
   addProductIngredient,
   deleteProductIngredient,
-} from "@/app/delivery-admin/actions";
-import { calculateProductCost, PRICING_CONFIG_ID } from "@/lib/delivery/pricing";
+} from "@/app/restaurante/actions";
+import { calculateProductCost } from "@/lib/delivery/pricing";
 
 function formatReal(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
 export default async function CustosPage() {
-  const { supabase } = await requireDeliveryAdmin();
+  const { supabase, user } = await requireRestaurantSubscription();
 
   const [{ data: fixedCosts }, { data: pricingConfig }, { data: products }, { data: ingredients }, { data: productIngredients }] =
     await Promise.all([
       supabase.from("del_fixed_costs").select("*").order("created_at"),
-      supabase.from("del_pricing_config").select("*").eq("id", PRICING_CONFIG_ID).maybeSingle(),
+      supabase.from("del_pricing_config").select("*").eq("owner_id", user.id).maybeSingle(),
       supabase.from("del_products").select("*").order("nome"),
       supabase.from("del_ingredients").select("*").order("nome"),
       supabase.from("del_product_ingredients").select("*, del_ingredients(nome, unidade, custo_unitario)"),

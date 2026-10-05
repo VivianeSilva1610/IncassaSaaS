@@ -32,3 +32,27 @@ export async function requireActiveSubscription() {
 
   return { user, profile };
 }
+
+export async function requireRestaurantSubscription() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: subscription } = await supabase
+    .from("restaurant_subscriptions")
+    .select("subscription_status")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const hasAccess =
+    isAdminEmail(user.email) ||
+    (!!subscription && ["trialing", "active"].includes(subscription.subscription_status));
+
+  if (!hasAccess) {
+    redirect("/");
+  }
+
+  return { user, supabase, subscription };
+}

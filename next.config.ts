@@ -5,6 +5,15 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname),
   },
+  async redirects() {
+    return [
+      {
+        source: "/delivery-admin/:path*",
+        destination: "/restaurante/:path*",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
