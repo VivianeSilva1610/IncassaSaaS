@@ -26,7 +26,7 @@ export default async function VendasPage() {
   const nomeNegocio = pricingConfig?.nome_negocio;
 
   const itensAvulsos = activeProducts
-    .filter((p) => p.categoria === "prato" || p.categoria === "bebida")
+    .filter((p) => p.categoria === "prato" || p.categoria === "bebida" || p.categoria === "sobremesa")
     .map((p) => ({ id: p.id, nome: p.nome, preco: Number(p.preco) }));
   const tamanhos = activeProducts
     .filter((p) => p.categoria === "tamanho")
@@ -54,6 +54,7 @@ export default async function VendasPage() {
           <select name="categoria" className="rounded-md border border-stone-300 px-3 py-2 text-sm">
             <option value="prato">Prato</option>
             <option value="bebida">Bebida</option>
+            <option value="sobremesa">Sobremesa</option>
           </select>
           <input name="descrizione" placeholder="Descrição (opcional)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
           <button
@@ -67,6 +68,7 @@ export default async function VendasPage() {
         {([
           ["prato", "Pratos"],
           ["bebida", "Bebidas"],
+          ["sobremesa", "Sobremesas"],
         ] as const).map(([categoria, label]) => {
           const itensDaCategoria = (products ?? []).filter((p) => (p.categoria ?? "prato") === categoria);
           if (itensDaCategoria.length === 0) return null;
@@ -101,6 +103,7 @@ export default async function VendasPage() {
                           <select name="categoria" defaultValue={p.categoria ?? "prato"} className="rounded-md border border-stone-300 px-2 py-1.5 text-sm">
                             <option value="prato">Prato</option>
                             <option value="bebida">Bebida</option>
+                            <option value="sobremesa">Sobremesa</option>
                           </select>
                           <input
                             name="descrizione"
