@@ -8,6 +8,7 @@ type CartContextValue = {
   itens: CartItem[];
   adicionar: (item: { productId: string; nome: string; preco: number }) => void;
   remover: (productId: string) => void;
+  limpar: () => void;
   total: number;
   quantidadeTotal: number;
 };
@@ -36,11 +37,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
   }
 
+  function limpar() {
+    setItens([]);
+  }
+
   const total = useMemo(() => itens.reduce((sum, i) => sum + i.preco * i.quantidade, 0), [itens]);
   const quantidadeTotal = useMemo(() => itens.reduce((sum, i) => sum + i.quantidade, 0), [itens]);
 
   return (
-    <CartContext.Provider value={{ itens, adicionar, remover, total, quantidadeTotal }}>
+    <CartContext.Provider value={{ itens, adicionar, remover, limpar, total, quantidadeTotal }}>
       {children}
     </CartContext.Provider>
   );

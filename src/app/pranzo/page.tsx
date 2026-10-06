@@ -304,7 +304,7 @@ export default function PranzoPage() {
           </p>
           <div className={styles.chefCredential}>
             <span className={styles.credentialMark}>N</span>
-            <span><small>Formação profissional</small><strong>Scuola Radio Elettra · Umbria, Italia</strong></span>
+            <span><small>Formação profissional</small><strong>PiuItalia SRL · Pesaro–Perugia, Italia</strong></span>
           </div>
           <span className={styles.chefSignature}>Lo chef · PRANZO</span>
         </div>
