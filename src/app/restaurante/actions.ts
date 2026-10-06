@@ -259,14 +259,31 @@ export async function updateOrderStatus(id: string, status: string) {
 }
 
 export async function deleteOrder(id: string) {
-  const { supabase } = await requireRestaurantSubscription();
-  await supabase.from("del_orders").delete().eq("id", id);
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { data: order } = await supabase
+    .from("del_orders")
+    .select("id, pago, del_notas_fiscais(id)")
+    .eq("id", id)
+    .eq("owner_id", restaurantOwnerId)
+    .single();
+  if (!order) throw new Error("Pedido não encontrado.");
+  if (order.pago || (order.del_notas_fiscais?.length ?? 0) > 0) {
+    throw new Error("Pedido pago ou com histórico fiscal não pode ser excluído; use cancelamento ou estorno.");
+  }
+  const { error } = await supabase.from("del_orders").delete().eq("id", id).eq("owner_id", restaurantOwnerId);
+  if (error) throw new Error(`Não foi possível excluir o pedido: ${error.message}`);
   revalidatePath("/restaurante/vendas");
 }
 
 export async function updateFiscalConfig(formData: FormData) {
   const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
   if (!isOwner) throw new Error("Apenas o dono do restaurante pode editar os dados fiscais.");
+
+  const ambiente = String(formData.get("ambiente") ?? "homologacao");
+  const provedor = String(formData.get("provedor") ?? "") || null;
+  if (ambiente === "producao") {
+    throw new Error("A emissão em produção permanece bloqueada até integrar e homologar um provedor fiscal real.");
+  }
 
   const { error } = await supabase.from("del_fiscal_config").upsert(
     {
@@ -283,8 +300,9 @@ export async function updateFiscalConfig(formData: FormData) {
       uf: String(formData.get("uf") ?? "").trim().toUpperCase() || null,
       cep: String(formData.get("cep") ?? "").trim() || null,
       crt: formData.get("crt") ? Number(formData.get("crt")) : null,
-      ambiente: String(formData.get("ambiente") ?? "homologacao"),
-      provedor: String(formData.get("provedor") ?? "") || null,
+      ambiente,
+      provedor,
+      emissao_automatica: formData.get("emissao_automatica") === "on",
       updated_at: new Date().toISOString(),
     },
     { onConflict: "owner_id" },
@@ -320,11 +338,15 @@ export async function emitirNotaFiscal(orderId: string) {
 
 // Pedidos de mesa/balcão/telefone não passam por gateway de pagamento —
 // o cliente paga na hora, então é o atendente quem registra que recebeu.
-// Marcar como pago já dispara a emissão da NFC-e na sequência, igual ao
-// webhook da Asaas faz pro Pix do site.
-export async function marcarPedidoPago(orderId: string) {
+// A emissão fiscal só é disparada quando a opção automática estiver ativa;
+// por padrão, marcar como pago registra apenas o evento financeiro.
+export async function marcarPedidoPago(orderId: string, formData: FormData) {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
-  await confirmarPagamentoEEmitirNota(supabase, { ownerId: restaurantOwnerId, orderId });
+  await confirmarPagamentoEEmitirNota(supabase, {
+    ownerId: restaurantOwnerId,
+    orderId,
+    formaPagamento: String(formData.get("forma_pagamento") ?? "outro"),
+  });
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/fiscal");
 }
@@ -359,6 +381,32 @@ export async function addFixedCost(formData: FormData) {
 export async function deleteFixedCost(id: string) {
   const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_fixed_costs").delete().eq("id", id);
+  revalidatePath("/restaurante/custos");
+}
+
+export async function addZonaEntrega(formData: FormData) {
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+
+  const { error } = await supabase.from("del_zonas_entrega").insert({
+    owner_id: restaurantOwnerId,
+    bairro: String(formData.get("bairro") ?? "").trim(),
+    distancia_km: formData.get("distancia_km") ? Number(formData.get("distancia_km")) : null,
+    taxa: Number(formData.get("taxa") ?? 0),
+  });
+  if (error) throw new Error(`Não foi possível salvar o bairro: ${error.message}`);
+
+  revalidatePath("/restaurante/custos");
+}
+
+export async function toggleZonaEntregaAtivo(id: string, ativo: boolean) {
+  const { supabase } = await requireRestaurantSubscription();
+  await supabase.from("del_zonas_entrega").update({ ativo: !ativo }).eq("id", id);
+  revalidatePath("/restaurante/custos");
+}
+
+export async function deleteZonaEntrega(id: string) {
+  const { supabase } = await requireRestaurantSubscription();
+  await supabase.from("del_zonas_entrega").delete().eq("id", id);
   revalidatePath("/restaurante/custos");
 }
 

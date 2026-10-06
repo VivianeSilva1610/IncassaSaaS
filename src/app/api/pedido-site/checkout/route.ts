@@ -9,11 +9,12 @@ export async function POST(req: Request) {
   const clienteNome = String(body.clienteNome ?? "").trim();
   const clienteTelefone = String(body.clienteTelefone ?? "").trim() || null;
   const cpfCnpj = String(body.cpfCnpj ?? "").replace(/\D/g, "");
+  const bairroId = String(body.bairroId ?? "").trim();
   const endereco = String(body.endereco ?? "").trim() || null;
   const note = String(body.note ?? "").trim() || null;
 
-  if (!clienteNome || !cpfCnpj || itemsRaw.length === 0) {
-    return NextResponse.json({ error: "Preencha nome, CPF e pelo menos um item." }, { status: 400 });
+  if (!clienteNome || !cpfCnpj || !bairroId || itemsRaw.length === 0) {
+    return NextResponse.json({ error: "Preencha nome, CPF, bairro e pelo menos um item." }, { status: 400 });
   }
 
   const admin = getSupabaseAdmin();
@@ -22,6 +23,21 @@ export async function POST(req: Request) {
   if (!ownerId) {
     return NextResponse.json({ error: "Loja não encontrada." }, { status: 500 });
   }
+
+  // Taxa de entrega sempre buscada no banco pelo id do bairro, nunca
+  // confiada no valor que o cliente mandou.
+  const { data: zona } = await admin
+    .from("del_zonas_entrega")
+    .select("bairro, taxa")
+    .eq("owner_id", ownerId)
+    .eq("id", bairroId)
+    .eq("ativo", true)
+    .maybeSingle();
+
+  if (!zona) {
+    return NextResponse.json({ error: "Bairro inválido ou fora da área de entrega." }, { status: 400 });
+  }
+  const taxaEntrega = Number(zona.taxa);
 
   // Preço sempre buscado no banco, nunca confiado no que o cliente mandou.
   const productIds = itemsRaw.map((i) => i.productId).filter(Boolean) as string[];
@@ -49,7 +65,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Nenhum item válido no pedido." }, { status: 400 });
   }
 
-  const totale = items.reduce((sum, item) => sum + item.quantidade * item.precoUnitario, 0);
+  const totale = items.reduce((sum, item) => sum + item.quantidade * item.precoUnitario, 0) + taxaEntrega;
 
   const { data: order, error: orderError } = await admin
     .from("del_orders")
@@ -59,6 +75,8 @@ export async function POST(req: Request) {
       cliente_telefone: clienteTelefone,
       cliente_cpf_cnpj: cpfCnpj,
       endereco,
+      bairro_entrega: zona.bairro,
+      taxa_entrega: taxaEntrega,
       canal: "site",
       status: "aguardando_pagamento",
       note,

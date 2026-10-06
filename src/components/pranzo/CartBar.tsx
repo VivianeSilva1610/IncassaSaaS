@@ -8,15 +8,19 @@ function formatReal(value: number) {
 }
 
 type PixData = { orderId: string; encodedImage: string; payload: string };
+type ZonaEntrega = { id: string; bairro: string; taxa: number };
 
-export function CartBar() {
+export function CartBar({ zonasEntrega }: { zonasEntrega: ZonaEntrega[] }) {
   const { itens, remover, adicionar, total, quantidadeTotal, limpar } = useCart();
   const [aberto, setAberto] = useState(false);
   const [clienteNome, setClienteNome] = useState("");
   const [clienteTelefone, setClienteTelefone] = useState("");
   const [cpfCnpj, setCpfCnpj] = useState("");
+  const [bairroId, setBairroId] = useState("");
   const [endereco, setEndereco] = useState("");
   const [note, setNote] = useState("");
+  const zonaSelecionada = zonasEntrega.find((z) => z.id === bairroId) ?? null;
+  const totalComEntrega = total + (zonaSelecionada?.taxa ?? 0);
   const [status, setStatus] = useState<"idle" | "enviando" | "erro" | "aguardando_pix" | "confirmado">("idle");
   const [erro, setErro] = useState<string | null>(null);
   const [pix, setPix] = useState<PixData | null>(null);
@@ -38,8 +42,8 @@ export function CartBar() {
   if (quantidadeTotal === 0 && !aberto && status === "idle") return null;
 
   async function finalizarPedido() {
-    if (!clienteNome.trim() || !endereco.trim() || !cpfCnpj.trim()) {
-      setErro("Preencha nome, CPF e endereço de entrega.");
+    if (!clienteNome.trim() || !endereco.trim() || !cpfCnpj.trim() || !bairroId) {
+      setErro("Preencha nome, CPF, bairro e endereço de entrega.");
       return;
     }
     setStatus("enviando");
@@ -53,6 +57,7 @@ export function CartBar() {
           clienteNome,
           clienteTelefone,
           cpfCnpj,
+          bairroId,
           endereco,
           note,
         }),
@@ -175,7 +180,13 @@ export function CartBar() {
 
                 {itens.length > 0 && (
                   <>
-                    <p className="mt-3 text-right text-sm font-bold text-stone-900">Total: {formatReal(total)}</p>
+                    <p className="mt-3 text-right text-sm text-stone-500">Itens: {formatReal(total)}</p>
+                    {zonaSelecionada && (
+                      <p className="text-right text-sm text-stone-500">
+                        Entrega: {zonaSelecionada.taxa === 0 ? "Grátis" : formatReal(zonaSelecionada.taxa)}
+                      </p>
+                    )}
+                    <p className="text-right text-sm font-bold text-stone-900">Total: {formatReal(totalComEntrega)}</p>
 
                     <div className="mt-4 space-y-2 border-t border-stone-100 pt-4">
                       <input
@@ -196,10 +207,25 @@ export function CartBar() {
                         placeholder="Telefone / WhatsApp"
                         className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
                       />
+                      <select
+                        value={bairroId}
+                        onChange={(e) => setBairroId(e.target.value)}
+                        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-700"
+                      >
+                        <option value="">Seu bairro…</option>
+                        {zonasEntrega.map((z) => (
+                          <option key={z.id} value={z.id}>
+                            {z.bairro} — {z.taxa === 0 ? "entrega grátis" : `entrega ${formatReal(z.taxa)}`}
+                          </option>
+                        ))}
+                      </select>
+                      {zonasEntrega.length === 0 && (
+                        <p className="text-xs text-red-600">Ainda não atendemos nenhum bairro pelo site — volte em breve.</p>
+                      )}
                       <input
                         value={endereco}
                         onChange={(e) => setEndereco(e.target.value)}
-                        placeholder="Endereço de entrega"
+                        placeholder="Endereço de entrega (rua, número, complemento)"
                         className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
                       />
                       <textarea
@@ -214,7 +240,7 @@ export function CartBar() {
                     <button
                       type="button"
                       onClick={finalizarPedido}
-                      disabled={status === "enviando"}
+                      disabled={status === "enviando" || zonasEntrega.length === 0}
                       className="mt-4 w-full rounded-full bg-stone-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
                     >
                       {status === "enviando" ? "Gerando Pix…" : "Pagar com Pix"}

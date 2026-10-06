@@ -127,6 +127,21 @@ function formatReal(value: number) {
 
 type Disponibilidade = { preco: number; ativo: boolean; visivelSite: boolean; diasSite: number[] | null };
 
+async function buscarZonasEntrega(): Promise<{ id: string; bairro: string; taxa: number }[]> {
+  const admin = getSupabaseAdmin();
+  const ownerId = await getPranzoOwnerId(admin);
+  if (!ownerId) return [];
+
+  const { data } = await admin
+    .from("del_zonas_entrega")
+    .select("id, bairro, taxa")
+    .eq("owner_id", ownerId)
+    .eq("ativo", true)
+    .order("bairro");
+
+  return (data ?? []).map((z) => ({ id: z.id, bairro: z.bairro, taxa: Number(z.taxa) }));
+}
+
 async function buscarDisponibilidade(): Promise<Map<string, Disponibilidade> | null> {
   const admin = getSupabaseAdmin();
   const ownerId = await getPranzoOwnerId(admin);
@@ -191,7 +206,7 @@ function LeafMark() {
 }
 
 export default async function PranzoPage() {
-  const disponibilidade = await buscarDisponibilidade();
+  const [disponibilidade, zonasEntrega] = await Promise.all([buscarDisponibilidade(), buscarZonasEntrega()]);
   const pratosDisponiveis = pratos.filter((p) => disponivelHoje(disponibilidade, p.productId));
   const sobremesasDisponiveis = sobremesas.filter((s) => disponivelHoje(disponibilidade, s.productId));
   const bebidasDisponiveis = bebidas.filter((b) => disponivelHoje(disponibilidade, b.productId));
@@ -438,7 +453,7 @@ export default async function PranzoPage() {
         <a href="#cardapio">Voltar ao topo ↑</a>
       </footer>
     </main>
-    <CartBar />
+    <CartBar zonasEntrega={zonasEntrega} />
     </CartProvider>
   );
 }
