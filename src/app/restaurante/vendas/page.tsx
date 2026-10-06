@@ -8,6 +8,7 @@ import {
   updateOrderStatus,
   deleteOrder,
   emitirNotaFiscal,
+  marcarPedidoPago,
 } from "@/app/restaurante/actions";
 import { NewOrderForm } from "@/components/delivery/NewOrderForm";
 
@@ -101,6 +102,15 @@ export default async function VendasPage() {
                         A prazo{o.invoice_id ? " · fatura no INCASSA" : ""}
                       </span>
                     )}
+                    {o.pago ? (
+                      <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                        Pago{formatHora(o.pago_em) ? ` ${formatHora(o.pago_em)}` : ""}
+                      </span>
+                    ) : (
+                      <span className="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-500">
+                        Pendente
+                      </span>
+                    )}
                   </p>
                   <p className="text-sm text-stone-500">
                     {(o.del_order_items ?? [])
@@ -145,17 +155,25 @@ export default async function VendasPage() {
                   </button>
                 </form>
                 <div className="flex items-center gap-3">
-                  {notaPorPedido.get(o.id) && notaPorPedido.get(o.id)?.status !== "erro" ? (
-                    <a href="/restaurante/fiscal" className="text-xs text-stone-500 hover:underline">
-                      Ver nota fiscal
-                    </a>
-                  ) : (
-                    <form action={emitirNotaFiscal.bind(null, o.id)}>
-                      <button type="submit" className="text-xs text-amber-700 hover:underline">
-                        {notaPorPedido.get(o.id)?.status === "erro" ? "Tentar emitir NFC-e de novo" : "Emitir NFC-e"}
+                  {!o.pago && o.canal !== "site" && (
+                    <form action={marcarPedidoPago.bind(null, o.id)}>
+                      <button type="submit" className="text-xs text-emerald-700 hover:underline">
+                        Marcar como pago
                       </button>
                     </form>
                   )}
+                  {o.pago &&
+                    (notaPorPedido.get(o.id) && notaPorPedido.get(o.id)?.status !== "erro" ? (
+                      <a href="/restaurante/fiscal" className="text-xs text-stone-500 hover:underline">
+                        Ver nota fiscal
+                      </a>
+                    ) : (
+                      <form action={emitirNotaFiscal.bind(null, o.id)}>
+                        <button type="submit" className="text-xs text-amber-700 hover:underline">
+                          {notaPorPedido.get(o.id)?.status === "erro" ? "Tentar emitir NFC-e de novo" : "Emitir NFC-e"}
+                        </button>
+                      </form>
+                    ))}
                   <form action={deleteOrder.bind(null, o.id)}>
                     <button type="submit" className="text-xs text-red-600 hover:underline">
                       Excluir

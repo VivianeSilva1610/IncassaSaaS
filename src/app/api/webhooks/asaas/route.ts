@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { deduzirEstoquePorVenda } from "@/lib/delivery/stock";
+import { confirmarPagamentoEEmitirNota } from "@/lib/fiscal/emitir";
 
 const CONFIRMING_EVENTS = ["PAYMENT_RECEIVED", "PAYMENT_CONFIRMED"];
 
@@ -51,6 +52,8 @@ export async function POST(req: Request) {
       items: items.map((i) => ({ productId: i.product_id, quantidade: Number(i.quantidade) })),
     });
   }
+
+  await confirmarPagamentoEEmitirNota(admin, { ownerId: order.owner_id, orderId: order.id });
 
   return NextResponse.json({ received: true });
 }

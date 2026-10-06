@@ -6,7 +6,11 @@ import { requireRestaurantSubscription } from "@/lib/subscription";
 import { registerStockMovement } from "@/lib/delivery/stock";
 import { createOrderWithItems } from "@/lib/delivery/orders";
 import { gerarFaturaParaPedido } from "@/lib/delivery/invoice-bridge";
-import { emitirNotaFiscalParaPedido, cancelarNotaFiscal as cancelarNotaFiscalLib } from "@/lib/fiscal/emitir";
+import {
+  emitirNotaFiscalParaPedido,
+  cancelarNotaFiscal as cancelarNotaFiscalLib,
+  confirmarPagamentoEEmitirNota,
+} from "@/lib/fiscal/emitir";
 
 // Próximo código sequencial do dono (ex: "0001", "0002"...), usado tanto ao
 // cadastrar um ingrediente direto quanto ao informar a compra de um produto
@@ -310,6 +314,17 @@ export async function updateProductFiscal(id: string, formData: FormData) {
 export async function emitirNotaFiscal(orderId: string) {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
   await emitirNotaFiscalParaPedido(supabase, { ownerId: restaurantOwnerId, orderId });
+  revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/fiscal");
+}
+
+// Pedidos de mesa/balcão/telefone não passam por gateway de pagamento —
+// o cliente paga na hora, então é o atendente quem registra que recebeu.
+// Marcar como pago já dispara a emissão da NFC-e na sequência, igual ao
+// webhook da Asaas faz pro Pix do site.
+export async function marcarPedidoPago(orderId: string) {
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  await confirmarPagamentoEEmitirNota(supabase, { ownerId: restaurantOwnerId, orderId });
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/fiscal");
 }

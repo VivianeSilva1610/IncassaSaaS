@@ -117,3 +117,22 @@ export async function cancelarNotaFiscal(
 
   return resultado;
 }
+
+// Ponto único pra "pedido virou pago": marca o pagamento e já tenta emitir
+// a NFC-e na sequência — usado tanto pelo webhook da Asaas (Pix do site)
+// quanto pela marcação manual de pagamento em balcão/mesa/telefone. Se a
+// emissão falhar (ex: nenhum provedor configurado), isso não é lançado
+// como erro aqui — já fica registrado como "erro" em del_notas_fiscais,
+// igual à emissão manual.
+export async function confirmarPagamentoEEmitirNota(
+  supabase: SupabaseClient,
+  params: { ownerId: string; orderId: string },
+) {
+  await supabase
+    .from("del_orders")
+    .update({ pago: true, pago_em: new Date().toISOString() })
+    .eq("id", params.orderId)
+    .eq("pago", false);
+
+  return emitirNotaFiscalParaPedido(supabase, { ownerId: params.ownerId, orderId: params.orderId });
+}
