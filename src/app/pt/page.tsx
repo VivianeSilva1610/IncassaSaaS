@@ -1,13 +1,13 @@
-import { homepage } from "@/content/homepage.en";
+import { homepage } from "@/content/homepage.pt-br";
 import { RestaurantHomepage } from "@/components/RestaurantHomepage";
 
-export default function HomeEn() {
+export default function HomePt() {
   return (
     <RestaurantHomepage
       content={homepage}
       langLinks={[
         { href: "/", label: homepage.italianLink },
-        { href: "/pt", label: homepage.portugueseLink },
+        { href: "/en", label: homepage.englishLink },
       ]}
       loginHref="/login"
     />

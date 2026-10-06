@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "INCASSA — Hai lavorato. Ora fatti pagare.",
+  title: "INCASSA Ristorante — Gestisci il tuo ristorante in un unico posto",
   description:
-    "Dashboard, solleciti generati con IA e promemoria automatici per farti pagare senza perdere tempo. Per idraulici, elettricisti, imprese edili e artigiani.",
+    "Dal magazzino e dai fornitori fino all'ordine del cliente e allo scontrino: INCASSA Ristorante organizza il quotidiano del tuo locale.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
