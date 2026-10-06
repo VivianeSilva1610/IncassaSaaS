@@ -195,6 +195,13 @@ const contactHref = whatsappNumber
   : `mailto:${contactEmail}?subject=${emailSubject}&body=${emailBody}`;
 const contactTarget = whatsappNumber ? "_blank" : undefined;
 
+const retiradaMessage = encodeURIComponent(
+  "Olá! Meu bairro não está na área de entrega do site — gostaria de fazer um pedido para retirar no local.",
+);
+const whatsappRetiradaHref = whatsappNumber
+  ? `https://wa.me/${whatsappNumber}?text=${retiradaMessage}`
+  : `mailto:${contactEmail}?subject=${encodeURIComponent("Pedido para retirada — Pranzo")}&body=${retiradaMessage}`;
+
 function ArrowIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className={styles.buttonIcon}>
@@ -460,7 +467,7 @@ export default async function PranzoPage() {
         <a href="#cardapio">Voltar ao topo ↑</a>
       </footer>
     </main>
-    <CartBar zonasEntrega={zonasEntrega} />
+    <CartBar zonasEntrega={zonasEntrega} whatsappRetiradaHref={whatsappRetiradaHref} />
     </CartProvider>
   );
 }

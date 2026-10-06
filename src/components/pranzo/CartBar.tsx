@@ -10,7 +10,13 @@ function formatReal(value: number) {
 type PixData = { orderId: string; encodedImage: string; payload: string };
 type ZonaEntrega = { id: string; bairro: string; taxa: number; pedidoMinimoGratis: number | null };
 
-export function CartBar({ zonasEntrega }: { zonasEntrega: ZonaEntrega[] }) {
+export function CartBar({
+  zonasEntrega,
+  whatsappRetiradaHref,
+}: {
+  zonasEntrega: ZonaEntrega[];
+  whatsappRetiradaHref: string;
+}) {
   const { itens, remover, adicionar, total, quantidadeTotal, limpar } = useCart();
   const [aberto, setAberto] = useState(false);
   const [clienteNome, setClienteNome] = useState("");
@@ -237,8 +243,22 @@ export function CartBar({ zonasEntrega }: { zonasEntrega: ZonaEntrega[] }) {
                           </option>
                         ))}
                       </select>
-                      {zonasEntrega.length === 0 && (
-                        <p className="text-xs text-red-600">Ainda não atendemos nenhum bairro pelo site — volte em breve.</p>
+                      {zonasEntrega.length === 0 ? (
+                        <p className="text-xs text-red-600">
+                          Ainda não atendemos nenhum bairro pelo site.{" "}
+                          <a href={whatsappRetiradaHref} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+                            Peça pelo WhatsApp e retire no local
+                          </a>
+                          .
+                        </p>
+                      ) : (
+                        <p className="text-xs text-stone-500">
+                          Entregamos num raio de até 30km. Não achou seu bairro?{" "}
+                          <a href={whatsappRetiradaHref} target="_blank" rel="noreferrer" className="underline underline-offset-2 text-stone-700">
+                            Peça pelo WhatsApp e retire no local
+                          </a>
+                          .
+                        </p>
                       )}
                       <input
                         value={endereco}
