@@ -8,33 +8,60 @@ function formatReal(value: number) {
 export default async function RestauranteOverviewPage() {
   const { supabase } = await requireRestaurantSubscription();
 
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
+  const nowParts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date());
+  const year = nowParts.find((part) => part.type === "year")!.value;
+  const month = nowParts.find((part) => part.type === "month")!.value;
+  const inicioMes = `${year}-${month}-01T00:00:00-03:00`;
 
-  const [{ data: ingredients }, { data: recentOrders }, { data: monthOrders }] = await Promise.all([
+  const [{ data: ingredients }, { data: recentOrders }, { data: monthSales }, { data: monthReceipts }, { data: monthRefunds }] = await Promise.all([
     supabase.from("del_ingredients").select("id, nome, quantidade_atual, estoque_minimo, unidade"),
     supabase
       .from("del_orders")
       .select("id, cliente_nome, totale, status, created_at")
       .order("created_at", { ascending: false })
       .limit(5),
-    supabase.from("del_orders").select("totale").gte("created_at", startOfMonth.toISOString()),
+    supabase
+      .from("del_orders")
+      .select("totale")
+      .gte("competencia_em", inicioMes)
+      .neq("status", "cancelado"),
+    supabase
+      .from("del_orders")
+      .select("totale, valor_pago")
+      .eq("pago", true)
+      .gte("pago_em", inicioMes),
+    supabase
+      .from("del_pagamento_eventos")
+      .select("valor_movimento")
+      .eq("status", "confirmado")
+      .gt("valor_movimento", 0)
+      .gte("ocorrido_em", inicioMes),
   ]);
 
   const ingredientesEmFalta = (ingredients ?? []).filter(
     (i) => i.estoque_minimo != null && Number(i.quantidade_atual) <= Number(i.estoque_minimo),
   );
-  const totalMes = (monthOrders ?? []).reduce((sum, o) => sum + Number(o.totale), 0);
+  const totalMes = (monthSales ?? []).reduce((sum, o) => sum + Number(o.totale), 0);
+  const recebidoMes = (monthReceipts ?? []).reduce((sum, o) => sum + Number(o.valor_pago ?? o.totale), 0);
+  const estornadoMes = (monthRefunds ?? []).reduce((sum, e) => sum + Number(e.valor_movimento), 0);
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-stone-900">Visão geral</h1>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-stone-200 bg-white p-4">
-          <p className="text-sm text-stone-500">Vendas deste mês</p>
+          <p className="text-sm text-stone-500">Vendas por competência</p>
           <p className="mt-1 text-2xl font-bold text-stone-900">{formatReal(totalMes)}</p>
+        </div>
+        <div className="rounded-xl border border-stone-200 bg-white p-4">
+          <p className="text-sm text-stone-500">Recebimentos deste mês</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-700">{formatReal(recebidoMes - estornadoMes)}</p>
+          {estornadoMes > 0 && <p className="mt-1 text-xs text-red-600">{formatReal(estornadoMes)} estornado no mês</p>}
         </div>
         <div className="rounded-xl border border-stone-200 bg-white p-4">
           <p className="text-sm text-stone-500">Ingredientes abaixo do estoque mínimo</p>

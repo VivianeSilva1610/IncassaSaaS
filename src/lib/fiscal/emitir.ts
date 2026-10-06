@@ -19,11 +19,24 @@ export async function emitirNotaFiscalParaPedido(
 
   const { data: pedido } = await supabase
     .from("del_orders")
-    .select("id, totale, cliente_nome, cliente_cpf_cnpj, del_order_items(quantidade, preco_unitario, del_products(nome, ncm, cfop, cest, origem))")
+    .select("id, totale, pago, cliente_nome, cliente_cpf_cnpj, del_order_items(quantidade, preco_unitario, del_products(nome, ncm, cfop, cest, origem))")
     .eq("id", params.orderId)
+    .eq("owner_id", params.ownerId)
     .single();
 
   if (!pedido) throw new Error("Pedido não encontrado.");
+  if (!pedido.pago) throw new Error("A nota fiscal só pode ser emitida depois da confirmação do pagamento.");
+
+  const { data: notaAtiva } = await supabase
+    .from("del_notas_fiscais")
+    .select("id, status")
+    .eq("owner_id", params.ownerId)
+    .eq("order_id", params.orderId)
+    .in("status", ["pendente", "emitida"])
+    .maybeSingle();
+  if (notaAtiva) {
+    return { notaId: notaAtiva.id as string, status: notaAtiva.status as "pendente" | "emitida", mensagemErro: undefined };
+  }
 
   const provider = getFiscalProvider(config?.provedor ?? null);
   const numero = config?.proxima_numeracao ?? 1;
@@ -98,7 +111,12 @@ export async function cancelarNotaFiscal(
   supabase: SupabaseClient,
   params: { ownerId: string; notaId: string; justificativa: string },
 ) {
-  const { data: nota } = await supabase.from("del_notas_fiscais").select("*").eq("id", params.notaId).single();
+  const { data: nota } = await supabase
+    .from("del_notas_fiscais")
+    .select("*")
+    .eq("id", params.notaId)
+    .eq("owner_id", params.ownerId)
+    .single();
   if (!nota) throw new Error("Nota não encontrada.");
   if (nota.status !== "emitida") throw new Error("Só é possível cancelar uma nota emitida.");
 
@@ -109,10 +127,47 @@ export async function cancelarNotaFiscal(
     .maybeSingle();
 
   const provider = getFiscalProvider(config?.provedor ?? null);
-  const resultado = await provider.cancelarNFCe({ chaveAcesso: nota.chave_acesso, justificativa: params.justificativa });
+  await supabase
+    .from("del_notas_fiscais")
+    .update({
+      cancelamento_solicitado_em: new Date().toISOString(),
+      justificativa_cancelamento: params.justificativa,
+      cancelamento_erro: null,
+    })
+    .eq("id", nota.id)
+    .eq("owner_id", params.ownerId);
+
+  let resultado;
+  try {
+    resultado = await provider.cancelarNFCe({ chaveAcesso: nota.chave_acesso, justificativa: params.justificativa });
+  } catch (error) {
+    const mensagem = error instanceof Error ? error.message : "Falha inesperada ao solicitar cancelamento fiscal.";
+    await supabase
+      .from("del_notas_fiscais")
+      .update({ cancelamento_erro: mensagem })
+      .eq("id", nota.id)
+      .eq("owner_id", params.ownerId);
+    throw error;
+  }
 
   if (resultado.status === "cancelada") {
-    await supabase.from("del_notas_fiscais").update({ status: "cancelada", erro_mensagem: null }).eq("id", nota.id);
+    await supabase
+      .from("del_notas_fiscais")
+      .update({
+        status: "cancelada",
+        erro_mensagem: null,
+        cancelamento_erro: null,
+        protocolo_cancelamento: resultado.protocoloCancelamento ?? null,
+        cancelada_em: resultado.canceladaEm ?? new Date().toISOString(),
+      })
+      .eq("id", nota.id)
+      .eq("owner_id", params.ownerId);
+  } else {
+    await supabase
+      .from("del_notas_fiscais")
+      .update({ cancelamento_erro: resultado.mensagemErro ?? "Cancelamento fiscal recusado." })
+      .eq("id", nota.id)
+      .eq("owner_id", params.ownerId);
   }
 
   return resultado;
@@ -126,14 +181,34 @@ export async function cancelarNotaFiscal(
 // igual à emissão manual.
 export async function confirmarPagamentoEEmitirNota(
   supabase: SupabaseClient,
-  params: { ownerId: string; orderId: string },
+  params: { ownerId: string; orderId: string; formaPagamento?: string; valorPago?: number },
 ) {
-  const { error } = await supabase
+  const pagoEm = new Date().toISOString();
+  const { data: pedidoConfirmado, error } = await supabase
     .from("del_orders")
-    .update({ pago: true, pago_em: new Date().toISOString() })
+    .update({
+      pago: true,
+      pago_em: pagoEm,
+      forma_pagamento: params.formaPagamento ?? null,
+      valor_pago: params.valorPago ?? null,
+    })
     .eq("id", params.orderId)
-    .eq("pago", false);
+    .eq("owner_id", params.ownerId)
+    .eq("pago", false)
+    .select("id")
+    .maybeSingle();
   if (error) throw new Error(`Não foi possível marcar o pedido como pago: ${error.message}`);
+  if (!pedidoConfirmado) return { jaConfirmado: true as const, notaId: null };
+
+  const { data: config } = await supabase
+    .from("del_fiscal_config")
+    .select("emissao_automatica")
+    .eq("owner_id", params.ownerId)
+    .maybeSingle();
+
+  if (!config?.emissao_automatica) {
+    return { jaConfirmado: false as const, notaId: null };
+  }
 
   return emitirNotaFiscalParaPedido(supabase, { ownerId: params.ownerId, orderId: params.orderId });
 }

@@ -8,44 +8,90 @@ function formatReal(value: number) {
 export default async function CaixaPage() {
   const { supabase } = await requireRestaurantSubscription();
 
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
-  const inicioMes = startOfMonth.toISOString().slice(0, 10);
+  const nowParts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date());
+  const year = nowParts.find((part) => part.type === "year")!.value;
+  const month = nowParts.find((part) => part.type === "month")!.value;
+  const inicioMes = `${year}-${month}-01`;
+  const inicioMesIso = `${inicioMes}T00:00:00-03:00`;
 
-  const [{ data: monthOrders }, { data: movimentos }] = await Promise.all([
-    supabase.from("del_orders").select("totale").gte("created_at", startOfMonth.toISOString()),
+  const [{ data: vendasCompetencia }, { data: recebimentos }, { data: estornos }, { data: valoresAReceber }, { data: movimentos }] = await Promise.all([
+    supabase
+      .from("del_orders")
+      .select("totale, competencia_em")
+      .gte("competencia_em", inicioMesIso)
+      .neq("status", "cancelado"),
+    supabase
+      .from("del_orders")
+      .select("valor_pago, totale, pago_em")
+      .eq("pago", true)
+      .gte("pago_em", inicioMesIso),
+    supabase
+      .from("del_pagamento_eventos")
+      .select("valor_movimento, ocorrido_em")
+      .eq("status", "confirmado")
+      .gt("valor_movimento", 0)
+      .gte("ocorrido_em", inicioMesIso),
+    supabase
+      .from("del_orders")
+      .select("totale")
+      .eq("pago", false)
+      .neq("status", "cancelado")
+      .neq("status", "aguardando_pagamento"),
     supabase.from("del_caixa_movimentos").select("*").order("data", { ascending: false }).limit(60),
   ]);
 
-  const vendasDoMes = (monthOrders ?? []).reduce((sum, o) => sum + Number(o.totale), 0);
+  const vendasDoMes = (vendasCompetencia ?? []).reduce((sum, o) => sum + Number(o.totale), 0);
+  const recebimentosDoMes = (recebimentos ?? []).reduce(
+    (sum, o) => sum + Number(o.valor_pago ?? o.totale),
+    0,
+  );
+  const estornosDoMes = (estornos ?? []).reduce((sum, e) => sum + Number(e.valor_movimento), 0);
+  const totalAReceber = (valoresAReceber ?? []).reduce((sum, o) => sum + Number(o.totale), 0);
   const movimentosDoMes = (movimentos ?? []).filter((m) => m.data >= inicioMes);
   const entradasManuaisDoMes = movimentosDoMes.filter((m) => m.tipo === "entrada").reduce((sum, m) => sum + Number(m.valor), 0);
   const saidasManuaisDoMes = movimentosDoMes.filter((m) => m.tipo === "saida").reduce((sum, m) => sum + Number(m.valor), 0);
-  const saldoDoMes = vendasDoMes + entradasManuaisDoMes - saidasManuaisDoMes;
+  const saldoDoMes = recebimentosDoMes - estornosDoMes + entradasManuaisDoMes - saidasManuaisDoMes;
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-stone-900">Caixa</h1>
       <p className="mt-1 text-sm text-stone-600">
-        Vendas já são somadas automaticamente aqui. Lance abaixo despesas, retiradas e outras entradas ou saídas.
+        Competência usa a data de entrega; caixa usa a data do pagamento. Lance abaixo apenas movimentações que não
+        estejam nos pedidos, evitando duplicar vendas.
       </p>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-xl border border-stone-200 bg-white p-4">
-          <p className="text-sm text-stone-500">Vendas do mês</p>
+          <p className="text-sm text-stone-500">Vendas por competência</p>
           <p className="mt-1 text-xl font-bold text-stone-900">{formatReal(vendasDoMes)}</p>
+          <p className="mt-1 text-xs text-stone-400">Pedidos entregues neste mês</p>
         </div>
         <div className="rounded-xl border border-stone-200 bg-white p-4">
-          <p className="text-sm text-stone-500">Outras entradas / saídas do mês</p>
-          <p className="mt-1 text-xl font-bold text-stone-900">
-            {formatReal(entradasManuaisDoMes)} / {formatReal(saidasManuaisDoMes)}
-          </p>
+          <p className="text-sm text-stone-500">Recebimentos do mês</p>
+          <p className="mt-1 text-xl font-bold text-emerald-700">{formatReal(recebimentosDoMes)}</p>
+          <p className="mt-1 text-xs text-stone-400">Pix, dinheiro e cartões confirmados</p>
         </div>
         <div className="rounded-xl border border-stone-200 bg-white p-4">
-          <p className="text-sm text-stone-500">Saldo do mês</p>
+          <p className="text-sm text-stone-500">Contas a receber</p>
+          <p className="mt-1 text-xl font-bold text-amber-700">{formatReal(totalAReceber)}</p>
+          <p className="mt-1 text-xs text-stone-400">Pedidos válidos ainda não pagos</p>
+        </div>
+        <div className="rounded-xl border border-stone-200 bg-white p-4">
+          <p className="text-sm text-stone-500">Estornos do mês</p>
+          <p className="mt-1 text-xl font-bold text-red-600">{formatReal(estornosDoMes)}</p>
+          <p className="mt-1 text-xs text-stone-400">Devoluções financeiras confirmadas</p>
+        </div>
+        <div className="rounded-xl border border-stone-200 bg-white p-4">
+          <p className="text-sm text-stone-500">Saldo de caixa do mês</p>
           <p className={`mt-1 text-xl font-bold ${saldoDoMes >= 0 ? "text-emerald-700" : "text-red-600"}`}>
             {formatReal(saldoDoMes)}
+          </p>
+          <p className="mt-1 text-xs text-stone-400">
+            Recebimentos − {formatReal(estornosDoMes)} + {formatReal(entradasManuaisDoMes)} − {formatReal(saidasManuaisDoMes)}
           </p>
         </div>
       </div>

@@ -59,6 +59,8 @@ export type NfceCancelarInput = {
 
 export type NfceCancelarResultado = {
   status: "cancelada" | "erro";
+  protocoloCancelamento?: string;
+  canceladaEm?: string;
   mensagemErro?: string;
 };
 
@@ -111,7 +113,11 @@ class ProvedorSimulado implements FiscalProvider {
   }
 
   async cancelarNFCe(): Promise<NfceCancelarResultado> {
-    return { status: "cancelada" };
+    return {
+      status: "cancelada",
+      protocoloCancelamento: `SIMULACAO-CANCELAMENTO-${Date.now()}`,
+      canceladaEm: new Date().toISOString(),
+    };
   }
 }
 

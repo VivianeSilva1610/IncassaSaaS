@@ -4,7 +4,11 @@ import { updateFiscalConfig, updateProductFiscal, cancelarNotaFiscal } from "@/a
 
 function formatHora(iso: string | null) {
   if (!iso) return null;
-  return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  return new Date(iso).toLocaleString("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "America/Sao_Paulo",
+  });
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -41,22 +45,22 @@ export default async function FiscalPage({
 
   let notasQuery = supabase
     .from("del_notas_fiscais")
-    .select("*, del_orders(cliente_nome, totale)")
+    .select("*, del_orders(cliente_nome, totale, status, valor_estornado, estorno_status, estornado_em)")
     .order("created_at", { ascending: false })
     .limit(100);
   if (numero) notasQuery = notasQuery.eq("numero", Number(numero));
-  if (from) notasQuery = notasQuery.gte("created_at", from);
-  if (to) notasQuery = notasQuery.lte("created_at", `${to}T23:59:59`);
+  if (from) notasQuery = notasQuery.gte("created_at", `${from}T00:00:00-03:00`);
+  if (to) notasQuery = notasQuery.lte("created_at", `${to}T23:59:59.999-03:00`);
   const { data: notas } = await notasQuery;
 
-  const pronto = !!(config?.cnpj && config?.inscricao_estadual && config?.provedor);
+  const dadosBasicosPreenchidos = !!(config?.cnpj && config?.razao_social && config?.municipio && config?.uf);
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-stone-900">Fiscal</h1>
       <p className="mt-1 text-sm text-stone-600">
-        Base para emissão de NFC-e. Hoje o regime é MEI, sem Inscrição Estadual — nada aqui emite nota de
-        verdade até você ter CNPJ com IE, certificado digital e um provedor de NFC-e contratado.
+        Controle de faturamento e base para emissão de NFC-e/NF-e. Confirme regime, inscrição estadual,
+        classificação dos produtos e obrigação de emissão com o contador antes de ativar um provedor real.
       </p>
 
       {config?.provedor === "simulado" ? (
@@ -65,20 +69,27 @@ export default async function FiscalPage({
           testar o fluxo completo. Nenhuma é um documento fiscal real; nada é enviado à SEFAZ.
         </div>
       ) : (
-        <div className={`mt-4 rounded-lg border p-3 text-sm ${pronto ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-amber-300 bg-amber-50 text-amber-800"}`}>
-          {pronto
-            ? "Dados básicos preenchidos e provedor selecionado — falta só a integração técnica com o provedor para emitir de verdade."
-            : "Ainda falta CNPJ, Inscrição Estadual e/ou provedor para deixar a emissão pronta."}
+        <div className={`mt-4 rounded-lg border p-3 text-sm ${dadosBasicosPreenchidos ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-amber-300 bg-amber-50 text-amber-800"}`}>
+          {dadosBasicosPreenchidos
+            ? "Cadastro básico preenchido. A emissão real continua bloqueada até integração, homologação e validação fiscal."
+            : "Complete CNPJ, razão social, município e UF para preparar a validação com o contador."}
         </div>
       )}
 
       <section className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
         <h2 className="font-semibold text-stone-900">Exportar para o contador</h2>
         <p className="mt-1 text-xs text-stone-500">
-          Planilha com todos os pedidos do período (valor, cliente, status da nota fiscal quando houver) —
-          útil pro seu contador acompanhar o faturamento do MEI mesmo antes da emissão de NFC-e estar ativa.
+          Gere por competência (vendas entregues) ou por caixa (pagamentos recebidos). A planilha inclui valor,
+          forma de pagamento e situação fiscal para conciliação do contador.
         </p>
         <form action="/api/restaurante/export-vendas" method="get" className="mt-3 flex flex-wrap items-end gap-2">
+          <div>
+            <label className="block text-xs text-stone-500">Critério</label>
+            <select name="criterio" defaultValue="competencia" className="rounded-md border border-stone-300 px-2 py-1.5 text-sm">
+              <option value="competencia">Competência — data da entrega</option>
+              <option value="caixa">Caixa — data do pagamento</option>
+            </select>
+          </div>
           <div>
             <label className="block text-xs text-stone-500">De</label>
             <input type="date" name="from" className="rounded-md border border-stone-300 px-2 py-1.5 text-sm" />
@@ -131,8 +142,16 @@ export default async function FiscalPage({
           </select>
           <select name="ambiente" defaultValue={config?.ambiente ?? "homologacao"} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
             <option value="homologacao">Homologação (teste)</option>
-            <option value="producao">Produção (nota real)</option>
+            <option value="producao" disabled>Produção (bloqueada até homologar provedor real)</option>
           </select>
+
+          <label className="flex items-start gap-2 rounded-md border border-stone-200 bg-stone-50 p-3 text-xs text-stone-700 sm:col-span-2">
+            <input name="emissao_automatica" type="checkbox" defaultChecked={config?.emissao_automatica ?? false} className="mt-0.5" />
+            <span>
+              Emitir automaticamente após confirmar o pagamento. Deixe desativado enquanto estiver sem provedor real
+              ou quando a venda ao consumidor pessoa física não exigir nota. Confirme a regra com seu contador.
+            </span>
+          </label>
 
           <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white sm:col-span-2">
             Salvar dados fiscais
@@ -227,10 +246,24 @@ export default async function FiscalPage({
                 {n.del_orders?.totale != null && (
                   <span className="text-xs text-stone-500">R$ {Number(n.del_orders.totale).toFixed(2).replace(".", ",")}</span>
                 )}
+                {Number(n.del_orders?.valor_estornado ?? 0) > 0 && (
+                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-700">
+                    Estornado R$ {Number(n.del_orders.valor_estornado).toFixed(2).replace(".", ",")}
+                  </span>
+                )}
                 {formatHora(n.emitida_em) && <span className="text-xs text-stone-500">Emitida {formatHora(n.emitida_em)}</span>}
+                {formatHora(n.cancelada_em) && <span className="text-xs text-stone-500">Cancelada {formatHora(n.cancelada_em)}</span>}
               </div>
               {n.erro_mensagem && <p className="mt-1 text-xs text-red-600">{n.erro_mensagem}</p>}
+              {n.cancelamento_erro && <p className="mt-1 text-xs text-red-600">Cancelamento: {n.cancelamento_erro}</p>}
               {n.chave_acesso && <p className="mt-1 text-xs text-stone-500">Chave: {n.chave_acesso}</p>}
+              {n.justificativa_cancelamento && <p className="mt-1 text-xs text-stone-500">Motivo: {n.justificativa_cancelamento}</p>}
+              {n.protocolo_cancelamento && <p className="mt-1 text-xs text-stone-500">Protocolo de cancelamento: {n.protocolo_cancelamento}</p>}
+              {Number(n.del_orders?.valor_estornado ?? 0) > 0 && n.status === "emitida" && (
+                <p className="mt-2 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800">
+                  O pagamento foi estornado, mas a nota continua válida. Verifique o prazo e faça o cancelamento fiscal ou a devolução adequada.
+                </p>
+              )}
 
               {n.status === "emitida" && (
                 <form action={cancelarNotaFiscal.bind(null, n.id)} className="mt-2 flex flex-wrap items-center gap-2 border-t border-stone-100 pt-2">

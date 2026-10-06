@@ -17,6 +17,7 @@ export async function registerStockMovement(
     .from("del_ingredients")
     .select("quantidade_atual")
     .eq("id", params.ingredientId)
+    .eq("owner_id", params.ownerId)
     .single();
 
   if (fetchError || !ingredient) {
@@ -39,7 +40,8 @@ export async function registerStockMovement(
   const { error: updateError } = await supabase
     .from("del_ingredients")
     .update({ quantidade_atual: nuovaQuantita })
-    .eq("id", params.ingredientId);
+    .eq("id", params.ingredientId)
+    .eq("owner_id", params.ownerId);
   if (updateError) throw updateError;
 }
 
@@ -59,18 +61,49 @@ export async function deduzirEstoquePorVenda(
   const { data: receitas } = await supabase
     .from("del_product_ingredients")
     .select("product_id, ingredient_id, quantidade_necessaria")
+    .eq("owner_id", params.ownerId)
     .in("product_id", productIds);
 
   if (!receitas || receitas.length === 0) return;
 
+  const necessarioPorIngrediente = new Map<string, number>();
   for (const item of params.items) {
     const ingredientesDoItem = receitas.filter((r) => r.product_id === item.productId);
     for (const r of ingredientesDoItem) {
+      const quantidade = Number(r.quantidade_necessaria) * item.quantidade;
+      necessarioPorIngrediente.set(
+        r.ingredient_id,
+        (necessarioPorIngrediente.get(r.ingredient_id) ?? 0) + quantidade,
+      );
+    }
+  }
+
+  // Permite retomar um webhook que falhou no meio da baixa: lança apenas a
+  // diferença ainda não registrada para cada ingrediente deste pedido.
+  const { data: movimentosExistentes } = await supabase
+    .from("del_stock_movements")
+    .select("ingredient_id, quantidade")
+    .eq("owner_id", params.ownerId)
+    .eq("order_id", params.orderId)
+    .eq("tipo", "saida")
+    .eq("motivo", "Venda automática");
+
+  const jaDeduzidoPorIngrediente = new Map<string, number>();
+  for (const movimento of movimentosExistentes ?? []) {
+    jaDeduzidoPorIngrediente.set(
+      movimento.ingredient_id,
+      (jaDeduzidoPorIngrediente.get(movimento.ingredient_id) ?? 0) + Number(movimento.quantidade),
+    );
+  }
+
+  for (const [ingredientId, quantidadeNecessaria] of necessarioPorIngrediente) {
+    const quantidadePendente = quantidadeNecessaria - (jaDeduzidoPorIngrediente.get(ingredientId) ?? 0);
+    if (quantidadePendente > 0.000_001) {
       await registerStockMovement(supabase, {
         ownerId: params.ownerId,
-        ingredientId: r.ingredient_id,
+        ingredientId,
         tipo: "saida",
-        quantidade: Number(r.quantidade_necessaria) * item.quantidade,
+        quantidade: quantidadePendente,
         motivo: "Venda automática",
         orderId: params.orderId,
       });

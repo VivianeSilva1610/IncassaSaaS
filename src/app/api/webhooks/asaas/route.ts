@@ -4,6 +4,19 @@ import { deduzirEstoquePorVenda } from "@/lib/delivery/stock";
 import { confirmarPagamentoEEmitirNota } from "@/lib/fiscal/emitir";
 
 const CONFIRMING_EVENTS = ["PAYMENT_RECEIVED", "PAYMENT_CONFIRMED"];
+const REFUND_EVENTS: Record<string, "em_processamento" | "confirmado" | "negado"> = {
+  PAYMENT_REFUND_IN_PROGRESS: "em_processamento",
+  PAYMENT_PARTIALLY_REFUNDED: "confirmado",
+  PAYMENT_REFUNDED: "confirmado",
+  PAYMENT_REFUND_DENIED: "negado",
+  PAYMENT_RECEIVED_IN_CASH_UNDONE: "confirmado",
+};
+
+function asaasEventDate(value: unknown) {
+  if (typeof value !== "string") return new Date().toISOString();
+  const parsed = new Date(value.includes("T") ? value : `${value.replace(" ", "T")}-03:00`);
+  return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+}
 
 export async function POST(req: Request) {
   const token = req.headers.get("asaas-access-token");
@@ -12,7 +25,37 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => null);
-  if (!body || !CONFIRMING_EVENTS.includes(body.event)) {
+  if (!body || (!CONFIRMING_EVENTS.includes(body.event) && !REFUND_EVENTS[body.event])) {
+    return NextResponse.json({ received: true });
+  }
+
+  const admin = getSupabaseAdmin();
+  const refundStatus = REFUND_EVENTS[body.event];
+  if (refundStatus) {
+    const eventId = typeof body.id === "string" ? body.id : null;
+    const paymentId = typeof body.payment?.id === "string" ? body.payment.id : null;
+    if (!eventId || !paymentId) return NextResponse.json({ received: true });
+
+    const paymentValue = Number(body.payment?.value);
+    const refundedValue = Number(body.payment?.refundedValue);
+    const totalRefunded = Number.isFinite(refundedValue) && refundedValue > 0
+      ? refundedValue
+      : body.event === "PAYMENT_REFUNDED" || body.event === "PAYMENT_RECEIVED_IN_CASH_UNDONE"
+        ? paymentValue
+        : 0;
+    if (!Number.isFinite(totalRefunded) || totalRefunded < 0) {
+      return NextResponse.json({ received: true });
+    }
+
+    const { error } = await admin.rpc("del_registrar_estorno_asaas", {
+      p_evento_id: eventId,
+      p_pagamento_id: paymentId,
+      p_tipo: body.event,
+      p_status: refundStatus,
+      p_valor_acumulado: totalRefunded,
+      p_ocorrido_em: asaasEventDate(body.dateCreated),
+    });
+    if (error) return NextResponse.json({ error: "Falha ao registrar estorno." }, { status: 500 });
     return NextResponse.json({ received: true });
   }
 
@@ -22,23 +65,35 @@ export async function POST(req: Request) {
     return NextResponse.json({ received: true });
   }
 
-  const admin = getSupabaseAdmin();
-
   const { data: order } = await admin
     .from("del_orders")
-    .select("id, owner_id, status")
+    .select("id, owner_id, status, pago, asaas_payment_id")
     .eq("id", externalReference)
     .maybeSingle();
 
-  if (!order || order.status !== "aguardando_pagamento") {
-    // Já confirmado antes (evento pode chegar mais de uma vez) ou pedido não encontrado.
+  if (!order || order.pago) {
+    // Já concluído antes (evento pode chegar mais de uma vez) ou pedido não encontrado.
     return NextResponse.json({ received: true });
   }
 
-  await admin
-    .from("del_orders")
-    .update({ status: "novo", asaas_payment_id: paymentId ?? null, chegou_cozinha_em: new Date().toISOString() })
-    .eq("id", order.id);
+  let podeProcessar = order.status === "novo" && order.asaas_payment_id === paymentId;
+  if (order.status === "aguardando_pagamento") {
+    const { data: confirmedOrder } = await admin
+      .from("del_orders")
+      .update({ status: "novo", asaas_payment_id: paymentId ?? null, chegou_cozinha_em: new Date().toISOString() })
+      .eq("id", order.id)
+      .eq("owner_id", order.owner_id)
+      .eq("status", "aguardando_pagamento")
+      .select("id")
+      .maybeSingle();
+    podeProcessar = !!confirmedOrder;
+  }
+
+  // Só uma entrega concorrente vence a transição. Se uma tentativa anterior
+  // parou no meio, o mesmo pagamento pode retomar as etapas idempotentes.
+  if (!podeProcessar) {
+    return NextResponse.json({ received: true });
+  }
 
   const { data: items } = await admin
     .from("del_order_items")
@@ -53,7 +108,13 @@ export async function POST(req: Request) {
     });
   }
 
-  await confirmarPagamentoEEmitirNota(admin, { ownerId: order.owner_id, orderId: order.id });
+  const valorPago = Number(body.payment?.value);
+  await confirmarPagamentoEEmitirNota(admin, {
+    ownerId: order.owner_id,
+    orderId: order.id,
+    formaPagamento: "pix",
+    valorPago: Number.isFinite(valorPago) ? valorPago : undefined,
+  });
 
   return NextResponse.json({ received: true });
 }
