@@ -31,7 +31,7 @@ export default async function VendasPage() {
     supabase.from("del_products").select("*").order("nome"),
     supabase
       .from("del_orders")
-      .select("*, del_order_items(quantidade, preco_unitario, del_products(nome))")
+      .select("*, del_order_items(quantidade, preco_unitario, del_products(nome)), del_mesas(numero)")
       .order("created_at", { ascending: false })
       .limit(30),
     supabase.from("del_pricing_config").select("nome_negocio").eq("owner_id", restaurantOwnerId).maybeSingle(),
@@ -96,7 +96,11 @@ export default async function VendasPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium text-stone-900">
-                    {o.cliente_nome || "Cliente sem nome"}
+                    {o.del_mesas?.numero
+                      ? `Mesa ${o.del_mesas.numero}`
+                      : o.cliente_nome
+                        ? `${o.cliente_nome}${o.cliente_telefone ? ` · ${o.cliente_telefone}` : ""}`
+                        : "Cliente sem nome"}
                     {o.a_prazo && (
                       <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
                         A prazo{o.invoice_id ? " · fatura no INCASSA" : ""}
