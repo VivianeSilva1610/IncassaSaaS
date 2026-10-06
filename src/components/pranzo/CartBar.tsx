@@ -8,7 +8,7 @@ function formatReal(value: number) {
 }
 
 type PixData = { orderId: string; encodedImage: string; payload: string };
-type ZonaEntrega = { id: string; bairro: string; taxa: number };
+type ZonaEntrega = { id: string; bairro: string; taxa: number; pedidoMinimoGratis: number | null };
 
 export function CartBar({ zonasEntrega }: { zonasEntrega: ZonaEntrega[] }) {
   const { itens, remover, adicionar, total, quantidadeTotal, limpar } = useCart();
@@ -20,7 +20,14 @@ export function CartBar({ zonasEntrega }: { zonasEntrega: ZonaEntrega[] }) {
   const [endereco, setEndereco] = useState("");
   const [note, setNote] = useState("");
   const zonaSelecionada = zonasEntrega.find((z) => z.id === bairroId) ?? null;
-  const totalComEntrega = total + (zonaSelecionada?.taxa ?? 0);
+  const atingiuMinimo =
+    !!zonaSelecionada && zonaSelecionada.pedidoMinimoGratis != null && total >= zonaSelecionada.pedidoMinimoGratis;
+  const taxaEntregaAtual = zonaSelecionada && !atingiuMinimo ? zonaSelecionada.taxa : 0;
+  const faltaParaGratis =
+    zonaSelecionada && zonaSelecionada.pedidoMinimoGratis != null && !atingiuMinimo
+      ? zonaSelecionada.pedidoMinimoGratis - total
+      : null;
+  const totalComEntrega = total + taxaEntregaAtual;
   const [status, setStatus] = useState<"idle" | "enviando" | "erro" | "aguardando_pix" | "confirmado">("idle");
   const [erro, setErro] = useState<string | null>(null);
   const [pix, setPix] = useState<PixData | null>(null);
@@ -183,7 +190,12 @@ export function CartBar({ zonasEntrega }: { zonasEntrega: ZonaEntrega[] }) {
                     <p className="mt-3 text-right text-sm text-stone-500">Itens: {formatReal(total)}</p>
                     {zonaSelecionada && (
                       <p className="text-right text-sm text-stone-500">
-                        Entrega: {zonaSelecionada.taxa === 0 ? "Grátis" : formatReal(zonaSelecionada.taxa)}
+                        Entrega: {taxaEntregaAtual === 0 ? "Grátis" : formatReal(taxaEntregaAtual)}
+                      </p>
+                    )}
+                    {faltaParaGratis != null && faltaParaGratis > 0 && (
+                      <p className="text-right text-xs text-emerald-700">
+                        Faltam {formatReal(faltaParaGratis)} pra entrega grátis nesse bairro
                       </p>
                     )}
                     <p className="text-right text-sm font-bold text-stone-900">Total: {formatReal(totalComEntrega)}</p>
@@ -215,7 +227,12 @@ export function CartBar({ zonasEntrega }: { zonasEntrega: ZonaEntrega[] }) {
                         <option value="">Seu bairro…</option>
                         {zonasEntrega.map((z) => (
                           <option key={z.id} value={z.id}>
-                            {z.bairro} — {z.taxa === 0 ? "entrega grátis" : `entrega ${formatReal(z.taxa)}`}
+                            {z.bairro} —{" "}
+                            {z.taxa === 0
+                              ? "entrega grátis"
+                              : z.pedidoMinimoGratis != null
+                                ? `entrega ${formatReal(z.taxa)} (grátis acima de ${formatReal(z.pedidoMinimoGratis)})`
+                                : `entrega ${formatReal(z.taxa)}`}
                           </option>
                         ))}
                       </select>

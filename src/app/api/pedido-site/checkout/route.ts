@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   // confiada no valor que o cliente mandou.
   const { data: zona } = await admin
     .from("del_zonas_entrega")
-    .select("bairro, taxa")
+    .select("bairro, taxa, pedido_minimo_gratis")
     .eq("owner_id", ownerId)
     .eq("id", bairroId)
     .eq("ativo", true)
@@ -37,7 +37,6 @@ export async function POST(req: Request) {
   if (!zona) {
     return NextResponse.json({ error: "Bairro inválido ou fora da área de entrega." }, { status: 400 });
   }
-  const taxaEntrega = Number(zona.taxa);
 
   // Preço sempre buscado no banco, nunca confiado no que o cliente mandou.
   const productIds = itemsRaw.map((i) => i.productId).filter(Boolean) as string[];
@@ -65,7 +64,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Nenhum item válido no pedido." }, { status: 400 });
   }
 
-  const totale = items.reduce((sum, item) => sum + item.quantidade * item.precoUnitario, 0) + taxaEntrega;
+  const itensSubtotal = items.reduce((sum, item) => sum + item.quantidade * item.precoUnitario, 0);
+  const pedidoMinimoGratis = zona.pedido_minimo_gratis != null ? Number(zona.pedido_minimo_gratis) : null;
+  const atingiuMinimo = pedidoMinimoGratis != null && itensSubtotal >= pedidoMinimoGratis;
+  const taxaEntrega = atingiuMinimo ? 0 : Number(zona.taxa);
+  const totale = itensSubtotal + taxaEntrega;
 
   const { data: order, error: orderError } = await admin
     .from("del_orders")

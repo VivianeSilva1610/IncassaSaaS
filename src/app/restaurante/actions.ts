@@ -392,8 +392,26 @@ export async function addZonaEntrega(formData: FormData) {
     bairro: String(formData.get("bairro") ?? "").trim(),
     distancia_km: formData.get("distancia_km") ? Number(formData.get("distancia_km")) : null,
     taxa: Number(formData.get("taxa") ?? 0),
+    pedido_minimo_gratis: formData.get("pedido_minimo_gratis") ? Number(formData.get("pedido_minimo_gratis")) : null,
   });
   if (error) throw new Error(`Não foi possível salvar o bairro: ${error.message}`);
+
+  revalidatePath("/restaurante/custos");
+}
+
+export async function updateZonaEntrega(id: string, formData: FormData) {
+  const { supabase } = await requireRestaurantSubscription();
+
+  const { error } = await supabase
+    .from("del_zonas_entrega")
+    .update({
+      bairro: String(formData.get("bairro") ?? "").trim(),
+      distancia_km: formData.get("distancia_km") ? Number(formData.get("distancia_km")) : null,
+      taxa: Number(formData.get("taxa") ?? 0),
+      pedido_minimo_gratis: formData.get("pedido_minimo_gratis") ? Number(formData.get("pedido_minimo_gratis")) : null,
+    })
+    .eq("id", id);
+  if (error) throw new Error(`Não foi possível atualizar o bairro: ${error.message}`);
 
   revalidatePath("/restaurante/custos");
 }

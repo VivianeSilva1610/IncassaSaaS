@@ -127,19 +127,26 @@ function formatReal(value: number) {
 
 type Disponibilidade = { preco: number; ativo: boolean; visivelSite: boolean; diasSite: number[] | null };
 
-async function buscarZonasEntrega(): Promise<{ id: string; bairro: string; taxa: number }[]> {
+async function buscarZonasEntrega(): Promise<
+  { id: string; bairro: string; taxa: number; pedidoMinimoGratis: number | null }[]
+> {
   const admin = getSupabaseAdmin();
   const ownerId = await getPranzoOwnerId(admin);
   if (!ownerId) return [];
 
   const { data } = await admin
     .from("del_zonas_entrega")
-    .select("id, bairro, taxa")
+    .select("id, bairro, taxa, pedido_minimo_gratis")
     .eq("owner_id", ownerId)
     .eq("ativo", true)
     .order("bairro");
 
-  return (data ?? []).map((z) => ({ id: z.id, bairro: z.bairro, taxa: Number(z.taxa) }));
+  return (data ?? []).map((z) => ({
+    id: z.id,
+    bairro: z.bairro,
+    taxa: Number(z.taxa),
+    pedidoMinimoGratis: z.pedido_minimo_gratis != null ? Number(z.pedido_minimo_gratis) : null,
+  }));
 }
 
 async function buscarDisponibilidade(): Promise<Map<string, Disponibilidade> | null> {
