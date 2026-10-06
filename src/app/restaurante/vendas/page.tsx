@@ -18,22 +18,42 @@ function formatReal(value: number) {
 
 function formatHora(iso: string | null) {
   if (!iso) return null;
-  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Sao_Paulo",
+  });
 }
 
 const STATUSES = ["novo", "em preparo", "pronto", "entregue", "cancelado"];
 const DIAS_SEMANA_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-export default async function VendasPage() {
+export default async function VendasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
   const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
+  const { from, to } = await searchParams;
+  const filtroAtivo = !!(from || to);
+
+  let pedidosQuery = supabase
+    .from("del_orders")
+    .select("*, del_order_items(quantidade, preco_unitario, del_products(nome)), del_mesas(numero)")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (filtroAtivo) {
+    if (from) pedidosQuery = pedidosQuery.gte("created_at", from);
+    if (to) pedidosQuery = pedidosQuery.lte("created_at", `${to}T23:59:59`);
+  } else {
+    const doisDiasAtras = new Date();
+    doisDiasAtras.setDate(doisDiasAtras.getDate() - 2);
+    pedidosQuery = pedidosQuery.gte("created_at", doisDiasAtras.toISOString());
+  }
 
   const [{ data: products }, { data: orders }, { data: pricingConfig }, { data: cardapioSemana }] = await Promise.all([
     supabase.from("del_products").select("*").order("nome"),
-    supabase
-      .from("del_orders")
-      .select("*, del_order_items(quantidade, preco_unitario, del_products(nome)), del_mesas(numero)")
-      .order("created_at", { ascending: false })
-      .limit(30),
+    pedidosQuery,
     supabase.from("del_pricing_config").select("nome_negocio").eq("owner_id", restaurantOwnerId).maybeSingle(),
     supabase.from("del_cardapio_semana").select("dia_semana, product_id"),
   ]);
@@ -89,8 +109,31 @@ export default async function VendasPage() {
       </section>
 
       <section className="mt-8">
-        <h2 className="font-semibold text-stone-900">Pedidos recentes</h2>
-        <div className="mt-2 space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-semibold text-stone-900">Pedidos recentes</h2>
+          <p className="text-xs text-stone-400">
+            {filtroAtivo ? "Mostrando o período filtrado abaixo." : "Mostrando só os últimos 2 dias."}
+          </p>
+        </div>
+        <form method="get" className="mt-2 flex flex-wrap items-end gap-2 rounded-xl border border-stone-200 bg-white p-3">
+          <div>
+            <label className="block text-xs text-stone-500">De</label>
+            <input name="from" type="date" defaultValue={from ?? ""} className="rounded-md border border-stone-300 px-2 py-1.5 text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs text-stone-500">Até</label>
+            <input name="to" type="date" defaultValue={to ?? ""} className="rounded-md border border-stone-300 px-2 py-1.5 text-sm" />
+          </div>
+          <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white">
+            Filtrar
+          </button>
+          {filtroAtivo && (
+            <a href="/restaurante/vendas" className="text-xs text-stone-500 hover:underline">
+              Ver só os últimos 2 dias
+            </a>
+          )}
+        </form>
+        <div className="mt-3 space-y-2">
           {(orders ?? []).map((o) => (
             <div key={o.id} className="rounded-lg border border-stone-200 bg-white p-4">
               <div className="flex items-center justify-between">
@@ -113,6 +156,11 @@ export default async function VendasPage() {
                     ) : (
                       <span className="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-500">
                         Pendente
+                      </span>
+                    )}
+                    {Number(o.valor_estornado ?? 0) > 0 && (
+                      <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700">
+                        {o.estorno_status === "total" ? "Estorno total" : `Estornado ${formatReal(Number(o.valor_estornado))}`}
                       </span>
                     )}
                   </p>
@@ -160,7 +208,15 @@ export default async function VendasPage() {
                 </form>
                 <div className="flex items-center gap-3">
                   {!o.pago && o.canal !== "site" && (
-                    <form action={marcarPedidoPago.bind(null, o.id)}>
+                    <form action={marcarPedidoPago.bind(null, o.id)} className="flex items-center gap-2">
+                      <select name="forma_pagamento" required className="rounded-md border border-stone-300 px-2 py-1 text-xs">
+                        <option value="">Pagamento…</option>
+                        <option value="pix">Pix</option>
+                        <option value="dinheiro">Dinheiro</option>
+                        <option value="cartao_debito">Cartão de débito</option>
+                        <option value="cartao_credito">Cartão de crédito</option>
+                        <option value="outro">Outro</option>
+                      </select>
                       <button type="submit" className="text-xs text-emerald-700 hover:underline">
                         Marcar como pago
                       </button>
@@ -178,16 +234,22 @@ export default async function VendasPage() {
                         </button>
                       </form>
                     ))}
-                  <form action={deleteOrder.bind(null, o.id)}>
-                    <button type="submit" className="text-xs text-red-600 hover:underline">
-                      Excluir
-                    </button>
-                  </form>
+                  {!o.pago && !notaPorPedido.has(o.id) && (
+                    <form action={deleteOrder.bind(null, o.id)}>
+                      <button type="submit" className="text-xs text-red-600 hover:underline">
+                        Excluir
+                      </button>
+                    </form>
+                  )}
                 </div>
               </div>
             </div>
           ))}
-          {(orders ?? []).length === 0 && <p className="text-sm text-stone-500">Nenhum pedido ainda.</p>}
+          {(orders ?? []).length === 0 && (
+            <p className="text-sm text-stone-500">
+              {filtroAtivo ? "Nenhum pedido nesse período." : "Nenhum pedido nos últimos 2 dias — use o filtro acima pra ver mais."}
+            </p>
+          )}
         </div>
       </section>
 
