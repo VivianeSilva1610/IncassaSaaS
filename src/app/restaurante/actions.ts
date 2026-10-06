@@ -1,16 +1,35 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireRestaurantSubscription } from "@/lib/subscription";
 import { registerStockMovement } from "@/lib/delivery/stock";
 import { createOrderWithItems } from "@/lib/delivery/orders";
 import { gerarFaturaParaPedido } from "@/lib/delivery/invoice-bridge";
 
+// Próximo código sequencial do dono (ex: "0001", "0002"...), usado tanto ao
+// cadastrar um ingrediente direto quanto ao informar a compra de um produto
+// novo pela tela de fornecedores.
+async function proximoCodigo(supabase: SupabaseClient, ownerId: string): Promise<string> {
+  const { data } = await supabase
+    .from("del_ingredients")
+    .select("codigo")
+    .eq("owner_id", ownerId)
+    .order("codigo", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const atual = data?.codigo ? parseInt(data.codigo, 10) : 0;
+  return String(atual + 1).padStart(4, "0");
+}
+
 export async function addIngredient(formData: FormData) {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
+  const codigo = await proximoCodigo(supabase, restaurantOwnerId);
+
   const { error } = await supabase.from("del_ingredients").insert({
     owner_id: restaurantOwnerId,
+    codigo,
     nome: String(formData.get("nome") ?? ""),
     unidade: String(formData.get("unidade") ?? "un"),
     quantidade_atual: Number(formData.get("quantidade_atual") ?? 0),
@@ -25,6 +44,52 @@ export async function addIngredient(formData: FormData) {
 export async function deleteIngredient(id: string) {
   const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_ingredients").delete().eq("id", id);
+  revalidatePath("/restaurante/estoque");
+}
+
+// Tela única de "compra de fornecedor": se o produto já existe (código
+// selecionado), só lança entrada de estoque; se não existe, cadastra um
+// produto novo com código novo e a quantidade comprada como estoque inicial.
+export async function registrarCompraFornecedor(formData: FormData) {
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+
+  const ingredientId = String(formData.get("ingredient_id") ?? "");
+  const quantidade = Number(formData.get("quantidade") ?? 0);
+  const fornecedor = String(formData.get("fornecedor") ?? "").trim() || null;
+  const custoUnitario = formData.get("custo_unitario") ? Number(formData.get("custo_unitario")) : null;
+
+  if (quantidade <= 0) {
+    throw new Error("Informe a quantidade comprada.");
+  }
+
+  if (ingredientId) {
+    await registerStockMovement(supabase, {
+      ownerId: restaurantOwnerId,
+      ingredientId,
+      tipo: "entrada",
+      quantidade,
+      motivo: fornecedor ? `Compra — ${fornecedor}` : "Compra de fornecedor",
+    });
+    if (custoUnitario != null) {
+      await supabase.from("del_ingredients").update({ custo_unitario: custoUnitario }).eq("id", ingredientId);
+    }
+  } else {
+    const nome = String(formData.get("nome") ?? "").trim();
+    if (!nome) throw new Error("Informe o nome do novo produto.");
+    const unidade = String(formData.get("unidade") ?? "un");
+    const codigo = await proximoCodigo(supabase, restaurantOwnerId);
+
+    const { error } = await supabase.from("del_ingredients").insert({
+      owner_id: restaurantOwnerId,
+      codigo,
+      nome,
+      unidade,
+      quantidade_atual: quantidade,
+      custo_unitario: custoUnitario,
+    });
+    if (error) throw new Error(`Não foi possível cadastrar o produto: ${error.message}`);
+  }
+
   revalidatePath("/restaurante/estoque");
 }
 
