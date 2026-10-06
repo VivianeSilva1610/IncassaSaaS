@@ -75,6 +75,100 @@ export default async function VendasPage() {
       <h1 className="text-2xl font-bold text-stone-900">Vendas</h1>
 
       <section className="mt-6">
+        <h2 className="font-semibold text-stone-900">Novo pedido</h2>
+        <NewOrderForm
+          products={itensAvulsos}
+          tamanhos={tamanhos}
+          principais={principais}
+          acompanhamentos={acompanhamentos}
+          extras={extras}
+          cardapioSemana={cardapioSemanaMapeado}
+          isOwner={isOwner}
+        />
+      </section>
+
+      <section className="mt-8">
+        <h2 className="font-semibold text-stone-900">Pedidos recentes</h2>
+        <div className="mt-2 space-y-2">
+          {(orders ?? []).map((o) => (
+            <div key={o.id} className="rounded-lg border border-stone-200 bg-white p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-stone-900">
+                    {o.cliente_nome || "Cliente sem nome"}
+                    {o.a_prazo && (
+                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                        A prazo{o.invoice_id ? " · fatura no INCASSA" : ""}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-sm text-stone-500">
+                    {(o.del_order_items ?? [])
+                      .map((it: { quantidade: number; del_products: { nome: string } | null }) =>
+                        `${it.quantidade}x ${it.del_products?.nome ?? "?"}`,
+                      )
+                      .join(", ")}
+                  </p>
+                  {o.note && <p className="mt-1 text-xs italic text-stone-500">{o.note}</p>}
+                  <p className="mt-1 space-x-2 text-xs text-stone-400">
+                    {formatHora(o.chegou_cozinha_em) && <span>Chegou {formatHora(o.chegou_cozinha_em)}</span>}
+                    {formatHora(o.em_preparo_em) && <span>· Preparo {formatHora(o.em_preparo_em)}</span>}
+                    {formatHora(o.pronto_em) && <span>· Pronto {formatHora(o.pronto_em)}</span>}
+                    {formatHora(o.entregue_em) && <span>· Entregue {formatHora(o.entregue_em)}</span>}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-stone-900">{formatReal(Number(o.totale))}</p>
+                  {Number(o.taxa_entrega) > 0 && (
+                    <p className="text-xs text-stone-500">+ {formatReal(Number(o.taxa_entrega))} entrega</p>
+                  )}
+                  <p className="text-xs text-stone-400">{o.canal}</p>
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-between border-t border-stone-100 pt-3">
+                <form
+                  action={async (formData: FormData) => {
+                    "use server";
+                    await updateOrderStatus(o.id, String(formData.get("status")));
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <select name="status" defaultValue={o.status} className="rounded-md border border-stone-300 px-2 py-1 text-xs">
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                  <button type="submit" className="text-xs text-amber-700 hover:underline">
+                    Atualizar status
+                  </button>
+                </form>
+                <div className="flex items-center gap-3">
+                  {notaPorPedido.get(o.id) && notaPorPedido.get(o.id)?.status !== "erro" ? (
+                    <span className="text-xs text-stone-500">NFC-e: {notaPorPedido.get(o.id)?.status}</span>
+                  ) : (
+                    <form action={emitirNotaFiscal.bind(null, o.id)} className="flex items-center gap-1">
+                      {notaPorPedido.get(o.id)?.status === "erro" && <span className="text-xs text-red-600">NFC-e: erro</span>}
+                      <button type="submit" className="text-xs text-amber-700 hover:underline">
+                        {notaPorPedido.get(o.id)?.status === "erro" ? "Tentar de novo" : "Emitir NFC-e"}
+                      </button>
+                    </form>
+                  )}
+                  <form action={deleteOrder.bind(null, o.id)}>
+                    <button type="submit" className="text-xs text-red-600 hover:underline">
+                      Excluir
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          ))}
+          {(orders ?? []).length === 0 && <p className="text-sm text-stone-500">Nenhum pedido ainda.</p>}
+        </div>
+      </section>
+
+      <section className="mt-8">
         <h2 className="font-semibold text-stone-900">{nomeNegocio ? `${nomeNegocio} — Menu` : "Menu"}</h2>
         <form action={addProduct} className="mt-2 grid gap-3 rounded-xl border border-stone-200 bg-white p-4 sm:grid-cols-2">
           <input name="nome" required placeholder="Nome do item" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
@@ -197,100 +291,6 @@ export default async function VendasPage() {
           );
         })}
         {(products ?? []).length === 0 && <p className="mt-3 text-sm text-stone-500">Nenhum item no menu ainda.</p>}
-      </section>
-
-      <section className="mt-8">
-        <h2 className="font-semibold text-stone-900">Novo pedido</h2>
-        <NewOrderForm
-          products={itensAvulsos}
-          tamanhos={tamanhos}
-          principais={principais}
-          acompanhamentos={acompanhamentos}
-          extras={extras}
-          cardapioSemana={cardapioSemanaMapeado}
-          isOwner={isOwner}
-        />
-      </section>
-
-      <section className="mt-8">
-        <h2 className="font-semibold text-stone-900">Pedidos recentes</h2>
-        <div className="mt-2 space-y-2">
-          {(orders ?? []).map((o) => (
-            <div key={o.id} className="rounded-lg border border-stone-200 bg-white p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-stone-900">
-                    {o.cliente_nome || "Cliente sem nome"}
-                    {o.a_prazo && (
-                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-                        A prazo{o.invoice_id ? " · fatura no INCASSA" : ""}
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-sm text-stone-500">
-                    {(o.del_order_items ?? [])
-                      .map((it: { quantidade: number; del_products: { nome: string } | null }) =>
-                        `${it.quantidade}x ${it.del_products?.nome ?? "?"}`,
-                      )
-                      .join(", ")}
-                  </p>
-                  {o.note && <p className="mt-1 text-xs italic text-stone-500">{o.note}</p>}
-                  <p className="mt-1 space-x-2 text-xs text-stone-400">
-                    {formatHora(o.chegou_cozinha_em) && <span>Chegou {formatHora(o.chegou_cozinha_em)}</span>}
-                    {formatHora(o.em_preparo_em) && <span>· Preparo {formatHora(o.em_preparo_em)}</span>}
-                    {formatHora(o.pronto_em) && <span>· Pronto {formatHora(o.pronto_em)}</span>}
-                    {formatHora(o.entregue_em) && <span>· Entregue {formatHora(o.entregue_em)}</span>}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-stone-900">{formatReal(Number(o.totale))}</p>
-                  {Number(o.taxa_entrega) > 0 && (
-                    <p className="text-xs text-stone-500">+ {formatReal(Number(o.taxa_entrega))} entrega</p>
-                  )}
-                  <p className="text-xs text-stone-400">{o.canal}</p>
-                </div>
-              </div>
-              <div className="mt-3 flex items-center justify-between border-t border-stone-100 pt-3">
-                <form
-                  action={async (formData: FormData) => {
-                    "use server";
-                    await updateOrderStatus(o.id, String(formData.get("status")));
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <select name="status" defaultValue={o.status} className="rounded-md border border-stone-300 px-2 py-1 text-xs">
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                  <button type="submit" className="text-xs text-amber-700 hover:underline">
-                    Atualizar status
-                  </button>
-                </form>
-                <div className="flex items-center gap-3">
-                  {notaPorPedido.get(o.id) && notaPorPedido.get(o.id)?.status !== "erro" ? (
-                    <span className="text-xs text-stone-500">NFC-e: {notaPorPedido.get(o.id)?.status}</span>
-                  ) : (
-                    <form action={emitirNotaFiscal.bind(null, o.id)} className="flex items-center gap-1">
-                      {notaPorPedido.get(o.id)?.status === "erro" && <span className="text-xs text-red-600">NFC-e: erro</span>}
-                      <button type="submit" className="text-xs text-amber-700 hover:underline">
-                        {notaPorPedido.get(o.id)?.status === "erro" ? "Tentar de novo" : "Emitir NFC-e"}
-                      </button>
-                    </form>
-                  )}
-                  <form action={deleteOrder.bind(null, o.id)}>
-                    <button type="submit" className="text-xs text-red-600 hover:underline">
-                      Excluir
-                    </button>
-                  </form>
-                </div>
-              </div>
-            </div>
-          ))}
-          {(orders ?? []).length === 0 && <p className="text-sm text-stone-500">Nenhum pedido ainda.</p>}
-        </div>
       </section>
     </div>
   );
