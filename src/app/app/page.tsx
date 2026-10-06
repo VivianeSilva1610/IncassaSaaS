@@ -1,9 +1,13 @@
-import { requireActiveSubscription } from "@/lib/subscription";
+import { requireActiveSubscription, isAdminEmail } from "@/lib/subscription";
 import { createClient } from "@/lib/supabase-server";
 import { getUserLocale } from "@/lib/locale";
 import { getUrgency, urgencyEmoji, formatEuro } from "@/lib/urgency";
 import { SollecitaButton } from "@/components/SollecitaButton";
 import Link from "next/link";
+
+function formatReal(value: number) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+}
 
 const strings = {
   it: {
@@ -112,6 +116,21 @@ export default async function DashboardPage() {
   const tassoRecupero =
     fattureRecentiCount > 0 ? Math.round((fatturePagateRecenti / fattureRecentiCount) * 100) : null;
 
+  // Negócio separado (moeda e produto diferentes do INCASSA) — só a dona
+  // vê esse card, mesma checagem usada pro link "Restaurante" no menu.
+  const showRestaurante = isAdminEmail(user?.email);
+  let totalVendasRestauranteMes = 0;
+  if (showRestaurante) {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const { data: pedidosMes } = await supabase
+      .from("del_orders")
+      .select("totale")
+      .gte("created_at", startOfMonth.toISOString());
+    totalVendasRestauranteMes = (pedidosMes ?? []).reduce((sum, o) => sum + Number(o.totale), 0);
+  }
+
   return (
     <div>
       <section className="rounded-xl bg-gradient-to-b from-stone-900 to-stone-800 p-6 text-center text-white sm:p-10">
@@ -136,6 +155,21 @@ export default async function DashboardPage() {
           <p className="mt-1 text-xs text-stone-400">{t.saldoDettaglio(formatEuro(total), formatEuro(totalUscite))}</p>
         </div>
       </section>
+
+      {showRestaurante && (
+        <section className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-stone-500">🍱 Restaurante — vendas deste mês</p>
+              <p className="mt-1 text-2xl font-bold text-stone-900">{formatReal(totalVendasRestauranteMes)}</p>
+              <p className="mt-1 text-xs text-stone-400">Negócio separado, em reais — não soma com o valor em euros acima.</p>
+            </div>
+            <Link href="/restaurante" className="text-sm text-amber-700 underline underline-offset-2">
+              Ver restaurante
+            </Link>
+          </div>
+        </section>
+      )}
 
       <section className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-stone-200 bg-white p-4">
