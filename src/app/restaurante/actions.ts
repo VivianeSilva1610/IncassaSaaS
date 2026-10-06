@@ -171,10 +171,18 @@ export async function createOrder(formData: FormData) {
   revalidatePath("/restaurante/vendas");
 }
 
+const STATUS_TIMESTAMP_COLUMN: Record<string, string> = {
+  novo: "chegou_cozinha_em",
+  "em preparo": "em_preparo_em",
+  pronto: "pronto_em",
+  entregue: "entregue_em",
+};
+
 export async function updateOrderStatus(id: string, status: string) {
   const { supabase } = await requireRestaurantSubscription();
-  const update: { status: string; chegou_cozinha_em?: string } = { status };
-  if (status === "novo") update.chegou_cozinha_em = new Date().toISOString();
+  const update: Record<string, string> = { status };
+  const coluna = STATUS_TIMESTAMP_COLUMN[status];
+  if (coluna) update[coluna] = new Date().toISOString();
   await supabase.from("del_orders").update(update).eq("id", id);
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/cozinha");

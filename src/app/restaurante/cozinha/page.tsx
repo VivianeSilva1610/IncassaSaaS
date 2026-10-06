@@ -54,9 +54,11 @@ export default async function CozinhaPage() {
                 </p>
                 <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">{p.status}</span>
               </div>
-              {formatHora(p.chegou_cozinha_em) && (
-                <p className="mt-1 text-xs text-stone-400">Chegou à cozinha às {formatHora(p.chegou_cozinha_em)}</p>
-              )}
+              <p className="mt-1 space-x-2 text-xs text-stone-400">
+                {formatHora(p.chegou_cozinha_em) && <span>Chegou {formatHora(p.chegou_cozinha_em)}</span>}
+                {formatHora(p.em_preparo_em) && <span>· Em preparo {formatHora(p.em_preparo_em)}</span>}
+                {formatHora(p.pronto_em) && <span>· Pronto {formatHora(p.pronto_em)}</span>}
+              </p>
               <ul className="mt-2 space-y-0.5 text-sm text-stone-700">
                 {(p.del_order_items ?? []).map(
                   (it: { quantidade: number; del_products: { nome: string } | null }, i: number) => (

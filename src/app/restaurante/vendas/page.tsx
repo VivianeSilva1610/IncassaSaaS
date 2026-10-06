@@ -14,6 +14,11 @@ function formatReal(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
+function formatHora(iso: string | null) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
 const STATUSES = ["novo", "em preparo", "pronto", "entregue", "cancelado"];
 const DIAS_SEMANA_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -216,6 +221,12 @@ export default async function VendasPage() {
                       .join(", ")}
                   </p>
                   {o.note && <p className="mt-1 text-xs italic text-stone-500">{o.note}</p>}
+                  <p className="mt-1 space-x-2 text-xs text-stone-400">
+                    {formatHora(o.chegou_cozinha_em) && <span>Chegou {formatHora(o.chegou_cozinha_em)}</span>}
+                    {formatHora(o.em_preparo_em) && <span>· Preparo {formatHora(o.em_preparo_em)}</span>}
+                    {formatHora(o.pronto_em) && <span>· Pronto {formatHora(o.pronto_em)}</span>}
+                    {formatHora(o.entregue_em) && <span>· Entregue {formatHora(o.entregue_em)}</span>}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="font-semibold text-stone-900">{formatReal(Number(o.totale))}</p>
