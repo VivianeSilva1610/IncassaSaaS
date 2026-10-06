@@ -57,6 +57,7 @@ export async function POST(req: Request) {
       owner_id: ownerId,
       cliente_nome: clienteNome,
       cliente_telefone: clienteTelefone,
+      cliente_cpf_cnpj: cpfCnpj,
       endereco,
       canal: "site",
       status: "aguardando_pagamento",

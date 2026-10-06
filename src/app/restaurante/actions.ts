@@ -6,6 +6,7 @@ import { requireRestaurantSubscription } from "@/lib/subscription";
 import { registerStockMovement } from "@/lib/delivery/stock";
 import { createOrderWithItems } from "@/lib/delivery/orders";
 import { gerarFaturaParaPedido } from "@/lib/delivery/invoice-bridge";
+import { emitirNotaFiscalParaPedido } from "@/lib/fiscal/emitir";
 
 // Próximo código sequencial do dono (ex: "0001", "0002"...), usado tanto ao
 // cadastrar um ingrediente direto quanto ao informar a compra de um produto
@@ -257,6 +258,60 @@ export async function deleteOrder(id: string) {
   const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_orders").delete().eq("id", id);
   revalidatePath("/restaurante/vendas");
+}
+
+export async function updateFiscalConfig(formData: FormData) {
+  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
+  if (!isOwner) throw new Error("Apenas o dono do restaurante pode editar os dados fiscais.");
+
+  const { error } = await supabase.from("del_fiscal_config").upsert(
+    {
+      owner_id: restaurantOwnerId,
+      razao_social: String(formData.get("razao_social") ?? "").trim() || null,
+      nome_fantasia: String(formData.get("nome_fantasia") ?? "").trim() || null,
+      cnpj: String(formData.get("cnpj") ?? "").trim() || null,
+      inscricao_estadual: String(formData.get("inscricao_estadual") ?? "").trim() || null,
+      regime_tributario: String(formData.get("regime_tributario") ?? "mei"),
+      logradouro: String(formData.get("logradouro") ?? "").trim() || null,
+      numero: String(formData.get("numero") ?? "").trim() || null,
+      bairro: String(formData.get("bairro") ?? "").trim() || null,
+      municipio: String(formData.get("municipio") ?? "").trim() || null,
+      uf: String(formData.get("uf") ?? "").trim().toUpperCase() || null,
+      cep: String(formData.get("cep") ?? "").trim() || null,
+      crt: formData.get("crt") ? Number(formData.get("crt")) : null,
+      ambiente: String(formData.get("ambiente") ?? "homologacao"),
+      provedor: String(formData.get("provedor") ?? "") || null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "owner_id" },
+  );
+  if (error) throw new Error(`Não foi possível salvar os dados fiscais: ${error.message}`);
+
+  revalidatePath("/restaurante/fiscal");
+}
+
+export async function updateProductFiscal(id: string, formData: FormData) {
+  const { supabase } = await requireRestaurantSubscription();
+
+  const { error } = await supabase
+    .from("del_products")
+    .update({
+      ncm: String(formData.get("ncm") ?? "").trim() || null,
+      cfop: String(formData.get("cfop") ?? "").trim() || "5102",
+      cest: String(formData.get("cest") ?? "").trim() || null,
+      origem: Number(formData.get("origem") ?? 0),
+    })
+    .eq("id", id);
+  if (error) throw new Error(`Não foi possível salvar os dados fiscais do produto: ${error.message}`);
+
+  revalidatePath("/restaurante/fiscal");
+}
+
+export async function emitirNotaFiscal(orderId: string) {
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  await emitirNotaFiscalParaPedido(supabase, { ownerId: restaurantOwnerId, orderId });
+  revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/fiscal");
 }
 
 export async function addFixedCost(formData: FormData) {

@@ -7,6 +7,7 @@ import {
   deleteProduct,
   updateOrderStatus,
   deleteOrder,
+  emitirNotaFiscal,
 } from "@/app/restaurante/actions";
 import { NewOrderForm } from "@/components/delivery/NewOrderForm";
 
@@ -35,6 +36,19 @@ export default async function VendasPage() {
     supabase.from("del_pricing_config").select("nome_negocio").eq("owner_id", restaurantOwnerId).maybeSingle(),
     supabase.from("del_cardapio_semana").select("dia_semana, product_id"),
   ]);
+
+  const orderIds = (orders ?? []).map((o) => o.id);
+  const { data: notas } = orderIds.length
+    ? await supabase
+        .from("del_notas_fiscais")
+        .select("order_id, status, erro_mensagem, created_at")
+        .in("order_id", orderIds)
+        .order("created_at", { ascending: false })
+    : { data: [] };
+  const notaPorPedido = new Map<string, { status: string; erro_mensagem: string | null }>();
+  for (const n of notas ?? []) {
+    if (!notaPorPedido.has(n.order_id)) notaPorPedido.set(n.order_id, n);
+  }
 
   const activeProducts = (products ?? []).filter((p) => p.ativo);
   const nomeNegocio = pricingConfig?.nome_negocio;
@@ -255,11 +269,23 @@ export default async function VendasPage() {
                     Atualizar status
                   </button>
                 </form>
-                <form action={deleteOrder.bind(null, o.id)}>
-                  <button type="submit" className="text-xs text-red-600 hover:underline">
-                    Excluir
-                  </button>
-                </form>
+                <div className="flex items-center gap-3">
+                  {notaPorPedido.get(o.id) && notaPorPedido.get(o.id)?.status !== "erro" ? (
+                    <span className="text-xs text-stone-500">NFC-e: {notaPorPedido.get(o.id)?.status}</span>
+                  ) : (
+                    <form action={emitirNotaFiscal.bind(null, o.id)} className="flex items-center gap-1">
+                      {notaPorPedido.get(o.id)?.status === "erro" && <span className="text-xs text-red-600">NFC-e: erro</span>}
+                      <button type="submit" className="text-xs text-amber-700 hover:underline">
+                        {notaPorPedido.get(o.id)?.status === "erro" ? "Tentar de novo" : "Emitir NFC-e"}
+                      </button>
+                    </form>
+                  )}
+                  <form action={deleteOrder.bind(null, o.id)}>
+                    <button type="submit" className="text-xs text-red-600 hover:underline">
+                      Excluir
+                    </button>
+                  </form>
+                </div>
               </div>
             </div>
           ))}
