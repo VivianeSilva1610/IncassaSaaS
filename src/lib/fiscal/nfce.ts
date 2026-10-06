@@ -91,8 +91,34 @@ class ProvedorNaoConfigurado implements FiscalProvider {
   }
 }
 
+// Gera números/chaves falsos só pra exercitar o fluxo (Vendas → emitir →
+// aparecer na aba Fiscal → cancelar) sem depender de SEFAZ nem de um
+// provedor contratado. A chave de acesso é propositalmente não-numérica
+// ("SIMULACAO-...") pra nunca passar por uma chave real de 44 dígitos,
+// mesmo fora de contexto. NÃO É um documento fiscal válido.
+class ProvedorSimulado implements FiscalProvider {
+  nome = "simulado";
+
+  async emitirNFCe(input: NfceEmitirInput): Promise<NfceEmitirResultado> {
+    const sufixo = Math.random().toString(36).slice(2, 10).toUpperCase();
+    return {
+      status: "emitida",
+      numero: input.numero,
+      serie: input.serie,
+      chaveAcesso: `SIMULACAO-${sufixo}`,
+      protocoloAutorizacao: `SIMULACAO-PROTOCOLO-${sufixo}`,
+    };
+  }
+
+  async cancelarNFCe(): Promise<NfceCancelarResultado> {
+    return { status: "cancelada" };
+  }
+}
+
 export function getFiscalProvider(provedor: string | null): FiscalProvider {
   switch (provedor) {
+    case "simulado":
+      return new ProvedorSimulado();
     // case "focus_nfe": return new FocusNfeProvider();
     // case "plugnotas": return new PlugNotasProvider();
     // case "enotas": return new ENotasProvider();
