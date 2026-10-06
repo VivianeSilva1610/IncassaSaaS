@@ -128,11 +128,12 @@ export async function confirmarPagamentoEEmitirNota(
   supabase: SupabaseClient,
   params: { ownerId: string; orderId: string },
 ) {
-  await supabase
+  const { error } = await supabase
     .from("del_orders")
     .update({ pago: true, pago_em: new Date().toISOString() })
     .eq("id", params.orderId)
     .eq("pago", false);
+  if (error) throw new Error(`Não foi possível marcar o pedido como pago: ${error.message}`);
 
   return emitirNotaFiscalParaPedido(supabase, { ownerId: params.ownerId, orderId: params.orderId });
 }
