@@ -6,7 +6,7 @@ export type CartItem = { productId: string; nome: string; preco: number; quantid
 
 type CartContextValue = {
   itens: CartItem[];
-  adicionar: (item: { productId: string; nome: string; preco: number }) => void;
+  adicionar: (item: { productId: string; nome: string; preco: number }, quantidade?: number) => void;
   remover: (productId: string) => void;
   limpar: () => void;
   total: number;
@@ -18,13 +18,13 @@ const CartContext = createContext<CartContextValue | null>(null);
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [itens, setItens] = useState<CartItem[]>([]);
 
-  function adicionar(item: { productId: string; nome: string; preco: number }) {
+  function adicionar(item: { productId: string; nome: string; preco: number }, quantidade = 1) {
     setItens((prev) => {
       const existente = prev.find((i) => i.productId === item.productId);
       if (existente) {
-        return prev.map((i) => (i.productId === item.productId ? { ...i, quantidade: i.quantidade + 1 } : i));
+        return prev.map((i) => (i.productId === item.productId ? { ...i, quantidade: i.quantidade + quantidade } : i));
       }
-      return [...prev, { ...item, quantidade: 1 }];
+      return [...prev, { ...item, quantidade }];
     });
   }
 
