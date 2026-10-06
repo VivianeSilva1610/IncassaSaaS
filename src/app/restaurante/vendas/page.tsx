@@ -146,12 +146,13 @@ export default async function VendasPage() {
                 </form>
                 <div className="flex items-center gap-3">
                   {notaPorPedido.get(o.id) && notaPorPedido.get(o.id)?.status !== "erro" ? (
-                    <span className="text-xs text-stone-500">NFC-e: {notaPorPedido.get(o.id)?.status}</span>
+                    <a href="/restaurante/fiscal" className="text-xs text-stone-500 hover:underline">
+                      Ver nota fiscal
+                    </a>
                   ) : (
-                    <form action={emitirNotaFiscal.bind(null, o.id)} className="flex items-center gap-1">
-                      {notaPorPedido.get(o.id)?.status === "erro" && <span className="text-xs text-red-600">NFC-e: erro</span>}
+                    <form action={emitirNotaFiscal.bind(null, o.id)}>
                       <button type="submit" className="text-xs text-amber-700 hover:underline">
-                        {notaPorPedido.get(o.id)?.status === "erro" ? "Tentar de novo" : "Emitir NFC-e"}
+                        {notaPorPedido.get(o.id)?.status === "erro" ? "Tentar emitir NFC-e de novo" : "Emitir NFC-e"}
                       </button>
                     </form>
                   )}

@@ -6,7 +6,7 @@ import { requireRestaurantSubscription } from "@/lib/subscription";
 import { registerStockMovement } from "@/lib/delivery/stock";
 import { createOrderWithItems } from "@/lib/delivery/orders";
 import { gerarFaturaParaPedido } from "@/lib/delivery/invoice-bridge";
-import { emitirNotaFiscalParaPedido } from "@/lib/fiscal/emitir";
+import { emitirNotaFiscalParaPedido, cancelarNotaFiscal as cancelarNotaFiscalLib } from "@/lib/fiscal/emitir";
 
 // Próximo código sequencial do dono (ex: "0001", "0002"...), usado tanto ao
 // cadastrar um ingrediente direto quanto ao informar a compra de um produto
@@ -310,6 +310,20 @@ export async function updateProductFiscal(id: string, formData: FormData) {
 export async function emitirNotaFiscal(orderId: string) {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
   await emitirNotaFiscalParaPedido(supabase, { ownerId: restaurantOwnerId, orderId });
+  revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/fiscal");
+}
+
+export async function cancelarNotaFiscal(notaId: string, formData: FormData) {
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const justificativa = String(formData.get("justificativa") ?? "").trim();
+  if (justificativa.length < 15) {
+    throw new Error("A justificativa do cancelamento precisa ter pelo menos 15 caracteres (exigência da SEFAZ).");
+  }
+  const resultado = await cancelarNotaFiscalLib(supabase, { ownerId: restaurantOwnerId, notaId, justificativa });
+  if (resultado.status === "erro") {
+    throw new Error(resultado.mensagemErro ?? "Não foi possível cancelar a nota.");
+  }
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/fiscal");
 }

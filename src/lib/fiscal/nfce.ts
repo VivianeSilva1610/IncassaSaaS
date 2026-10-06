@@ -52,9 +52,24 @@ export type NfceEmitirResultado = {
   mensagemErro?: string;
 };
 
+export type NfceCancelarInput = {
+  chaveAcesso: string;
+  justificativa: string;
+};
+
+export type NfceCancelarResultado = {
+  status: "cancelada" | "erro";
+  mensagemErro?: string;
+};
+
 export interface FiscalProvider {
   nome: string;
   emitirNFCe(input: NfceEmitirInput): Promise<NfceEmitirResultado>;
+  // SEFAZ só aceita cancelamento dentro de uma janela curta após a
+  // emissão (varia por estado — confirmar com o provedor). Depois disso
+  // o provedor real deve recusar, e a correção vira uma devolução à
+  // parte, não um cancelamento.
+  cancelarNFCe(input: NfceCancelarInput): Promise<NfceCancelarResultado>;
 }
 
 class ProvedorNaoConfigurado implements FiscalProvider {
@@ -65,6 +80,13 @@ class ProvedorNaoConfigurado implements FiscalProvider {
       status: "erro",
       mensagemErro:
         "Nenhum provedor de NFC-e configurado ainda. Preencha CNPJ, Inscrição Estadual e escolha um provedor em Restaurante → Fiscal — e contrate o provedor escolhido — antes de emitir.",
+    };
+  }
+
+  async cancelarNFCe(): Promise<NfceCancelarResultado> {
+    return {
+      status: "erro",
+      mensagemErro: "Nenhum provedor de NFC-e configurado ainda — não há como cancelar uma nota que não foi emitida por um provedor real.",
     };
   }
 }

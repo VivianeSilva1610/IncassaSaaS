@@ -93,3 +93,27 @@ export async function emitirNotaFiscalParaPedido(
 
   return { notaId: nota.id as string, status: resultado.status, mensagemErro: resultado.mensagemErro };
 }
+
+export async function cancelarNotaFiscal(
+  supabase: SupabaseClient,
+  params: { ownerId: string; notaId: string; justificativa: string },
+) {
+  const { data: nota } = await supabase.from("del_notas_fiscais").select("*").eq("id", params.notaId).single();
+  if (!nota) throw new Error("Nota não encontrada.");
+  if (nota.status !== "emitida") throw new Error("Só é possível cancelar uma nota emitida.");
+
+  const { data: config } = await supabase
+    .from("del_fiscal_config")
+    .select("provedor")
+    .eq("owner_id", params.ownerId)
+    .maybeSingle();
+
+  const provider = getFiscalProvider(config?.provedor ?? null);
+  const resultado = await provider.cancelarNFCe({ chaveAcesso: nota.chave_acesso, justificativa: params.justificativa });
+
+  if (resultado.status === "cancelada") {
+    await supabase.from("del_notas_fiscais").update({ status: "cancelada", erro_mensagem: null }).eq("id", nota.id);
+  }
+
+  return resultado;
+}

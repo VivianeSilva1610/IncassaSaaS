@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireRestaurantSubscription } from "@/lib/subscription";
-import { updateFiscalConfig, updateProductFiscal } from "@/app/restaurante/actions";
+import { updateFiscalConfig, updateProductFiscal, cancelarNotaFiscal } from "@/app/restaurante/actions";
 
 function formatHora(iso: string | null) {
   if (!iso) return null;
@@ -9,27 +9,45 @@ function formatHora(iso: string | null) {
 
 const STATUS_LABEL: Record<string, string> = {
   pendente: "Pendente",
-  emitida: "Emitida",
+  emitida: "Emitida / válida",
   erro: "Erro",
   cancelada: "Cancelada",
 };
 
-export default async function FiscalPage() {
+const STATUS_CLASSE: Record<string, string> = {
+  pendente: "bg-stone-100 text-stone-600",
+  emitida: "bg-emerald-100 text-emerald-700",
+  erro: "bg-red-100 text-red-700",
+  cancelada: "bg-stone-200 text-stone-500 line-through",
+};
+
+export default async function FiscalPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ numero?: string; from?: string; to?: string }>;
+}) {
   const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
 
   if (!isOwner) {
     redirect("/restaurante");
   }
 
-  const [{ data: config }, { data: products }, { data: notas }] = await Promise.all([
+  const { numero, from, to } = await searchParams;
+
+  const [{ data: config }, { data: products }] = await Promise.all([
     supabase.from("del_fiscal_config").select("*").eq("owner_id", restaurantOwnerId).maybeSingle(),
     supabase.from("del_products").select("id, nome, categoria, ncm, cfop, cest, origem").order("nome"),
-    supabase
-      .from("del_notas_fiscais")
-      .select("*, del_orders(cliente_nome, totale)")
-      .order("created_at", { ascending: false })
-      .limit(20),
   ]);
+
+  let notasQuery = supabase
+    .from("del_notas_fiscais")
+    .select("*, del_orders(cliente_nome, totale)")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (numero) notasQuery = notasQuery.eq("numero", Number(numero));
+  if (from) notasQuery = notasQuery.gte("created_at", from);
+  if (to) notasQuery = notasQuery.lte("created_at", `${to}T23:59:59`);
+  const { data: notas } = await notasQuery;
 
   const pronto = !!(config?.cnpj && config?.inscricao_estadual && config?.provedor);
 
@@ -147,20 +165,79 @@ export default async function FiscalPage() {
 
       <section className="mt-8">
         <h2 className="font-semibold text-stone-900">Notas fiscais</h2>
-        <div className="mt-2 space-y-2">
+        <p className="mt-1 text-xs text-stone-500">
+          Todas as tentativas de emissão, com número, data e status. Cancelamento de NFC-e só é aceito pela
+          SEFAZ dentro de uma janela curta após a emissão (geralmente minutos a poucas horas, varia por
+          estado) — depois disso a nota continua válida e qualquer ajuste vira uma devolução à parte.
+        </p>
+
+        <form method="get" className="mt-3 flex flex-wrap items-end gap-2 rounded-xl border border-stone-200 bg-white p-3">
+          <div>
+            <label className="block text-xs text-stone-500">Número da nota</label>
+            <input
+              name="numero"
+              type="number"
+              defaultValue={numero ?? ""}
+              placeholder="Ex: 42"
+              className="w-28 rounded-md border border-stone-300 px-2 py-1.5 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-stone-500">De</label>
+            <input name="from" type="date" defaultValue={from ?? ""} className="rounded-md border border-stone-300 px-2 py-1.5 text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs text-stone-500">Até</label>
+            <input name="to" type="date" defaultValue={to ?? ""} className="rounded-md border border-stone-300 px-2 py-1.5 text-sm" />
+          </div>
+          <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white">
+            Filtrar
+          </button>
+          {(numero || from || to) && (
+            <a href="/restaurante/fiscal" className="text-xs text-stone-500 hover:underline">
+              Limpar filtro
+            </a>
+          )}
+        </form>
+
+        <div className="mt-3 space-y-2">
           {(notas ?? []).map((n) => (
             <div key={n.id} className="rounded-lg border border-stone-200 bg-white p-4 text-sm">
               <div className="flex items-center justify-between">
                 <p className="font-medium text-stone-900">
-                  {n.del_orders?.cliente_nome || "Cliente sem nome"} — {STATUS_LABEL[n.status] ?? n.status}
+                  {n.numero ? `Nota Nº ${n.numero}` : "Sem número"} — {n.del_orders?.cliente_nome || "Cliente sem nome"}
                 </p>
                 <span className="text-xs text-stone-400">{formatHora(n.created_at)}</span>
               </div>
+              <div className="mt-1 flex items-center gap-2">
+                <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_CLASSE[n.status] ?? "bg-stone-100 text-stone-600"}`}>
+                  {STATUS_LABEL[n.status] ?? n.status}
+                </span>
+                {n.del_orders?.totale != null && (
+                  <span className="text-xs text-stone-500">R$ {Number(n.del_orders.totale).toFixed(2).replace(".", ",")}</span>
+                )}
+                {formatHora(n.emitida_em) && <span className="text-xs text-stone-500">Emitida {formatHora(n.emitida_em)}</span>}
+              </div>
               {n.erro_mensagem && <p className="mt-1 text-xs text-red-600">{n.erro_mensagem}</p>}
               {n.chave_acesso && <p className="mt-1 text-xs text-stone-500">Chave: {n.chave_acesso}</p>}
+
+              {n.status === "emitida" && (
+                <form action={cancelarNotaFiscal.bind(null, n.id)} className="mt-2 flex flex-wrap items-center gap-2 border-t border-stone-100 pt-2">
+                  <input
+                    name="justificativa"
+                    required
+                    minLength={15}
+                    placeholder="Motivo do cancelamento (mín. 15 caracteres)"
+                    className="min-w-[240px] flex-1 rounded-md border border-stone-300 px-2 py-1.5 text-xs"
+                  />
+                  <button type="submit" className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
+                    Cancelar nota
+                  </button>
+                </form>
+              )}
             </div>
           ))}
-          {(notas ?? []).length === 0 && <p className="text-sm text-stone-500">Nenhuma nota emitida ou tentada ainda.</p>}
+          {(notas ?? []).length === 0 && <p className="text-sm text-stone-500">Nenhuma nota emitida ou tentada ainda neste filtro.</p>}
         </div>
       </section>
     </div>
