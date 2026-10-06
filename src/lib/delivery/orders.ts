@@ -34,6 +34,7 @@ export async function createOrderWithItems(
       taxa_entrega: taxaEntrega,
       a_prazo: params.aPrazo ?? false,
       totale,
+      chegou_cozinha_em: new Date().toISOString(),
     })
     .select("id")
     .single();

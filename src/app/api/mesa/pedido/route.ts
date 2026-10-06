@@ -70,6 +70,7 @@ export async function POST(req: Request) {
       status: "novo",
       note: observacao,
       totale,
+      chegou_cozinha_em: new Date().toISOString(),
     })
     .select("id")
     .single();

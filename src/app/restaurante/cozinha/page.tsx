@@ -8,10 +8,15 @@ const PROXIMO_STATUS: Record<string, string> = {
   pronto: "entregue",
 };
 
+function formatHora(iso: string | null) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
 function infoEmbalagem(pedido: { mesa_id: string | null; canal: string }) {
   const isDelivery = !pedido.mesa_id && ["telefone", "whatsapp", "site"].includes(pedido.canal);
   if (isDelivery) {
-    return { label: "VASILHA — ENTREGA", emoji: "📦", classe: "bg-sky-100 text-sky-800 border-sky-300" };
+    return { label: "DELIVERY — ENTREGA", emoji: "📦", classe: "bg-sky-100 text-sky-800 border-sky-300" };
   }
   return { label: "PRATO — CONSUMO LOCAL", emoji: "🍽️", classe: "bg-emerald-100 text-emerald-800 border-emerald-300" };
 }
@@ -23,7 +28,7 @@ export default async function CozinhaPage() {
     .from("del_orders")
     .select("*, del_order_items(quantidade, del_products(nome)), del_mesas(numero)")
     .in("status", ["novo", "em preparo", "pronto"])
-    .order("created_at");
+    .order("chegou_cozinha_em", { ascending: true, nullsFirst: true });
 
   return (
     <div>
@@ -49,6 +54,9 @@ export default async function CozinhaPage() {
                 </p>
                 <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">{p.status}</span>
               </div>
+              {formatHora(p.chegou_cozinha_em) && (
+                <p className="mt-1 text-xs text-stone-400">Chegou à cozinha às {formatHora(p.chegou_cozinha_em)}</p>
+              )}
               <ul className="mt-2 space-y-0.5 text-sm text-stone-700">
                 {(p.del_order_items ?? []).map(
                   (it: { quantidade: number; del_products: { nome: string } | null }, i: number) => (

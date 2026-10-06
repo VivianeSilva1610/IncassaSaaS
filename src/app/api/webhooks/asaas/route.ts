@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 
   await admin
     .from("del_orders")
-    .update({ status: "novo", asaas_payment_id: paymentId ?? null })
+    .update({ status: "novo", asaas_payment_id: paymentId ?? null, chegou_cozinha_em: new Date().toISOString() })
     .eq("id", order.id);
 
   const { data: items } = await admin

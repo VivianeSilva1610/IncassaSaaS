@@ -173,8 +173,11 @@ export async function createOrder(formData: FormData) {
 
 export async function updateOrderStatus(id: string, status: string) {
   const { supabase } = await requireRestaurantSubscription();
-  await supabase.from("del_orders").update({ status }).eq("id", id);
+  const update: { status: string; chegou_cozinha_em?: string } = { status };
+  if (status === "novo") update.chegou_cozinha_em = new Date().toISOString();
+  await supabase.from("del_orders").update(update).eq("id", id);
   revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/cozinha");
 }
 
 export async function deleteOrder(id: string) {
