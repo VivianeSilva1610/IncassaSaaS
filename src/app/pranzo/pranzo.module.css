@@ -87,6 +87,14 @@
 .dessertHeading > p:last-child { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
 .dessertGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 25px; max-width: 820px; margin: 0 auto; }
 .dessertCard .foodImageWrap { aspect-ratio: 1.35; }
+.menuEmpty { grid-column: 1 / -1; margin: 0; padding: 40px 0; color: var(--muted); font-size: 14px; text-align: center; }
+.drinkGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; max-width: 820px; margin: 0 auto; }
+.drinkCard { display: flex; flex-direction: column; gap: 6px; padding: 18px 20px; background: #f8f4eb; border-bottom: 3px solid var(--ink); }
+.drinkName { font-family: Georgia, serif; font-size: 16px; }
+.drinkPrice { color: var(--ink); font-size: 14px; font-weight: 700; }
+.drinkCta { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; margin-top: 4px; padding: 0; color: var(--ink); background: none; border: none; border-bottom: 1px solid #afafa7; font-size: 12px; font-weight: 800; cursor: pointer; }
+.drinkCta:hover { color: var(--orange); }
+.drinkCta svg { width: 14px; }
 .menuCta { display: flex; align-items: center; justify-content: center; gap: 24px; margin-top: 40px; padding: 22px; border: 1px solid #e7ded0; }
 .menuCta p { margin: 0; font-family: Georgia, serif; font-size: 17px; font-style: italic; }
 .menuCta a { display: inline-flex; align-items: center; gap: 8px; color: var(--orange); font-size: 12px; font-weight: 800; text-decoration: none; }
@@ -152,6 +160,7 @@
   .heroVisual { min-height: 570px; }
   .heroImageWrap { inset: 55px 0 0 9%; }
   .menuGrid { grid-template-columns: repeat(2, 1fr); }
+  .drinkGrid { grid-template-columns: repeat(2, 1fr); }
   .storySection { grid-template-columns: 1fr; }
   .storyImages { min-height: 600px; }
   .storyCopy { max-width: 700px; padding: 70px 40px; }
@@ -186,6 +195,7 @@
   .sectionHeading { align-items: flex-start; flex-direction: column; gap: 18px; }
   .menuGrid { grid-template-columns: 1fr; }
   .dessertGrid { grid-template-columns: 1fr; }
+  .drinkGrid { grid-template-columns: 1fr; }
   .dessertHeading { margin-top: 70px; }
   .menuCta { align-items: flex-start; flex-direction: column; }
   .storyImages { min-height: 450px; }

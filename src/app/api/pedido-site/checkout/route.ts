@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { findOrCreateAsaasCustomer, createAsaasPixPayment, getAsaasPixQrCode } from "@/lib/asaas";
-
-const OWNER_EMAIL = "viroedu@gmail.com";
+import { getPranzoOwnerId } from "@/lib/pranzo";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -19,23 +18,26 @@ export async function POST(req: Request) {
 
   const admin = getSupabaseAdmin();
 
-  const { data: usersPage, error: usersError } = await admin.auth.admin.listUsers();
-  const owner = usersError ? null : usersPage.users.find((u) => u.email === OWNER_EMAIL);
-  if (!owner) {
+  const ownerId = await getPranzoOwnerId(admin);
+  if (!ownerId) {
     return NextResponse.json({ error: "Loja não encontrada." }, { status: 500 });
   }
-  const ownerId = owner.id;
 
   // Preço sempre buscado no banco, nunca confiado no que o cliente mandou.
   const productIds = itemsRaw.map((i) => i.productId).filter(Boolean) as string[];
   const { data: produtos } = await admin
     .from("del_products")
-    .select("id, nome, preco")
+    .select("id, nome, preco, visivel_site, dias_site")
     .eq("owner_id", ownerId)
     .eq("ativo", true)
+    .eq("visivel_site", true)
     .in("id", productIds);
 
-  const produtoPorId = new Map((produtos ?? []).map((p) => [p.id, p]));
+  const hoje = new Date().getDay();
+  const disponiveisHoje = (produtos ?? []).filter(
+    (p) => !p.dias_site || p.dias_site.length === 0 || p.dias_site.includes(hoje),
+  );
+  const produtoPorId = new Map(disponiveisHoje.map((p) => [p.id, p]));
   const items = itemsRaw
     .filter((i) => i.productId && produtoPorId.has(i.productId) && Number(i.quantidade) > 0)
     .map((i) => {

@@ -5,12 +5,18 @@ import styles from "./pranzo.module.css";
 import { CartProvider } from "@/components/pranzo/CartProvider";
 import { AddToCartButton } from "@/components/pranzo/AddToCartButton";
 import { CartBar } from "@/components/pranzo/CartBar";
+import { getSupabaseAdmin } from "@/lib/supabase";
+import { getPranzoOwnerId } from "@/lib/pranzo";
 
 export const metadata: Metadata = {
   title: "Pranzo — comida de verdade, pronta para você",
   description:
     "Marmitas artesanais com sabor de comida feita em casa. Veja o cardápio e faça seu pedido.",
 };
+
+// A disponibilidade depende do dia da semana e de toggles do admin —
+// não pode ser congelada numa página estática gerada no build.
+export const dynamic = "force-dynamic";
 
 const pratos = [
   {
@@ -106,8 +112,54 @@ const sobremesas = [
   },
 ];
 
+const bebidas = [
+  { productId: "220adf8c-9ed3-46a4-8b72-4dd99b021873", nome: "Água Mineral (Sem Gás)", preco: 4.0 },
+  { productId: "7fb55954-3d8c-4061-8c95-8d9dfe8af0ac", nome: "Coca-Cola (Lata)", preco: 7.0 },
+  { productId: "e6938c88-308f-47b2-834c-ca1f5d690185", nome: "Guaraná Antarctica (Lata)", preco: 6.5 },
+  { productId: "23cbaae1-109f-444a-bd2f-eeb660dac5fe", nome: "Guaraná Mineiro (Lata)", preco: 6.0 },
+  { productId: "4e179b13-87dd-41c7-90fb-013e38700acb", nome: "H2OH! Limão (500ml)", preco: 7.5 },
+  { productId: "09531674-9926-4847-a720-6dcae6ad9399", nome: "Suco Prats Laranja (330ml)", preco: 9.0 },
+];
+
 function formatReal(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+}
+
+type Disponibilidade = { preco: number; ativo: boolean; visivelSite: boolean; diasSite: number[] | null };
+
+async function buscarDisponibilidade(): Promise<Map<string, Disponibilidade> | null> {
+  const admin = getSupabaseAdmin();
+  const ownerId = await getPranzoOwnerId(admin);
+  if (!ownerId) return null;
+
+  const todosIds = [...pratos, ...sobremesas, ...bebidas].map((item) => item.productId);
+  const { data: produtosDb } = await admin
+    .from("del_products")
+    .select("id, preco, ativo, visivel_site, dias_site")
+    .eq("owner_id", ownerId)
+    .in("id", todosIds);
+
+  return new Map(
+    (produtosDb ?? []).map((p) => [
+      p.id,
+      { preco: Number(p.preco), ativo: p.ativo, visivelSite: p.visivel_site !== false, diasSite: p.dias_site },
+    ]),
+  );
+}
+
+function disponivelHoje(disponibilidade: Map<string, Disponibilidade> | null, productId: string): boolean {
+  if (!disponibilidade) return true;
+  const p = disponibilidade.get(productId);
+  if (!p || !p.ativo || !p.visivelSite) return false;
+  if (p.diasSite && p.diasSite.length > 0) {
+    const hoje = new Date().getDay();
+    if (!p.diasSite.includes(hoje)) return false;
+  }
+  return true;
+}
+
+function precoAtual(disponibilidade: Map<string, Disponibilidade> | null, item: { productId: string; preco: number }): number {
+  return disponibilidade?.get(item.productId)?.preco ?? item.preco;
 }
 
 const whatsappNumber = (process.env.NEXT_PUBLIC_RESTAURANTE_WHATSAPP ?? "").replace(/\D/g, "");
@@ -138,7 +190,12 @@ function LeafMark() {
   );
 }
 
-export default function PranzoPage() {
+export default async function PranzoPage() {
+  const disponibilidade = await buscarDisponibilidade();
+  const pratosDisponiveis = pratos.filter((p) => disponivelHoje(disponibilidade, p.productId));
+  const sobremesasDisponiveis = sobremesas.filter((s) => disponivelHoje(disponibilidade, s.productId));
+  const bebidasDisponiveis = bebidas.filter((b) => disponivelHoje(disponibilidade, b.productId));
+
   return (
     <CartProvider>
     <main className={styles.page}>
@@ -218,7 +275,7 @@ export default function PranzoPage() {
         </div>
 
         <div className={styles.menuGrid}>
-          {pratos.map((prato, index) => (
+          {pratosDisponiveis.map((prato, index) => (
             <article className={styles.foodCard} key={prato.nome}>
               <div className={styles.foodImageWrap}>
                 <Image src={prato.imagem} alt={prato.nome} fill sizes="(max-width: 700px) 92vw, (max-width: 1100px) 45vw, 30vw" className={styles.foodImage} />
@@ -228,13 +285,16 @@ export default function PranzoPage() {
                 <span className={styles.foodBadge}>{prato.destaque}</span>
                 <h3>{prato.nome}</h3>
                 <p>{prato.descricao}</p>
-                <p className={styles.foodPrice}>{formatReal(prato.preco)}</p>
-                <AddToCartButton productId={prato.productId} nome={prato.nome} preco={prato.preco} className={styles.foodCardCta}>
+                <p className={styles.foodPrice}>{formatReal(precoAtual(disponibilidade, prato))}</p>
+                <AddToCartButton productId={prato.productId} nome={prato.nome} preco={precoAtual(disponibilidade, prato)} className={styles.foodCardCta}>
                   Adicionar à sacola <ArrowIcon />
                 </AddToCartButton>
               </div>
             </article>
           ))}
+          {pratosDisponiveis.length === 0 && (
+            <p className={styles.menuEmpty}>Nenhum prato disponível hoje — volte mais tarde ou confira nossas bebidas e sobremesas.</p>
+          )}
         </div>
 
         <div className={styles.dessertHeading}>
@@ -244,7 +304,7 @@ export default function PranzoPage() {
         </div>
 
         <div className={styles.dessertGrid}>
-          {sobremesas.map((sobremesa, index) => (
+          {sobremesasDisponiveis.map((sobremesa, index) => (
             <article className={`${styles.foodCard} ${styles.dessertCard}`} key={sobremesa.nome}>
               <div className={styles.foodImageWrap}>
                 <Image src={sobremesa.imagem} alt={sobremesa.nome} fill sizes="(max-width: 700px) 92vw, 45vw" className={styles.foodImage} />
@@ -254,14 +314,36 @@ export default function PranzoPage() {
                 <span className={styles.foodBadge}>{sobremesa.destaque}</span>
                 <h3>{sobremesa.nome}</h3>
                 <p>{sobremesa.descricao}</p>
-                <p className={styles.foodPrice}>{formatReal(sobremesa.preco)}</p>
-                <AddToCartButton productId={sobremesa.productId} nome={sobremesa.nome} preco={sobremesa.preco} className={styles.foodCardCta}>
+                <p className={styles.foodPrice}>{formatReal(precoAtual(disponibilidade, sobremesa))}</p>
+                <AddToCartButton productId={sobremesa.productId} nome={sobremesa.nome} preco={precoAtual(disponibilidade, sobremesa)} className={styles.foodCardCta}>
                   Adicionar à sacola <ArrowIcon />
                 </AddToCartButton>
               </div>
             </article>
           ))}
         </div>
+
+        {bebidasDisponiveis.length > 0 && (
+          <>
+            <div className={styles.dessertHeading}>
+              <p className={styles.eyebrow}><span /> Da bere</p>
+              <h2>Bebidas.</h2>
+              <p>Para acompanhar o seu pranzo.</p>
+            </div>
+
+            <div className={styles.drinkGrid}>
+              {bebidasDisponiveis.map((bebida) => (
+                <div className={styles.drinkCard} key={bebida.nome}>
+                  <span className={styles.drinkName}>{bebida.nome}</span>
+                  <span className={styles.drinkPrice}>{formatReal(precoAtual(disponibilidade, bebida))}</span>
+                  <AddToCartButton productId={bebida.productId} nome={bebida.nome} preco={precoAtual(disponibilidade, bebida)} className={styles.drinkCta}>
+                    Adicionar <ArrowIcon />
+                  </AddToCartButton>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
 
         <div className={styles.menuCta}>
           <p>Quer saber quais pratos estão saindo hoje?</p>

@@ -80,6 +80,7 @@ export async function updateProduct(id: string, formData: FormData) {
   const maxAcompanhamentos = formData.get("max_acompanhamentos")
     ? Number(formData.get("max_acompanhamentos"))
     : null;
+  const diasSite = formData.getAll("dias_site").map((v) => Number(v));
 
   const { error } = await supabase
     .from("del_products")
@@ -89,6 +90,7 @@ export async function updateProduct(id: string, formData: FormData) {
       descrizione: String(formData.get("descrizione") ?? "") || null,
       categoria,
       max_acompanhamentos: categoria === "tamanho" ? maxAcompanhamentos : null,
+      dias_site: diasSite.length > 0 ? diasSite : null,
     })
     .eq("id", id);
   if (error) throw new Error(`Não foi possível atualizar o item: ${error.message}`);
@@ -96,12 +98,20 @@ export async function updateProduct(id: string, formData: FormData) {
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/custos");
   revalidatePath("/restaurante/cardapio");
+  revalidatePath("/pranzo");
 }
 
 export async function toggleProductAtivo(id: string, ativo: boolean) {
   const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_products").update({ ativo: !ativo }).eq("id", id);
   revalidatePath("/restaurante/vendas");
+}
+
+export async function toggleProductVisivelSite(id: string, visivelSite: boolean) {
+  const { supabase } = await requireRestaurantSubscription();
+  await supabase.from("del_products").update({ visivel_site: !visivelSite }).eq("id", id);
+  revalidatePath("/restaurante/vendas");
+  revalidatePath("/pranzo");
 }
 
 export async function deleteProduct(id: string) {

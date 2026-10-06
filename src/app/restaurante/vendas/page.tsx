@@ -1,5 +1,13 @@
 import { requireRestaurantSubscription } from "@/lib/subscription";
-import { addProduct, updateProduct, toggleProductAtivo, deleteProduct, updateOrderStatus, deleteOrder } from "@/app/restaurante/actions";
+import {
+  addProduct,
+  updateProduct,
+  toggleProductAtivo,
+  toggleProductVisivelSite,
+  deleteProduct,
+  updateOrderStatus,
+  deleteOrder,
+} from "@/app/restaurante/actions";
 import { NewOrderForm } from "@/components/delivery/NewOrderForm";
 
 function formatReal(value: number) {
@@ -7,6 +15,7 @@ function formatReal(value: number) {
 }
 
 const STATUSES = ["novo", "em preparo", "pronto", "entregue", "cancelado"];
+const DIAS_SEMANA_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 export default async function VendasPage() {
   const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
@@ -86,6 +95,13 @@ export default async function VendasPage() {
                       <span className={p.ativo ? "text-stone-900" : "text-stone-400 line-through"}>
                         {p.nome} — {formatReal(Number(p.preco))}
                         {p.descrizione && <span className="block text-xs text-stone-500">{p.descrizione}</span>}
+                        <span className="block text-xs text-stone-400">
+                          {p.visivel_site === false
+                            ? "Oculto no site"
+                            : p.dias_site && p.dias_site.length > 0
+                              ? `No site: ${p.dias_site.map((d: number) => DIAS_SEMANA_CURTO[d]).join(", ")}`
+                              : "No site: todos os dias"}
+                        </span>
                       </span>
                     </div>
                     <div className="flex shrink-0 items-center gap-3">
@@ -118,11 +134,32 @@ export default async function VendasPage() {
                             placeholder="Descrição"
                             className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
                           />
+                          <div>
+                            <p className="text-[11px] text-stone-500">Dias no site (nenhum marcado = todos os dias)</p>
+                            <div className="mt-1 flex flex-wrap gap-2">
+                              {DIAS_SEMANA_CURTO.map((label, dia) => (
+                                <label key={dia} className="flex items-center gap-1 text-xs text-stone-600">
+                                  <input
+                                    type="checkbox"
+                                    name="dias_site"
+                                    value={dia}
+                                    defaultChecked={(p.dias_site ?? []).includes(dia)}
+                                  />
+                                  {label}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
                           <button type="submit" className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-700">
                             Salvar
                           </button>
                         </form>
                       </details>
+                      <form action={toggleProductVisivelSite.bind(null, p.id, p.visivel_site !== false)}>
+                        <button type="submit" className="text-xs text-amber-700 hover:underline">
+                          {p.visivel_site === false ? "Mostrar no site" : "Ocultar do site"}
+                        </button>
+                      </form>
                       <form action={toggleProductAtivo.bind(null, p.id, p.ativo)}>
                         <button type="submit" className="text-xs text-amber-700 hover:underline">
                           {p.ativo ? "Desativar" : "Ativar"}
