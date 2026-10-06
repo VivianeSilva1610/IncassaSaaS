@@ -188,14 +188,15 @@ export function CartBar({ zonasEntrega }: { zonasEntrega: ZonaEntrega[] }) {
                 {itens.length > 0 && (
                   <>
                     <p className="mt-3 text-right text-sm text-stone-500">Itens: {formatReal(total)}</p>
-                    {zonaSelecionada && (
-                      <p className="text-right text-sm text-stone-500">
-                        Entrega: {taxaEntregaAtual === 0 ? "Grátis" : formatReal(taxaEntregaAtual)}
-                      </p>
+                    {zonaSelecionada && taxaEntregaAtual === 0 && (
+                      <p className="text-right text-sm font-semibold text-emerald-700">🎉 Frete grátis</p>
+                    )}
+                    {zonaSelecionada && taxaEntregaAtual > 0 && (
+                      <p className="text-right text-sm text-stone-500">Entrega: {formatReal(taxaEntregaAtual)}</p>
                     )}
                     {faltaParaGratis != null && faltaParaGratis > 0 && (
                       <p className="text-right text-xs text-emerald-700">
-                        Faltam {formatReal(faltaParaGratis)} pra entrega grátis nesse bairro
+                        Faltam {formatReal(faltaParaGratis)} pra ganhar frete grátis nesse bairro
                       </p>
                     )}
                     <p className="text-right text-sm font-bold text-stone-900">Total: {formatReal(totalComEntrega)}</p>
@@ -231,7 +232,7 @@ export function CartBar({ zonasEntrega }: { zonasEntrega: ZonaEntrega[] }) {
                             {z.taxa === 0
                               ? "entrega grátis"
                               : z.pedidoMinimoGratis != null
-                                ? `entrega ${formatReal(z.taxa)} (grátis acima de ${formatReal(z.pedidoMinimoGratis)})`
+                                ? `grátis a partir de ${formatReal(z.pedidoMinimoGratis)}`
                                 : `entrega ${formatReal(z.taxa)}`}
                           </option>
                         ))}
