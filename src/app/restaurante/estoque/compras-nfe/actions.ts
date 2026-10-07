@@ -177,14 +177,17 @@ export async function processarCompra(notaId: string, formData: FormData) {
 
   const gerarConta = formData.get("gerar_conta") === "on";
   const vencimento = String(formData.get("vencimento") ?? "");
-  const { count: quantidadeParcelas } = gerarConta
+  const { data: primeiraParcela } = gerarConta
     ? await supabase
         .from("del_notas_entrada_parcelas")
-        .select("id", { count: "exact", head: true })
+        .select("vencimento")
         .eq("nota_entrada_id", notaId)
         .eq("owner_id", restaurantOwnerId)
-    : { count: 0 };
-  if (gerarConta && !quantidadeParcelas && !/^\d{4}-\d{2}-\d{2}$/.test(vencimento)) {
+        .order("vencimento")
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+  if (gerarConta && !primeiraParcela && !/^\d{4}-\d{2}-\d{2}$/.test(vencimento)) {
     redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("Informe o vencimento da conta a pagar.")}`);
   }
 
@@ -192,7 +195,9 @@ export async function processarCompra(notaId: string, formData: FormData) {
     p_nota_id: notaId,
     p_mapeamentos: mapeamentos,
     p_gerar_conta: gerarConta,
-    p_vencimento: gerarConta && !quantidadeParcelas ? vencimento : null,
+    // A função legada exige um vencimento. Para NF-e parcelada, o gatilho da
+    // migration 0060 substitui a conta única pelas parcelas e datas do XML.
+    p_vencimento: gerarConta ? (primeiraParcela?.vencimento ?? vencimento) : null,
   });
   if (error) redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent(`Não foi possível processar: ${error.message}`)}`);
 
