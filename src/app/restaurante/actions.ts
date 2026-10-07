@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireRestaurantSubscription } from "@/lib/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { registerStockMovement } from "@/lib/delivery/stock";
+import { registerStockMovement, registrarCustoHistorico } from "@/lib/delivery/stock";
 import { createOrderWithItems } from "@/lib/delivery/orders";
 import { verificarRegistroTxt } from "@/lib/domain-verification";
 import {
@@ -57,28 +57,50 @@ async function proximoCodigo(supabase: SupabaseClient, ownerId: string): Promise
   return String(atual + 1).padStart(4, "0");
 }
 
+function ncmOpcional(formData: FormData) {
+  const ncm = String(formData.get("ncm") ?? "").replace(/\D/g, "");
+  if (ncm && !/^\d{8}$/.test(ncm)) throw new Error("O NCM deve conter 8 dígitos.");
+  return ncm || null;
+}
+
 export async function addIngredient(formData: FormData) {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
   const codigo = await proximoCodigo(supabase, restaurantOwnerId);
+  const custoUnitario = formData.get("custo_unitario") ? Number(formData.get("custo_unitario")) : null;
+  const ncm = ncmOpcional(formData);
 
-  const { error } = await supabase.from("del_ingredients").insert({
-    owner_id: restaurantOwnerId,
-    codigo,
-    nome: String(formData.get("nome") ?? ""),
-    unidade: String(formData.get("unidade") ?? "un"),
-    quantidade_atual: Number(formData.get("quantidade_atual") ?? 0),
-    estoque_minimo: formData.get("estoque_minimo") ? Number(formData.get("estoque_minimo")) : null,
-    custo_unitario: formData.get("custo_unitario") ? Number(formData.get("custo_unitario")) : null,
-  });
+  const { data: novoIngrediente, error } = await supabase
+    .from("del_ingredients")
+    .insert({
+      owner_id: restaurantOwnerId,
+      codigo,
+      nome: String(formData.get("nome") ?? ""),
+      unidade: String(formData.get("unidade") ?? "un"),
+      quantidade_atual: Number(formData.get("quantidade_atual") ?? 0),
+      estoque_minimo: formData.get("estoque_minimo") ? Number(formData.get("estoque_minimo")) : null,
+      custo_unitario: custoUnitario,
+      ncm,
+      ncm_origem: ncm ? "manual" : null,
+      ncm_revisado: ncm ? formData.get("ncm_revisado") === "on" : false,
+    })
+    .select("id")
+    .single();
   if (error) throw new Error(`Não foi possível salvar o ingrediente: ${error.message}`);
+
+  if (custoUnitario != null) {
+    await registrarCustoHistorico(supabase, { ownerId: restaurantOwnerId, ingredientId: novoIngrediente.id, custoUnitario });
+  }
 
   revalidatePath("/restaurante/estoque/produtos");
 }
 
 export async function updateIngredient(id: string, formData: FormData) {
-  const { supabase, isGerente } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription();
   if (!isGerente) throw new Error("Apenas o dono ou um gerente pode editar o estoque.");
+
+  const custoUnitario = formData.get("custo_unitario") ? Number(formData.get("custo_unitario")) : null;
+  const ncm = ncmOpcional(formData);
 
   const { error } = await supabase
     .from("del_ingredients")
@@ -86,10 +108,17 @@ export async function updateIngredient(id: string, formData: FormData) {
       nome: String(formData.get("nome") ?? ""),
       unidade: String(formData.get("unidade") ?? "un"),
       estoque_minimo: formData.get("estoque_minimo") ? Number(formData.get("estoque_minimo")) : null,
-      custo_unitario: formData.get("custo_unitario") ? Number(formData.get("custo_unitario")) : null,
+      custo_unitario: custoUnitario,
+      ncm,
+      ncm_origem: ncm ? "manual" : null,
+      ncm_revisado: ncm ? formData.get("ncm_revisado") === "on" : false,
     })
     .eq("id", id);
   if (error) throw new Error(`Não foi possível atualizar o ingrediente: ${error.message}`);
+
+  if (custoUnitario != null) {
+    await registrarCustoHistorico(supabase, { ownerId: restaurantOwnerId, ingredientId: id, custoUnitario });
+  }
 
   revalidatePath("/restaurante/estoque/produtos");
 }
@@ -126,6 +155,7 @@ export async function registrarCompraFornecedor(formData: FormData) {
     });
     if (custoUnitario != null) {
       await supabase.from("del_ingredients").update({ custo_unitario: custoUnitario }).eq("id", ingredientId);
+      await registrarCustoHistorico(supabase, { ownerId: restaurantOwnerId, ingredientId, custoUnitario });
     }
   } else {
     const nome = String(formData.get("nome") ?? "").trim();
@@ -133,15 +163,23 @@ export async function registrarCompraFornecedor(formData: FormData) {
     const unidade = String(formData.get("unidade") ?? "un");
     const codigo = await proximoCodigo(supabase, restaurantOwnerId);
 
-    const { error } = await supabase.from("del_ingredients").insert({
-      owner_id: restaurantOwnerId,
-      codigo,
-      nome,
-      unidade,
-      quantidade_atual: quantidade,
-      custo_unitario: custoUnitario,
-    });
+    const { data: novoIngrediente, error } = await supabase
+      .from("del_ingredients")
+      .insert({
+        owner_id: restaurantOwnerId,
+        codigo,
+        nome,
+        unidade,
+        quantidade_atual: quantidade,
+        custo_unitario: custoUnitario,
+      })
+      .select("id")
+      .single();
     if (error) throw new Error(`Não foi possível cadastrar o produto: ${error.message}`);
+
+    if (custoUnitario != null) {
+      await registrarCustoHistorico(supabase, { ownerId: restaurantOwnerId, ingredientId: novoIngrediente.id, custoUnitario });
+    }
   }
 
   revalidatePath("/restaurante/estoque/compras");

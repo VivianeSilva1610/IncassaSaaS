@@ -27,8 +27,10 @@ export default async function EstoqueRelatorioPage() {
       </div>
 
       <p className="mt-4 text-xs text-stone-500">
-        Não é um snapshot salvo — é calculado na hora a partir do histórico de movimentos. O custo unitário usado
-        pra calcular o valor em estoque é o atual; não guardamos o custo histórico de cada período.
+        Não é um snapshot salvo — é calculado na hora a partir do histórico de movimentos. O custo usado em cada
+        período é o que estava vigente naquela data (registrado toda vez que você edita o custo de um produto).
+        Para períodos anteriores ao início desse rastreamento, o custo aparece como &quot;desconhecido&quot;, em
+        vez de usar o custo de hoje.
       </p>
     </div>
   );

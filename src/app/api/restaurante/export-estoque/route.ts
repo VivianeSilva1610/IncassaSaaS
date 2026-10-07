@@ -12,7 +12,7 @@ function decimalCsv(value: number | null) {
   return value == null ? "" : value.toFixed(2).replace(".", ",");
 }
 
-const COLUNAS = ["Período", "Código", "Nome", "Unidade", "Quantidade final", "Entradas no período", "Saídas no período", "Ajustes no período", "Custo unitário atual (R$)", "Valor em estoque (custo atual, R$)"];
+const COLUNAS = ["Período", "Código", "Nome", "NCM", "Unidade", "Quantidade final", "Entradas no período", "Saídas no período", "Ajustes no período", "Custo unitário no período (R$)", "Valor em estoque no período (R$)"];
 
 function mesAtualSP(): string {
   const partes = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).formatToParts(new Date());
@@ -44,7 +44,7 @@ export async function GET(req: Request) {
 
   const { data: ingredientes, error: ingredientesError } = await supabase
     .from("del_ingredients")
-    .select("id, codigo, nome, unidade, quantidade_atual, custo_unitario")
+    .select("id, codigo, nome, ncm, unidade, quantidade_atual")
     .eq("owner_id", restaurantOwnerId)
     .order("nome");
   if (ingredientesError) return NextResponse.json({ error: `Falha ao consultar o estoque: ${ingredientesError.message}` }, { status: 500 });
@@ -59,7 +59,16 @@ export async function GET(req: Request) {
     .gt("created_at", new Date(boundaryMaisAntigo).toISOString());
   if (movimentosError) return NextResponse.json({ error: `Falha ao consultar movimentos: ${movimentosError.message}` }, { status: 500 });
 
-  const linhas = calcularFechamentosEstoque(ingredientes ?? [], movimentos ?? [], periodos);
+  // Todo o histórico de custo (não dá pra filtrar por data aqui: pra saber o
+  // custo vigente no período mais antigo pode ser preciso olhar uma entrada
+  // registrada bem antes dele).
+  const { data: custosHistoricos, error: custosError } = await supabase
+    .from("del_ingredient_custos")
+    .select("ingredient_id, custo_unitario, vigente_desde")
+    .eq("owner_id", restaurantOwnerId);
+  if (custosError) return NextResponse.json({ error: `Falha ao consultar histórico de custos: ${custosError.message}` }, { status: 500 });
+
+  const linhas = calcularFechamentosEstoque(ingredientes ?? [], movimentos ?? [], custosHistoricos ?? [], periodos);
   const nomeArquivo = `estoque-${periodoTipo}-${periodos[0].label.replace("/", "-")}-a-${periodos[periodos.length - 1].label.replace("/", "-")}`;
 
   if (formato === "excel") {
@@ -68,13 +77,14 @@ export async function GET(req: Request) {
         Período: l.periodo,
         Código: l.codigo,
         Nome: l.nome,
+        NCM: l.ncm ?? "",
         Unidade: l.unidade,
         "Quantidade final": l.quantidadeFinal,
         "Entradas no período": l.entradas,
         "Saídas no período": l.saidas,
         "Ajustes no período": l.ajustes,
-        "Custo unitário atual": l.custoUnitarioAtual ?? "",
-        "Valor em estoque (custo atual)": l.valorEmEstoqueAtual ?? "",
+        "Custo unitário no período": l.custoUnitarioNoPeriodo ?? "desconhecido",
+        "Valor em estoque no período": l.valorEmEstoqueNoPeriodo ?? "",
       })),
     );
     const livro = XLSX.utils.book_new();
@@ -89,7 +99,19 @@ export async function GET(req: Request) {
   }
 
   const corpo = linhas.map((l) =>
-    [l.periodo, l.codigo, l.nome, l.unidade, decimalCsv(l.quantidadeFinal), decimalCsv(l.entradas), decimalCsv(l.saidas), decimalCsv(l.ajustes), decimalCsv(l.custoUnitarioAtual), decimalCsv(l.valorEmEstoqueAtual)]
+    [
+      l.periodo,
+      l.codigo,
+      l.nome,
+      l.ncm ?? "",
+      l.unidade,
+      decimalCsv(l.quantidadeFinal),
+      decimalCsv(l.entradas),
+      decimalCsv(l.saidas),
+      decimalCsv(l.ajustes),
+      l.custoUnitarioNoPeriodo != null ? decimalCsv(l.custoUnitarioNoPeriodo) : "desconhecido",
+      decimalCsv(l.valorEmEstoqueNoPeriodo),
+    ]
       .map(csvEscape)
       .join(";"),
   );

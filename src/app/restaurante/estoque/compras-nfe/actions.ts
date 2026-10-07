@@ -222,8 +222,26 @@ export async function criarItemEstoqueNaCompra(notaId: string, formData: FormDat
     redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("Esta compra não permite novos cadastros de estoque.")}`);
   }
 
-  const nome = String(formData.get("nome") ?? "").trim();
+  const notaItemId = String(formData.get("nota_item_id") ?? "");
+  const { data: notaItem } = notaItemId
+    ? await supabase
+        .from("del_notas_entrada_itens")
+        .select("id, descricao, ncm")
+        .eq("id", notaItemId)
+        .eq("nota_entrada_id", notaId)
+        .eq("owner_id", restaurantOwnerId)
+        .maybeSingle()
+    : { data: null };
+
+  const nomeInformado = String(formData.get("nome") ?? "").trim();
+  const nome = nomeInformado || String(notaItem?.descricao ?? "").trim();
   const unidade = String(formData.get("unidade") ?? "").trim().toLowerCase();
+  const ncmInformado = String(formData.get("ncm") ?? "").replace(/\D/g, "");
+  const ncmXml = String(notaItem?.ncm ?? "").replace(/\D/g, "");
+  const ncm = ncmInformado || ncmXml || null;
+  if (ncm && !/^\d{8}$/.test(ncm)) {
+    redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("O NCM deve conter 8 dígitos.")}`);
+  }
   const estoqueMinimoRaw = String(formData.get("estoque_minimo") ?? "").trim();
   const estoqueMinimo = estoqueMinimoRaw ? Number(estoqueMinimoRaw) : null;
   const unidadesPermitidas = new Set(["kg", "g", "l", "ml", "un", "cx", "pct"]);
@@ -262,6 +280,9 @@ export async function criarItemEstoqueNaCompra(notaId: string, formData: FormDat
     quantidade_atual: 0,
     estoque_minimo: estoqueMinimo,
     custo_unitario: null,
+    ncm,
+    ncm_origem: ncm ? (ncmInformado ? "manual" : "xml") : null,
+    ncm_revisado: ncm ? formData.get("ncm_revisado") === "on" : false,
   });
   if (error) redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent(`Não foi possível cadastrar o item: ${error.message}`)}`);
 

@@ -69,9 +69,15 @@ export default async function CompraDetalhePage({ params, searchParams }: { para
           <summary className="cursor-pointer text-sm font-medium text-amber-700">Cadastrar item que ainda não existe no estoque</summary>
           <form action={criarItemEstoqueNaCompra.bind(null, nota.id)} className="mt-4 grid gap-3 sm:grid-cols-4">
             <label className="text-xs text-stone-500 sm:col-span-2">
-              Nome interno
-              <input name="nome" list="produtos-da-nota" required minLength={2} maxLength={120} placeholder="Ex.: Tomate" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-900" />
-              <datalist id="produtos-da-nota">{(itens ?? []).map((item) => <option key={item.id} value={item.descricao} />)}</datalist>
+              Usar dados do item da NF-e
+              <select name="nota_item_id" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-900">
+                <option value="">Nenhum — cadastro manual</option>
+                {(itens ?? []).map((item) => <option key={item.id} value={item.id}>{item.descricao}{item.ncm ? ` · NCM ${item.ncm}` : ""}</option>)}
+              </select>
+            </label>
+            <label className="text-xs text-stone-500 sm:col-span-2">
+              Nome interno (opcional ao selecionar item da nota)
+              <input name="nome" minLength={2} maxLength={120} placeholder="Ex.: Tomate" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-900" />
             </label>
             <label className="text-xs text-stone-500">
               Unidade de controle
@@ -83,6 +89,11 @@ export default async function CompraDetalhePage({ params, searchParams }: { para
               Estoque mínimo
               <input name="estoque_minimo" type="number" min="0" step="0.001" placeholder="Opcional" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-900" />
             </label>
+            <label className="text-xs text-stone-500">
+              NCM manual
+              <input name="ncm" inputMode="numeric" maxLength={8} placeholder="Opcional; substitui o NCM do XML" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-900" />
+            </label>
+            <label className="flex items-end gap-2 pb-2 text-sm text-stone-600"><input name="ncm_revisado" type="checkbox" /> NCM conferido</label>
             <div className="sm:col-span-4"><button className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700">Cadastrar com saldo zero</button></div>
           </form>
           <p className="mt-3 text-xs text-stone-500">O custo e a quantidade serão definidos somente quando a compra for confirmada.</p>

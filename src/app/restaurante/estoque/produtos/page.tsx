@@ -10,12 +10,16 @@ export default async function EstoqueProdutosPage({
   const { supabase, isGerente } = await requireRestaurantSubscription();
   const { busca } = await searchParams;
   const termo = (busca ?? "").trim();
+  const termoSeguro = termo.replace(/[,%()]/g, " ").trim();
+  const termoNcm = termo.replace(/\D/g, "");
+  const filtros = [`nome.ilike.%${termoSeguro}%`, `codigo.ilike.%${termoSeguro}%`];
+  if (termoNcm) filtros.push(`ncm.ilike.%${termoNcm}%`);
 
   const { data: ingredientesFiltrados } = termo
     ? await supabase
         .from("del_ingredients")
         .select("*")
-        .or(`nome.ilike.%${termo}%,codigo.ilike.%${termo}%`)
+        .or(filtros.join(","))
         .order("nome")
     : await supabase.from("del_ingredients").select("*").order("nome");
 
@@ -61,6 +65,8 @@ export default async function EstoqueProdutosPage({
           placeholder="Custo por unidade R$ (opcional)"
           className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2"
         />
+        <input name="ncm" inputMode="numeric" maxLength={8} placeholder="NCM com 8 dígitos (opcional)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        <label className="flex items-center gap-2 text-sm text-stone-600"><input name="ncm_revisado" type="checkbox" /> NCM conferido</label>
         <button
           type="submit"
           className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-transform hover:bg-stone-700 active:scale-[0.98] sm:col-span-2"
@@ -73,7 +79,7 @@ export default async function EstoqueProdutosPage({
         <input
           name="busca"
           defaultValue={termo}
-          placeholder="Buscar por nome ou código…"
+          placeholder="Buscar por nome, código ou NCM…"
           className="min-w-56 flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm"
         />
         <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white">
@@ -102,6 +108,7 @@ export default async function EstoqueProdutosPage({
                     {i.estoque_minimo != null && ` · mínimo ${Number(i.estoque_minimo)} ${i.unidade}`}
                     {i.custo_unitario != null && ` · R$${Number(i.custo_unitario).toFixed(2)}/${i.unidade}`}
                   </p>
+                  {i.ncm && <p className="mt-1 text-xs text-stone-500">NCM {i.ncm} · origem {i.ncm_origem === "xml" ? "XML" : "manual"}{!i.ncm_revisado && " · revisar"}</p>}
                 </div>
                 {isGerente && (
                   <div className="flex shrink-0 items-center gap-3">
@@ -135,6 +142,8 @@ export default async function EstoqueProdutosPage({
                           placeholder="Custo por unidade (R$)"
                           className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
                         />
+                        <input name="ncm" inputMode="numeric" maxLength={8} defaultValue={i.ncm ?? ""} placeholder="NCM (opcional)" className="rounded-md border border-stone-300 px-2 py-1.5 text-sm" />
+                        <label className="flex items-center gap-2 text-xs text-stone-600"><input name="ncm_revisado" type="checkbox" defaultChecked={Boolean(i.ncm_revisado)} /> NCM conferido</label>
                         <button type="submit" className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-700">
                           Salvar
                         </button>

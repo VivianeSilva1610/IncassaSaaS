@@ -1,7 +1,8 @@
 export type Periodo = { label: string; boundaryMs: number };
 
 type Movimento = { ingredient_id: string; tipo: "entrada" | "saida" | "ajuste"; quantidade: number | string; created_at: string };
-type Ingrediente = { id: string; codigo: string; nome: string; unidade: string; quantidade_atual: number | string; custo_unitario: number | string | null };
+type Ingrediente = { id: string; codigo: string; nome: string; ncm?: string | null; unidade: string; quantidade_atual: number | string };
+type CustoHistorico = { ingredient_id: string; custo_unitario: number | string; vigente_desde: string };
 
 // Mesma convenção de fuso usada no resto do projeto (offset fixo -03:00 —
 // não há import de timezone IANA nas dependências atuais).
@@ -48,24 +49,37 @@ export type LinhaFechamentoEstoque = {
   periodo: string;
   codigo: string;
   nome: string;
+  ncm: string | null;
   unidade: string;
   quantidadeFinal: number;
   entradas: number;
   saidas: number;
   ajustes: number;
-  custoUnitarioAtual: number | null;
-  valorEmEstoqueAtual: number | null;
+  custoUnitarioNoPeriodo: number | null;
+  valorEmEstoqueNoPeriodo: number | null;
 };
+
+/** Custo vigente numa data: a entrada de histórico mais recente com vigente_desde <= boundary. null se não houver nenhuma (período anterior ao início do histórico de custos). */
+function custoVigenteEm(historicoDesc: CustoHistorico[], boundaryMs: number): number | null {
+  for (const h of historicoDesc) {
+    if (new Date(h.vigente_desde).getTime() <= boundaryMs) return Number(h.custo_unitario);
+  }
+  return null;
+}
 
 /**
  * Reconstrói a quantidade final de cada ingrediente ao fim de cada período,
  * "desfazendo" os movimentos mais recentes a partir do saldo atual até
  * alcançar o corte de cada período (não há snapshot histórico salvo —
- * reconstruído a partir de del_stock_movements).
+ * reconstruído a partir de del_stock_movements). O custo usado é o
+ * vigente naquela data (del_ingredient_custos), não o custo atual — se
+ * não houver histórico de custo antes do período, o custo fica
+ * desconhecido (null), honestamente, em vez de usar o custo de hoje.
  */
 export function calcularFechamentosEstoque(
   ingredientes: Ingrediente[],
   movimentos: Movimento[],
+  custosHistoricos: CustoHistorico[],
   periodosAsc: Periodo[],
 ): LinhaFechamentoEstoque[] {
   const movsPorIngrediente = new Map<string, Movimento[]>();
@@ -75,12 +89,23 @@ export function calcularFechamentosEstoque(
     movsPorIngrediente.set(m.ingredient_id, lista);
   }
 
+  const custosPorIngrediente = new Map<string, CustoHistorico[]>();
+  for (const c of custosHistoricos) {
+    const lista = custosPorIngrediente.get(c.ingredient_id) ?? [];
+    lista.push(c);
+    custosPorIngrediente.set(c.ingredient_id, lista);
+  }
+  for (const lista of custosPorIngrediente.values()) {
+    lista.sort((a, b) => new Date(b.vigente_desde).getTime() - new Date(a.vigente_desde).getTime());
+  }
+
   const linhas: LinhaFechamentoEstoque[] = [];
 
   for (const ing of ingredientes) {
     const movs = (movsPorIngrediente.get(ing.id) ?? [])
       .slice()
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const historicoCusto = custosPorIngrediente.get(ing.id) ?? [];
 
     let saldo = Number(ing.quantidade_atual);
     const saldoPorBoundary = new Map<number, number>();
@@ -95,8 +120,6 @@ export function calcularFechamentosEstoque(
       }
       saldoPorBoundary.set(periodo.boundaryMs, saldo);
     }
-
-    const custo = ing.custo_unitario != null ? Number(ing.custo_unitario) : null;
 
     for (let i = 0; i < periodosAsc.length; i++) {
       const periodo = periodosAsc[i];
@@ -115,17 +138,19 @@ export function calcularFechamentosEstoque(
       }
 
       const quantidadeFinal = saldoPorBoundary.get(periodo.boundaryMs)!;
+      const custoNoPeriodo = custoVigenteEm(historicoCusto, periodo.boundaryMs);
       linhas.push({
         periodo: periodo.label,
         codigo: ing.codigo,
         nome: ing.nome,
+        ncm: ing.ncm ?? null,
         unidade: ing.unidade,
         quantidadeFinal,
         entradas,
         saidas,
         ajustes,
-        custoUnitarioAtual: custo,
-        valorEmEstoqueAtual: custo != null ? quantidadeFinal * custo : null,
+        custoUnitarioNoPeriodo: custoNoPeriodo,
+        valorEmEstoqueNoPeriodo: custoNoPeriodo != null ? quantidadeFinal * custoNoPeriodo : null,
       });
     }
   }

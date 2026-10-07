@@ -2,6 +2,22 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 type MovementType = "entrada" | "saida" | "ajuste";
 
+// Registra que esse custo passou a valer a partir de agora — usado pro
+// relatório de inventário por período poder saber o custo vigente em
+// qualquer data passada, não só o custo atual. Chamado sempre que o custo
+// unitário de um ingrediente é informado (cadastro, edição ou compra).
+export async function registrarCustoHistorico(
+  supabase: SupabaseClient,
+  params: { ownerId: string; ingredientId: string; custoUnitario: number },
+) {
+  const { error } = await supabase.from("del_ingredient_custos").insert({
+    owner_id: params.ownerId,
+    ingredient_id: params.ingredientId,
+    custo_unitario: params.custoUnitario,
+  });
+  if (error) throw error;
+}
+
 export async function registerStockMovement(
   supabase: SupabaseClient,
   params: {
