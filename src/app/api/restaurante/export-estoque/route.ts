@@ -1,63 +1,68 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { requireRestaurantSubscription } from "@/lib/subscription";
+import { gerarPeriodos, calcularFechamentosEstoque, type TipoPeriodo } from "@/lib/delivery/estoque-historico";
 
 function csvEscape(value: unknown) {
   const texto = String(value ?? "");
   return /[",\n;]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto;
 }
 
-function decimalCsv(value: number) {
-  return value.toFixed(2).replace(".", ",");
+function decimalCsv(value: number | null) {
+  return value == null ? "" : value.toFixed(2).replace(".", ",");
 }
 
-const COLUNAS = ["Código", "Nome", "Unidade", "Quantidade atual", "Estoque mínimo", "Custo unitário (R$)", "Valor em estoque (R$)", "Situação"];
+const COLUNAS = ["Período", "Código", "Nome", "Unidade", "Quantidade final", "Entradas no período", "Saídas no período", "Ajustes no período", "Custo unitário atual (R$)", "Valor em estoque (custo atual, R$)"];
 
 export async function GET(req: Request) {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
-  const { data: ingredientes, error } = await supabase
+  const url = new URL(req.url);
+  const tipoPeriodo: TipoPeriodo = url.searchParams.get("periodo") === "anual" ? "anual" : "mensal";
+  const quantidadeParam = Number(url.searchParams.get("qtd") ?? (tipoPeriodo === "anual" ? 5 : 12));
+  const quantidade = Math.min(Math.max(Math.trunc(quantidadeParam) || 1, 1), tipoPeriodo === "anual" ? 20 : 60);
+  const formato = url.searchParams.get("formato") === "excel" ? "excel" : "csv";
+
+  const periodos = gerarPeriodos(tipoPeriodo, quantidade);
+  const boundaryMaisAntigo = periodos[0].boundaryMs;
+
+  const { data: ingredientes, error: ingredientesError } = await supabase
     .from("del_ingredients")
-    .select("codigo, nome, unidade, quantidade_atual, estoque_minimo, custo_unitario")
+    .select("id, codigo, nome, unidade, quantidade_atual, custo_unitario")
     .eq("owner_id", restaurantOwnerId)
     .order("nome");
-  if (error) return NextResponse.json({ error: `Falha ao consultar o estoque: ${error.message}` }, { status: 500 });
+  if (ingredientesError) return NextResponse.json({ error: `Falha ao consultar o estoque: ${ingredientesError.message}` }, { status: 500 });
 
-  const linhas = (ingredientes ?? []).map((i) => {
-    const quantidade = Number(i.quantidade_atual);
-    const custo = i.custo_unitario != null ? Number(i.custo_unitario) : null;
-    const emFalta = i.estoque_minimo != null && quantidade <= Number(i.estoque_minimo);
-    return {
-      codigo: i.codigo,
-      nome: i.nome,
-      unidade: i.unidade,
-      quantidade,
-      estoqueMinimo: i.estoque_minimo != null ? Number(i.estoque_minimo) : null,
-      custo,
-      valorEmEstoque: custo != null ? quantidade * custo : null,
-      situacao: emFalta ? "Em falta" : "OK",
-    };
-  });
+  // Só precisa dos movimentos depois do corte do período mais antigo pedido —
+  // são eles que são "desfeitos" a partir do saldo atual pra reconstruir cada
+  // fechamento. Movimentos anteriores a esse corte não entram em nenhuma soma.
+  const { data: movimentos, error: movimentosError } = await supabase
+    .from("del_stock_movements")
+    .select("ingredient_id, tipo, quantidade, created_at")
+    .eq("owner_id", restaurantOwnerId)
+    .gt("created_at", new Date(boundaryMaisAntigo).toISOString());
+  if (movimentosError) return NextResponse.json({ error: `Falha ao consultar movimentos: ${movimentosError.message}` }, { status: 500 });
 
-  const formato = new URL(req.url).searchParams.get("formato") === "excel" ? "excel" : "csv";
-  const nomeArquivo = `estoque-${new Date().toISOString().slice(0, 10)}`;
+  const linhas = calcularFechamentosEstoque(ingredientes ?? [], movimentos ?? [], periodos);
+  const nomeArquivo = `estoque-${tipoPeriodo}-${periodos[0].label.replace("/", "-")}-a-${periodos[periodos.length - 1].label.replace("/", "-")}`;
 
   if (formato === "excel") {
     const planilha = XLSX.utils.json_to_sheet(
       linhas.map((l) => ({
+        Período: l.periodo,
         Código: l.codigo,
         Nome: l.nome,
         Unidade: l.unidade,
-        "Quantidade atual": l.quantidade,
-        "Estoque mínimo": l.estoqueMinimo ?? "",
-        "Custo unitário (R$)": l.custo ?? "",
-        "Valor em estoque (R$)": l.valorEmEstoque ?? "",
-        Situação: l.situacao,
+        "Quantidade final": l.quantidadeFinal,
+        "Entradas no período": l.entradas,
+        "Saídas no período": l.saidas,
+        "Ajustes no período": l.ajustes,
+        "Custo unitário atual": l.custoUnitarioAtual ?? "",
+        "Valor em estoque (custo atual)": l.valorEmEstoqueAtual ?? "",
       })),
-      { header: COLUNAS.map((c) => c.replace(" (R$)", "")) },
     );
     const livro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(livro, planilha, "Estoque");
+    XLSX.utils.book_append_sheet(livro, planilha, "Estoque por período");
     const buffer = XLSX.write(livro, { type: "buffer", bookType: "xlsx" });
     return new NextResponse(buffer, {
       headers: {
@@ -68,7 +73,7 @@ export async function GET(req: Request) {
   }
 
   const corpo = linhas.map((l) =>
-    [l.codigo, l.nome, l.unidade, decimalCsv(l.quantidade), l.estoqueMinimo != null ? decimalCsv(l.estoqueMinimo) : "", l.custo != null ? decimalCsv(l.custo) : "", l.valorEmEstoque != null ? decimalCsv(l.valorEmEstoque) : "", l.situacao]
+    [l.periodo, l.codigo, l.nome, l.unidade, decimalCsv(l.quantidadeFinal), decimalCsv(l.entradas), decimalCsv(l.saidas), decimalCsv(l.ajustes), decimalCsv(l.custoUnitarioAtual), decimalCsv(l.valorEmEstoqueAtual)]
       .map(csvEscape)
       .join(";"),
   );

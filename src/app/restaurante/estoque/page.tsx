@@ -22,7 +22,7 @@ const MODULOS = [
   {
     href: "/restaurante/estoque/relatorio",
     titulo: "Relatório",
-    descricao: "Exporte o estoque completo em CSV ou Excel, com quantidade, custo e valor total.",
+    descricao: "Quantidade final por período (mensal ou anual), com entradas/saídas — CSV ou Excel.",
     icone: "📊",
   },
 ];
