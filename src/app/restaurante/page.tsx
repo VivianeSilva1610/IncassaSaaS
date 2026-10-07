@@ -13,6 +13,7 @@ const LABEL_MODULO: Record<string, string> = {
   custos: "Custos",
   caixa: "Caixa",
   financeiro: "Financeiro",
+  gestao: "Gestão",
 };
 
 export default async function RestauranteOverviewPage() {

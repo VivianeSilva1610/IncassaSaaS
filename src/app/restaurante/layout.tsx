@@ -10,6 +10,7 @@ const navItems: { href: string; label: string; modulo: ModuloRestaurante }[] = [
   { href: "/restaurante/custos", label: "Custos", modulo: "custos" },
   { href: "/restaurante/caixa", label: "Caixa", modulo: "caixa" },
   { href: "/restaurante/financeiro", label: "Financeiro", modulo: "financeiro" },
+  { href: "/restaurante/gestao", label: "Gestão", modulo: "gestao" },
 ];
 
 export default async function RestauranteLayout({ children }: { children: React.ReactNode }) {
