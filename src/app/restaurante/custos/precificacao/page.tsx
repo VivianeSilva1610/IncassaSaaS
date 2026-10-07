@@ -8,8 +8,14 @@ function formatReal(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
-export default async function CustosPrecificacaoPage() {
+export default async function CustosPrecificacaoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ busca?: string }>;
+}) {
   const { supabase } = await requireRestaurantSubscription("custos");
+  const { busca } = await searchParams;
+  const termo = (busca ?? "").trim();
 
   const [{ data: fixedCosts }, { data: pricingConfig }, { data: products }, { data: ingredients }, { data: productIngredients }] =
     await Promise.all([
@@ -23,6 +29,9 @@ export default async function CustosPrecificacaoPage() {
   const totalCustosFixos = (fixedCosts ?? []).reduce((sum, c) => sum + Number(c.valor_mensal), 0);
   const volumeMensalEstimado = Number(pricingConfig?.volume_mensal_estimado ?? 0);
   const margemDesejada = Number(pricingConfig?.margem_desejada ?? 0.3);
+  const produtosFiltrados = termo
+    ? (products ?? []).filter((p) => p.nome.toLowerCase().includes(termo.toLowerCase()))
+    : (products ?? []);
 
   return (
     <div>
@@ -70,8 +79,26 @@ export default async function CustosPrecificacaoPage() {
 
       <section className="mt-8">
         <h2 className="font-semibold text-stone-900">Ficha técnica e preço sugerido por prato</h2>
-        <div className="mt-2 space-y-4">
-          {(products ?? []).map((p) => {
+
+        <form method="get" className="mt-2 flex flex-wrap items-center gap-2">
+          <input
+            name="busca"
+            defaultValue={termo}
+            placeholder="Buscar prato pelo nome…"
+            className="min-w-56 flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm"
+          />
+          <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white">
+            Buscar
+          </button>
+          {termo && (
+            <a href="/restaurante/custos/precificacao" className="text-xs text-stone-500 hover:underline">
+              Limpar busca
+            </a>
+          )}
+        </form>
+
+        <div className="mt-3 space-y-4">
+          {produtosFiltrados.map((p) => {
             const itensDoProduto = (productIngredients ?? []).filter((pi) => pi.product_id === p.id);
             const ingredientesCalc = itensDoProduto.map((pi) => ({
               quantidade_necessaria: Number(pi.quantidade_necessaria),
@@ -154,8 +181,10 @@ export default async function CustosPrecificacaoPage() {
               </div>
             );
           })}
-          {(products ?? []).length === 0 && (
-            <p className="text-sm text-stone-500">Cadastre pratos no menu (em Vendas) para ver a ficha técnica aqui.</p>
+          {produtosFiltrados.length === 0 && (
+            <p className="text-sm text-stone-500">
+              {termo ? `Nenhum prato encontrado para "${termo}".` : "Cadastre pratos no menu (em Vendas) para ver a ficha técnica aqui."}
+            </p>
           )}
         </div>
       </section>
