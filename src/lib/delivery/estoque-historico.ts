@@ -1,5 +1,3 @@
-export type TipoPeriodo = "mensal" | "anual";
-
 export type Periodo = { label: string; boundaryMs: number };
 
 type Movimento = { ingredient_id: string; tipo: "entrada" | "saida" | "ajuste"; quantidade: number | string; created_at: string };
@@ -17,38 +15,33 @@ function fimDoAnoSP(ano: number): number {
   return new Date(`${ano + 1}-01-01T00:00:00-03:00`).getTime() - 1;
 }
 
-/** Períodos em ordem cronológica (do mais antigo pro mais recente). O período atual usa "agora" como corte, já que o mês/ano ainda não terminou. */
-export function gerarPeriodos(tipo: TipoPeriodo, quantidade: number): Periodo[] {
-  const agora = new Date();
-  const partes = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-  }).formatToParts(agora);
-  const anoAtual = Number(partes.find((p) => p.type === "year")!.value);
-  const mesAtual = Number(partes.find((p) => p.type === "month")!.value);
+/** Um período por mês, de `de` até `ate` (inclusive), formato "YYYY-MM". Períodos no futuro ficam limitados a "agora". */
+export function gerarPeriodosMensal(de: string, ate: string): Periodo[] {
+  const [anoDeStr, mesDeStr] = de.split("-");
+  const [anoAteStr, mesAteStr] = ate.split("-");
+  let ano = Number(anoDeStr);
+  let mes = Number(mesDeStr);
+  const anoAte = Number(anoAteStr);
+  const mesAte = Number(mesAteStr);
+  const agora = Date.now();
 
   const periodos: Periodo[] = [];
-  for (let i = 0; i < quantidade; i++) {
-    if (tipo === "mensal") {
-      let mes = mesAtual - i;
-      let ano = anoAtual;
-      while (mes <= 0) {
-        mes += 12;
-        ano -= 1;
-      }
-      const fim = fimDoMesSP(ano, mes);
-      periodos.push({
-        label: `${String(mes).padStart(2, "0")}/${ano}`,
-        boundaryMs: i === 0 ? Math.min(fim, agora.getTime()) : fim,
-      });
-    } else {
-      const ano = anoAtual - i;
-      const fim = fimDoAnoSP(ano);
-      periodos.push({ label: String(ano), boundaryMs: i === 0 ? Math.min(fim, agora.getTime()) : fim });
+  let guarda = 0;
+  while ((ano < anoAte || (ano === anoAte && mes <= mesAte)) && guarda < 600) {
+    periodos.push({ label: `${String(mes).padStart(2, "0")}/${ano}`, boundaryMs: Math.min(fimDoMesSP(ano, mes), agora) });
+    mes++;
+    if (mes > 12) {
+      mes = 1;
+      ano++;
     }
+    guarda++;
   }
-  return periodos.reverse();
+  return periodos;
+}
+
+/** Um único período cobrindo o ano inteiro (limitado a "agora" se for o ano corrente). */
+export function gerarPeriodoAnual(ano: number): Periodo[] {
+  return [{ label: String(ano), boundaryMs: Math.min(fimDoAnoSP(ano), Date.now()) }];
 }
 
 export type LinhaFechamentoEstoque = {

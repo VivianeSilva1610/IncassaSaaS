@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { requireRestaurantSubscription } from "@/lib/subscription";
-import { gerarPeriodos, calcularFechamentosEstoque, type TipoPeriodo } from "@/lib/delivery/estoque-historico";
+import { gerarPeriodosMensal, gerarPeriodoAnual, calcularFechamentosEstoque } from "@/lib/delivery/estoque-historico";
 
 function csvEscape(value: unknown) {
   const texto = String(value ?? "");
@@ -14,16 +14,32 @@ function decimalCsv(value: number | null) {
 
 const COLUNAS = ["Período", "Código", "Nome", "Unidade", "Quantidade final", "Entradas no período", "Saídas no período", "Ajustes no período", "Custo unitário atual (R$)", "Valor em estoque (custo atual, R$)"];
 
+function mesAtualSP(): string {
+  const partes = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).formatToParts(new Date());
+  return `${partes.find((p) => p.type === "year")!.value}-${partes.find((p) => p.type === "month")!.value}`;
+}
+
 export async function GET(req: Request) {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
   const url = new URL(req.url);
-  const tipoPeriodo: TipoPeriodo = url.searchParams.get("periodo") === "anual" ? "anual" : "mensal";
-  const quantidadeParam = Number(url.searchParams.get("qtd") ?? (tipoPeriodo === "anual" ? 5 : 12));
-  const quantidade = Math.min(Math.max(Math.trunc(quantidadeParam) || 1, 1), tipoPeriodo === "anual" ? 20 : 60);
+  const periodoTipo = url.searchParams.get("periodo") === "anual" ? "anual" : "mensal";
   const formato = url.searchParams.get("formato") === "excel" ? "excel" : "csv";
 
-  const periodos = gerarPeriodos(tipoPeriodo, quantidade);
+  let periodos;
+  if (periodoTipo === "anual") {
+    const ano = Number(url.searchParams.get("ano")) || new Date().getFullYear();
+    periodos = gerarPeriodoAnual(ano);
+  } else {
+    const hoje = mesAtualSP();
+    const de = /^\d{4}-\d{2}$/.test(url.searchParams.get("de") ?? "") ? url.searchParams.get("de")! : hoje;
+    const ateParam = /^\d{4}-\d{2}$/.test(url.searchParams.get("ate") ?? "") ? url.searchParams.get("ate")! : hoje;
+    const ate = ateParam > hoje ? hoje : ateParam;
+    periodos = gerarPeriodosMensal(de, ate);
+  }
+
+  if (periodos.length === 0) return NextResponse.json({ error: "Período inválido." }, { status: 400 });
+
   const boundaryMaisAntigo = periodos[0].boundaryMs;
 
   const { data: ingredientes, error: ingredientesError } = await supabase
@@ -44,7 +60,7 @@ export async function GET(req: Request) {
   if (movimentosError) return NextResponse.json({ error: `Falha ao consultar movimentos: ${movimentosError.message}` }, { status: 500 });
 
   const linhas = calcularFechamentosEstoque(ingredientes ?? [], movimentos ?? [], periodos);
-  const nomeArquivo = `estoque-${tipoPeriodo}-${periodos[0].label.replace("/", "-")}-a-${periodos[periodos.length - 1].label.replace("/", "-")}`;
+  const nomeArquivo = `estoque-${periodoTipo}-${periodos[0].label.replace("/", "-")}-a-${periodos[periodos.length - 1].label.replace("/", "-")}`;
 
   if (formato === "excel") {
     const planilha = XLSX.utils.json_to_sheet(
