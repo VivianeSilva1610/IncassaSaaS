@@ -1,289 +1,64 @@
-import { redirect } from "next/navigation";
-import { requireRestaurantSubscription } from "@/lib/subscription";
-import { updateFiscalConfig, updateProductFiscal, cancelarNotaFiscal } from "@/app/restaurante/actions";
+import Link from "next/link";
 
-function formatHora(iso: string | null) {
-  if (!iso) return null;
-  return new Date(iso).toLocaleString("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-    timeZone: "America/Sao_Paulo",
-  });
-}
+const MODULOS = [
+  {
+    href: "/restaurante/fiscal/exportacao",
+    titulo: "Exportar para o contador",
+    descricao: "Relatórios por competência ou caixa, com pagamentos, estornos e documentos fiscais.",
+    icone: "↗",
+  },
+  {
+    href: "/restaurante/fiscal/estabelecimento",
+    titulo: "Dados do estabelecimento",
+    descricao: "CNPJ, regime tributário, endereço, provedor e ambiente de emissão.",
+    icone: "⌂",
+  },
+  {
+    href: "/restaurante/fiscal/classificacao",
+    titulo: "Classificação fiscal",
+    descricao: "NCM, CFOP, CEST e origem dos produtos utilizados nos documentos fiscais.",
+    icone: "≡",
+  },
+  {
+    href: "/restaurante/fiscal/notas",
+    titulo: "Notas fiscais",
+    descricao: "Consulte emissões, erros e cancelamentos por nota, cliente ou CPF/CNPJ.",
+    icone: "▤",
+  },
+];
 
-const STATUS_LABEL: Record<string, string> = {
-  pendente: "Pendente",
-  emitida: "Emitida / válida",
-  erro: "Erro",
-  cancelada: "Cancelada",
-};
-
-const STATUS_CLASSE: Record<string, string> = {
-  pendente: "bg-stone-100 text-stone-600",
-  emitida: "bg-emerald-100 text-emerald-700",
-  erro: "bg-red-100 text-red-700",
-  cancelada: "bg-stone-200 text-stone-500 line-through",
-};
-
-export default async function FiscalPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ numero?: string; from?: string; to?: string }>;
-}) {
-  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
-
-  if (!isOwner) {
-    redirect("/restaurante");
-  }
-
-  const { numero, from, to } = await searchParams;
-
-  const [{ data: config }, { data: products }] = await Promise.all([
-    supabase.from("del_fiscal_config").select("*").eq("owner_id", restaurantOwnerId).maybeSingle(),
-    supabase.from("del_products").select("id, nome, categoria, ncm, cfop, cest, origem").order("nome"),
-  ]);
-
-  let notasQuery = supabase
-    .from("del_notas_fiscais")
-    .select("*, del_orders(cliente_nome, totale, status, valor_estornado, estorno_status, estornado_em)")
-    .order("created_at", { ascending: false })
-    .limit(100);
-  if (numero) notasQuery = notasQuery.eq("numero", Number(numero));
-  if (from) notasQuery = notasQuery.gte("created_at", `${from}T00:00:00-03:00`);
-  if (to) notasQuery = notasQuery.lte("created_at", `${to}T23:59:59.999-03:00`);
-  const { data: notas } = await notasQuery;
-
-  const dadosBasicosPreenchidos = !!(config?.cnpj && config?.razao_social && config?.municipio && config?.uf);
-
+export default function FiscalPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-stone-900">Fiscal</h1>
       <p className="mt-1 text-sm text-stone-600">
-        Controle de faturamento e base para emissão de NFC-e/NF-e. Confirme regime, inscrição estadual,
-        classificação dos produtos e obrigação de emissão com o contador antes de ativar um provedor real.
+        Escolha uma área para configurar, consultar ou exportar as informações fiscais do restaurante.
       </p>
 
-      {config?.provedor === "simulado" ? (
-        <div className="mt-4 rounded-lg border border-sky-300 bg-sky-50 p-3 text-sm text-sky-800">
-          Modo simulação ativo — toda nota emitida agora é falsa (chave começa com &quot;SIMULACAO-&quot;), só pra
-          testar o fluxo completo. Nenhuma é um documento fiscal real; nada é enviado à SEFAZ.
-        </div>
-      ) : (
-        <div className={`mt-4 rounded-lg border p-3 text-sm ${dadosBasicosPreenchidos ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-amber-300 bg-amber-50 text-amber-800"}`}>
-          {dadosBasicosPreenchidos
-            ? "Cadastro básico preenchido. A emissão real continua bloqueada até integração, homologação e validação fiscal."
-            : "Complete CNPJ, razão social, município e UF para preparar a validação com o contador."}
-        </div>
-      )}
-
-      <section className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
-        <h2 className="font-semibold text-stone-900">Exportar para o contador</h2>
-        <p className="mt-1 text-xs text-stone-500">
-          Gere por competência (vendas entregues) ou por caixa (pagamentos recebidos). A planilha inclui valor,
-          forma de pagamento e situação fiscal para conciliação do contador.
-        </p>
-        <form action="/api/restaurante/export-vendas" method="get" className="mt-3 flex flex-wrap items-end gap-2">
-          <div>
-            <label className="block text-xs text-stone-500">Critério</label>
-            <select name="criterio" defaultValue="competencia" className="rounded-md border border-stone-300 px-2 py-1.5 text-sm">
-              <option value="competencia">Competência — data da entrega</option>
-              <option value="caixa">Caixa — data do pagamento</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-stone-500">De</label>
-            <input type="date" name="from" className="rounded-md border border-stone-300 px-2 py-1.5 text-sm" />
-          </div>
-          <div>
-            <label className="block text-xs text-stone-500">Até</label>
-            <input type="date" name="to" className="rounded-md border border-stone-300 px-2 py-1.5 text-sm" />
-          </div>
-          <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white">
-            Baixar CSV
-          </button>
-        </form>
-      </section>
-
-      <section className="mt-6">
-        <h2 className="font-semibold text-stone-900">Dados do estabelecimento</h2>
-        <form action={updateFiscalConfig} className="mt-2 grid gap-3 rounded-xl border border-stone-200 bg-white p-4 sm:grid-cols-2">
-          <input name="razao_social" defaultValue={config?.razao_social ?? ""} placeholder="Razão social" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
-          <input name="nome_fantasia" defaultValue={config?.nome_fantasia ?? ""} placeholder="Nome fantasia" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
-          <input name="cnpj" defaultValue={config?.cnpj ?? ""} placeholder="CNPJ" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
-          <input name="inscricao_estadual" defaultValue={config?.inscricao_estadual ?? ""} placeholder="Inscrição Estadual" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
-
-          <select name="regime_tributario" defaultValue={config?.regime_tributario ?? "mei"} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
-            <option value="mei">MEI</option>
-            <option value="simples_nacional">Simples Nacional</option>
-            <option value="normal">Regime Normal</option>
-          </select>
-          <select name="crt" defaultValue={config?.crt ?? ""} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
-            <option value="">CRT — confirmar com contador</option>
-            <option value="1">1 — Simples Nacional</option>
-            <option value="2">2 — Simples Nacional, excesso de sublimite</option>
-            <option value="3">3 — Regime Normal</option>
-          </select>
-
-          <input name="logradouro" defaultValue={config?.logradouro ?? ""} placeholder="Logradouro" className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2" />
-          <input name="numero" defaultValue={config?.numero ?? ""} placeholder="Número" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
-          <input name="bairro" defaultValue={config?.bairro ?? ""} placeholder="Bairro" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
-          <input name="municipio" defaultValue={config?.municipio ?? ""} placeholder="Município" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
-          <div className="flex gap-2">
-            <input name="uf" defaultValue={config?.uf ?? ""} placeholder="UF" maxLength={2} className="w-16 rounded-md border border-stone-300 px-3 py-2 text-sm uppercase" />
-            <input name="cep" defaultValue={config?.cep ?? ""} placeholder="CEP" className="flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm" />
-          </div>
-
-          <select name="provedor" defaultValue={config?.provedor ?? ""} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
-            <option value="">Nenhum provedor contratado ainda</option>
-            <option value="simulado">🧪 Simulação (testar o fluxo, sem nota real)</option>
-            <option value="focus_nfe">Focus NFe</option>
-            <option value="plugnotas">PlugNotas</option>
-            <option value="enotas">eNotas</option>
-          </select>
-          <select name="ambiente" defaultValue={config?.ambiente ?? "homologacao"} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
-            <option value="homologacao">Homologação (teste)</option>
-            <option value="producao" disabled>Produção (bloqueada até homologar provedor real)</option>
-          </select>
-
-          <label className="flex items-start gap-2 rounded-md border border-stone-200 bg-stone-50 p-3 text-xs text-stone-700 sm:col-span-2">
-            <input name="emissao_automatica" type="checkbox" defaultChecked={config?.emissao_automatica ?? false} className="mt-0.5" />
-            <span>
-              Emitir automaticamente após confirmar o pagamento. Deixe desativado enquanto estiver sem provedor real
-              ou quando a venda ao consumidor pessoa física não exigir nota. Confirme a regra com seu contador.
-            </span>
-          </label>
-
-          <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white sm:col-span-2">
-            Salvar dados fiscais
-          </button>
-        </form>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="font-semibold text-stone-900">Classificação fiscal dos produtos</h2>
-        <p className="mt-1 text-xs text-stone-500">
-          NCM, CFOP, CEST e origem de cada item — necessários na nota. Os valores-padrão são só ponto de
-          partida; revise com um contador antes de emitir em produção.
-        </p>
-        <div className="mt-2 space-y-1.5">
-          {(products ?? []).map((p) => (
-            <details key={p.id} className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm">
-              <summary className="cursor-pointer list-none">
-                {p.nome} <span className="text-stone-400">— NCM {p.ncm || "—"} · CFOP {p.cfop} · origem {p.origem}</span>
-              </summary>
-              <form action={updateProductFiscal.bind(null, p.id)} className="mt-2 grid gap-2 border-t border-stone-100 pt-2 sm:grid-cols-4">
-                <input name="ncm" defaultValue={p.ncm ?? ""} placeholder="NCM" className="rounded-md border border-stone-300 px-2 py-1.5 text-xs" />
-                <input name="cfop" defaultValue={p.cfop ?? "5102"} placeholder="CFOP" className="rounded-md border border-stone-300 px-2 py-1.5 text-xs" />
-                <input name="cest" defaultValue={p.cest ?? ""} placeholder="CEST (opcional)" className="rounded-md border border-stone-300 px-2 py-1.5 text-xs" />
-                <select name="origem" defaultValue={p.origem ?? 0} className="rounded-md border border-stone-300 px-2 py-1.5 text-xs">
-                  <option value="0">0 — Nacional</option>
-                  <option value="1">1 — Estrangeira, importação direta</option>
-                  <option value="2">2 — Estrangeira, adquirida no mercado interno</option>
-                </select>
-                <button type="submit" className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white sm:col-span-4">
-                  Salvar
-                </button>
-              </form>
-            </details>
-          ))}
-          {(products ?? []).length === 0 && <p className="text-sm text-stone-500">Nenhum produto cadastrado ainda.</p>}
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="font-semibold text-stone-900">Notas fiscais</h2>
-        <p className="mt-1 text-xs text-stone-500">
-          Todas as tentativas de emissão, com número, data e status. Cancelamento de NFC-e só é aceito pela
-          SEFAZ dentro de uma janela curta após a emissão (geralmente minutos a poucas horas, varia por
-          estado) — depois disso a nota continua válida e qualquer ajuste vira uma devolução à parte.
-        </p>
-
-        <form method="get" className="mt-3 flex flex-wrap items-end gap-2 rounded-xl border border-stone-200 bg-white p-3">
-          <div>
-            <label className="block text-xs text-stone-500">Número da nota</label>
-            <input
-              name="numero"
-              type="number"
-              defaultValue={numero ?? ""}
-              placeholder="Ex: 42"
-              className="w-28 rounded-md border border-stone-300 px-2 py-1.5 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-stone-500">De</label>
-            <input name="from" type="date" defaultValue={from ?? ""} className="rounded-md border border-stone-300 px-2 py-1.5 text-sm" />
-          </div>
-          <div>
-            <label className="block text-xs text-stone-500">Até</label>
-            <input name="to" type="date" defaultValue={to ?? ""} className="rounded-md border border-stone-300 px-2 py-1.5 text-sm" />
-          </div>
-          <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white">
-            Filtrar
-          </button>
-          {(numero || from || to) && (
-            <a href="/restaurante/fiscal" className="text-xs text-stone-500 hover:underline">
-              Limpar filtro
-            </a>
-          )}
-        </form>
-
-        <div className="mt-3 space-y-2">
-          {(notas ?? []).map((n) => (
-            <div key={n.id} className="rounded-lg border border-stone-200 bg-white p-4 text-sm">
-              <div className="flex items-center justify-between">
-                <p className="font-medium text-stone-900">
-                  {n.numero ? `Nota Nº ${n.numero}` : "Sem número"} — {n.del_orders?.cliente_nome || "Cliente sem nome"}
-                </p>
-                <span className="text-xs text-stone-400">{formatHora(n.created_at)}</span>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        {MODULOS.map((modulo) => (
+          <Link
+            key={modulo.href}
+            href={modulo.href}
+            className="group rounded-xl border border-stone-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-sm"
+          >
+            <div className="flex items-start gap-4">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-xl text-amber-700">
+                {modulo.icone}
+              </span>
+              <div>
+                <h2 className="font-semibold text-stone-900 group-hover:text-amber-800">{modulo.titulo}</h2>
+                <p className="mt-1 text-sm leading-5 text-stone-500">{modulo.descricao}</p>
+                <span className="mt-3 inline-block text-xs font-medium text-amber-700">Abrir módulo →</span>
               </div>
-              <div className="mt-1 flex items-center gap-2">
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_CLASSE[n.status] ?? "bg-stone-100 text-stone-600"}`}>
-                  {STATUS_LABEL[n.status] ?? n.status}
-                </span>
-                {n.provedor === "simulado" && (
-                  <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-medium text-sky-700">🧪 Simulação</span>
-                )}
-                {n.del_orders?.totale != null && (
-                  <span className="text-xs text-stone-500">R$ {Number(n.del_orders.totale).toFixed(2).replace(".", ",")}</span>
-                )}
-                {Number(n.del_orders?.valor_estornado ?? 0) > 0 && (
-                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-700">
-                    Estornado R$ {Number(n.del_orders.valor_estornado).toFixed(2).replace(".", ",")}
-                  </span>
-                )}
-                {formatHora(n.emitida_em) && <span className="text-xs text-stone-500">Emitida {formatHora(n.emitida_em)}</span>}
-                {formatHora(n.cancelada_em) && <span className="text-xs text-stone-500">Cancelada {formatHora(n.cancelada_em)}</span>}
-              </div>
-              {n.erro_mensagem && <p className="mt-1 text-xs text-red-600">{n.erro_mensagem}</p>}
-              {n.cancelamento_erro && <p className="mt-1 text-xs text-red-600">Cancelamento: {n.cancelamento_erro}</p>}
-              {n.chave_acesso && <p className="mt-1 text-xs text-stone-500">Chave: {n.chave_acesso}</p>}
-              {n.justificativa_cancelamento && <p className="mt-1 text-xs text-stone-500">Motivo: {n.justificativa_cancelamento}</p>}
-              {n.protocolo_cancelamento && <p className="mt-1 text-xs text-stone-500">Protocolo de cancelamento: {n.protocolo_cancelamento}</p>}
-              {Number(n.del_orders?.valor_estornado ?? 0) > 0 && n.status === "emitida" && (
-                <p className="mt-2 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800">
-                  O pagamento foi estornado, mas a nota continua válida. Verifique o prazo e faça o cancelamento fiscal ou a devolução adequada.
-                </p>
-              )}
-
-              {n.status === "emitida" && (
-                <form action={cancelarNotaFiscal.bind(null, n.id)} className="mt-2 flex flex-wrap items-center gap-2 border-t border-stone-100 pt-2">
-                  <input
-                    name="justificativa"
-                    required
-                    minLength={15}
-                    placeholder="Motivo do cancelamento (mín. 15 caracteres)"
-                    className="min-w-[240px] flex-1 rounded-md border border-stone-300 px-2 py-1.5 text-xs"
-                  />
-                  <button type="submit" className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
-                    Cancelar nota
-                  </button>
-                </form>
-              )}
             </div>
-          ))}
-          {(notas ?? []).length === 0 && <p className="text-sm text-stone-500">Nenhuma nota emitida ou tentada ainda neste filtro.</p>}
-        </div>
-      </section>
+          </Link>
+        ))}
+      </div>
+
+      <p className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+        Mantenha a emissão em homologação até validar cadastro, classificação dos produtos e regras tributárias com o contador.
+      </p>
     </div>
   );
 }

@@ -7,7 +7,6 @@ const navItems = [
   { href: "/restaurante/estoque", label: "Estoque" },
   { href: "/restaurante/vendas", label: "Vendas" },
   { href: "/restaurante/cardapio", label: "Cardápio" },
-  { href: "/restaurante/mesas", label: "Mesas" },
   { href: "/restaurante/cozinha", label: "Cozinha" },
   { href: "/restaurante/custos", label: "Custos" },
   { href: "/restaurante/caixa", label: "Caixa" },

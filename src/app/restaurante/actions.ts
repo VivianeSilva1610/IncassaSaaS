@@ -161,6 +161,7 @@ export async function addProduct(formData: FormData) {
   if (error) throw new Error(`Não foi possível salvar o item: ${error.message}`);
 
   revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/vendas/novo");
   revalidatePath("/restaurante/cardapio");
 }
 
@@ -187,6 +188,7 @@ export async function updateProduct(id: string, formData: FormData) {
   if (error) throw new Error(`Não foi possível atualizar o item: ${error.message}`);
 
   revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/vendas/novo");
   revalidatePath("/restaurante/custos");
   revalidatePath("/restaurante/cardapio");
   revalidatePath("/pranzo");
@@ -196,6 +198,7 @@ export async function toggleProductAtivo(id: string, ativo: boolean) {
   const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_products").update({ ativo: !ativo }).eq("id", id);
   revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/vendas/novo");
 }
 
 export async function toggleProductVisivelSite(id: string, visivelSite: boolean) {
@@ -209,6 +212,7 @@ export async function deleteProduct(id: string) {
   const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_products").delete().eq("id", id);
   revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/vendas/novo");
 }
 
 export async function createOrder(formData: FormData) {
@@ -260,6 +264,7 @@ export async function createOrder(formData: FormData) {
   }
 
   revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/vendas/pedidos");
 }
 
 const STATUS_TIMESTAMP_COLUMN: Record<string, string> = {
@@ -276,6 +281,7 @@ export async function updateOrderStatus(id: string, status: string) {
   if (coluna) update[coluna] = new Date().toISOString();
   await supabase.from("del_orders").update(update).eq("id", id);
   revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/vendas/pedidos");
   revalidatePath("/restaurante/cozinha");
 }
 
@@ -294,6 +300,7 @@ export async function deleteOrder(id: string) {
   const { error } = await supabase.from("del_orders").delete().eq("id", id).eq("owner_id", restaurantOwnerId);
   if (error) throw new Error(`Não foi possível excluir o pedido: ${error.message}`);
   revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/vendas/pedidos");
 }
 
 export async function updateFiscalConfig(formData: FormData) {
@@ -331,6 +338,7 @@ export async function updateFiscalConfig(formData: FormData) {
   if (error) throw new Error(`Não foi possível salvar os dados fiscais: ${error.message}`);
 
   revalidatePath("/restaurante/fiscal");
+  revalidatePath("/restaurante/fiscal/estabelecimento");
 }
 
 export async function updateProductFiscal(id: string, formData: FormData) {
@@ -348,13 +356,16 @@ export async function updateProductFiscal(id: string, formData: FormData) {
   if (error) throw new Error(`Não foi possível salvar os dados fiscais do produto: ${error.message}`);
 
   revalidatePath("/restaurante/fiscal");
+  revalidatePath("/restaurante/fiscal/classificacao");
 }
 
 export async function emitirNotaFiscal(orderId: string) {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
   await emitirNotaFiscalParaPedido(supabase, { ownerId: restaurantOwnerId, orderId });
   revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/vendas/pedidos");
   revalidatePath("/restaurante/fiscal");
+  revalidatePath("/restaurante/fiscal/notas");
 }
 
 // Pedidos de mesa/balcão/telefone não passam por gateway de pagamento —
@@ -369,7 +380,9 @@ export async function marcarPedidoPago(orderId: string, formData: FormData) {
     formaPagamento: String(formData.get("forma_pagamento") ?? "outro"),
   });
   revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/vendas/pedidos");
   revalidatePath("/restaurante/fiscal");
+  revalidatePath("/restaurante/fiscal/notas");
 }
 
 export async function cancelarNotaFiscal(notaId: string, formData: FormData) {
@@ -384,6 +397,7 @@ export async function cancelarNotaFiscal(notaId: string, formData: FormData) {
   }
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/fiscal");
+  revalidatePath("/restaurante/fiscal/notas");
 }
 
 export async function addFixedCost(formData: FormData) {
@@ -625,12 +639,14 @@ export async function addMesa(formData: FormData) {
   if (error) throw new Error(`Não foi possível criar a mesa: ${error.message}`);
 
   revalidatePath("/restaurante/mesas");
+  revalidatePath("/restaurante/vendas/mesas");
 }
 
 export async function deleteMesa(id: string) {
   const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_mesas").delete().eq("id", id);
   revalidatePath("/restaurante/mesas");
+  revalidatePath("/restaurante/vendas/mesas");
 }
 
 export async function fecharComanda(id: string, formData: FormData) {
@@ -645,6 +661,7 @@ export async function fecharComanda(id: string, formData: FormData) {
   if (error) throw new Error(`Não foi possível fechar a comanda: ${error.message}`);
 
   revalidatePath("/restaurante/mesas");
+  revalidatePath("/restaurante/vendas/mesas");
 }
 
 async function getRestauranteIdDoOwner(supabase: SupabaseClient, ownerId: string): Promise<string> {
