@@ -1,5 +1,5 @@
 import { requireRestaurantSubscription } from "@/lib/subscription";
-import { deleteOrder, marcarPedidoPago, updateOrderStatus } from "@/app/restaurante/actions";
+import { deleteOrder, marcarPedidoPago, updateOrderStatus, removerItemPedido } from "@/app/restaurante/actions";
 
 function formatReal(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -17,7 +17,7 @@ export default async function PedidosPage({ searchParams }: { searchParams: Prom
   const filtroAtivo = !!(from || to);
   let query = supabase
     .from("del_orders")
-    .select("*, del_order_items(quantidade, preco_unitario, del_products(nome)), del_mesas(numero)")
+    .select("*, del_order_items(id, quantidade, preco_unitario, del_products(nome)), del_mesas(numero)")
     .eq("owner_id", restaurantOwnerId)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -50,6 +50,7 @@ export default async function PedidosPage({ searchParams }: { searchParams: Prom
       <div className="mt-4 space-y-2">
         {(orders ?? []).map((o) => {
           const nota = notaPorPedido.get(o.id);
+          const podeRemoverItem = !o.pago && o.status !== "cancelado" && o.status !== "entregue";
           return (
             <div key={o.id} className="rounded-xl border border-stone-200 bg-white p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -61,9 +62,20 @@ export default async function PedidosPage({ searchParams }: { searchParams: Prom
                     {o.pago ? <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">Pago {formatHora(o.pago_em)}</span> : <span className="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-500">Pendente</span>}
                     {Number(o.valor_estornado ?? 0) > 0 && <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700">{o.estorno_status === "total" ? "Estorno total" : `Estornado ${formatReal(Number(o.valor_estornado))}`}</span>}
                   </p>
-                  <p className="mt-1 text-sm text-stone-500">
-                    {(o.del_order_items ?? []).map((item: { quantidade: number; del_products: { nome: string } | null }) => `${item.quantidade}x ${item.del_products?.nome ?? "?"}`).join(", ")}
-                  </p>
+                  <ul className="mt-1 space-y-0.5 text-sm text-stone-500">
+                    {(o.del_order_items ?? []).map((item: { id: string; quantidade: number; del_products: { nome: string } | null }) => (
+                      <li key={item.id} className="flex items-center gap-2">
+                        <span>{item.quantidade}x {item.del_products?.nome ?? "?"}</span>
+                        {podeRemoverItem && (
+                          <form action={removerItemPedido.bind(null, o.id, item.id)}>
+                            <button type="submit" className="text-xs text-red-600 hover:underline">
+                              remover
+                            </button>
+                          </form>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                   {o.note && <p className="mt-1 text-xs italic text-stone-500">{o.note}</p>}
                   <p className="mt-1 flex flex-wrap gap-2 text-xs text-stone-400">
                     {formatHora(o.chegou_cozinha_em) && <span>Chegou {formatHora(o.chegou_cozinha_em)}</span>}
@@ -75,10 +87,17 @@ export default async function PedidosPage({ searchParams }: { searchParams: Prom
                 <div className="text-right"><p className="font-semibold text-stone-900">{formatReal(Number(o.totale))}</p><p className="text-xs text-stone-400">{o.canal}</p></div>
               </div>
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 pt-3">
-                <form action={async (formData: FormData) => { "use server"; await updateOrderStatus(o.id, String(formData.get("status"))); }} className="flex items-center gap-2">
-                  <select name="status" defaultValue={o.status} className="rounded-md border border-stone-300 px-2 py-1 text-xs">{STATUSES.map((status) => <option key={status}>{status}</option>)}</select>
-                  <button type="submit" className="text-xs text-amber-700 hover:underline">Atualizar</button>
-                </form>
+                <div className="flex items-center gap-3">
+                  <form action={async (formData: FormData) => { "use server"; await updateOrderStatus(o.id, String(formData.get("status"))); }} className="flex items-center gap-2">
+                    <select name="status" defaultValue={o.status} className="rounded-md border border-stone-300 px-2 py-1 text-xs">{STATUSES.map((status) => <option key={status}>{status}</option>)}</select>
+                    <button type="submit" className="text-xs text-amber-700 hover:underline">Atualizar</button>
+                  </form>
+                  {o.status !== "cancelado" && o.status !== "entregue" && (
+                    <form action={updateOrderStatus.bind(null, o.id, "cancelado")}>
+                      <button type="submit" className="text-xs text-red-600 hover:underline">Cancelar pedido inteiro</button>
+                    </form>
+                  )}
+                </div>
                 <div className="flex flex-wrap items-center gap-3">
                   {!o.pago && o.canal !== "site" && (
                     <form action={marcarPedidoPago.bind(null, o.id)} className="flex items-center gap-2">

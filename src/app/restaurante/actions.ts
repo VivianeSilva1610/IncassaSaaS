@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireRestaurantSubscription, MODULOS_RESTAURANTE, type ModuloRestaurante } from "@/lib/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { registerStockMovement, registrarCustoHistorico } from "@/lib/delivery/stock";
+import { registerStockMovement, registrarCustoHistorico, restaurarEstoquePorCancelamento } from "@/lib/delivery/stock";
 import { createOrderWithItems } from "@/lib/delivery/orders";
 import { verificarRegistroTxt } from "@/lib/domain-verification";
 import {
@@ -484,11 +484,90 @@ const STATUS_TIMESTAMP_COLUMN: Record<string, string> = {
 };
 
 export async function updateOrderStatus(id: string, status: string) {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+
+  const { data: pedidoAtual } = await supabase
+    .from("del_orders")
+    .select("status, del_order_items(product_id, quantidade)")
+    .eq("id", id)
+    .eq("owner_id", restaurantOwnerId)
+    .maybeSingle();
+
   const update: Record<string, string> = { status };
   const coluna = STATUS_TIMESTAMP_COLUMN[status];
   if (coluna) update[coluna] = new Date().toISOString();
-  await supabase.from("del_orders").update(update).eq("id", id);
+  await supabase.from("del_orders").update(update).eq("id", id).eq("owner_id", restaurantOwnerId);
+
+  // Cancelar devolve ao estoque os ingredientes já deduzidos — sem isso o
+  // saldo fica errado pra sempre (o pedido nunca vai ser "entregue").
+  if (status === "cancelado" && pedidoAtual && pedidoAtual.status !== "cancelado") {
+    const itens = (pedidoAtual.del_order_items ?? [])
+      .filter((item): item is { product_id: string; quantidade: number } => !!item.product_id)
+      .map((item) => ({ productId: item.product_id, quantidade: Number(item.quantidade) }));
+    if (itens.length > 0) {
+      await restaurarEstoquePorCancelamento(supabase, {
+        ownerId: restaurantOwnerId,
+        orderId: id,
+        motivo: "Cancelamento de pedido",
+        items: itens,
+      });
+    }
+  }
+
+  revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/vendas/pedidos");
+  revalidatePath("/restaurante/cozinha");
+}
+
+// Remove um único item de um pedido ainda não pago/entregue (ex: cliente
+// avisou que não queria aquele prato) — recalcula o total e devolve ao
+// estoque só o que esse item específico consumiu, sem mexer no resto do
+// pedido. Pedido pago precisa ser cancelado por inteiro (ou estornado à
+// parte); não dá pra tirar item de um pedido que já foi cobrado sem ajustar
+// o valor recebido também.
+export async function removerItemPedido(orderId: string, orderItemId: string) {
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+
+  const { data: pedido } = await supabase
+    .from("del_orders")
+    .select("id, status, pago, totale")
+    .eq("id", orderId)
+    .eq("owner_id", restaurantOwnerId)
+    .maybeSingle();
+  if (!pedido) throw new Error("Pedido não encontrado.");
+  if (pedido.pago) throw new Error("Pedido já pago — cancele o pedido inteiro ou ajuste o estorno manualmente.");
+  if (pedido.status === "cancelado" || pedido.status === "entregue") {
+    throw new Error("Esse pedido não pode mais ter itens removidos.");
+  }
+
+  const { data: item } = await supabase
+    .from("del_order_items")
+    .select("product_id, quantidade, preco_unitario")
+    .eq("id", orderItemId)
+    .eq("order_id", orderId)
+    .maybeSingle();
+  if (!item) throw new Error("Item não encontrado nesse pedido.");
+
+  const { error: deleteError } = await supabase.from("del_order_items").delete().eq("id", orderItemId);
+  if (deleteError) throw new Error(`Não foi possível remover o item: ${deleteError.message}`);
+
+  if (item.product_id) {
+    // Motivo único por item (não só "orderId") — cada remoção é um evento
+    // independente; se reusasse o mesmo motivo do pedido inteiro, a segunda
+    // remoção "descontaria" o que já foi restaurado pela primeira e
+    // devolveria menos do que deveria quando dois itens usam o mesmo
+    // ingrediente.
+    await restaurarEstoquePorCancelamento(supabase, {
+      ownerId: restaurantOwnerId,
+      orderId,
+      motivo: `Item removido do pedido (${orderItemId})`,
+      items: [{ productId: item.product_id, quantidade: Number(item.quantidade) }],
+    });
+  }
+
+  const novoTotal = Math.max(0, Number(pedido.totale) - Number(item.quantidade) * Number(item.preco_unitario));
+  await supabase.from("del_orders").update({ totale: novoTotal }).eq("id", orderId).eq("owner_id", restaurantOwnerId);
+
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/vendas/pedidos");
   revalidatePath("/restaurante/cozinha");
