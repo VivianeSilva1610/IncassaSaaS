@@ -16,6 +16,12 @@ export type NfeEntradaItem = {
   valorTotal: number;
 };
 
+export type NfeEntradaParcela = {
+  numero: string;
+  vencimento: string;
+  valor: number;
+};
+
 export type NfeEntrada = {
   chaveAcesso: string;
   numero: string;
@@ -28,6 +34,7 @@ export type NfeEntrada = {
   valorTotal: number;
   protocoloAutorizacao: string | null;
   itens: NfeEntradaItem[];
+  parcelas: NfeEntradaParcela[];
 };
 
 const parser = new XMLParser({
@@ -67,6 +74,7 @@ export function parseNfeEntrada(xml: string): NfeEntrada {
   const emit = node(inf.emit);
   const dest = node(inf.dest);
   const total = node(node(inf.total).ICMSTot);
+  const cobranca = node(inf.cobr);
   const protocol = node(node(process.protNFe).infProt);
 
   if (!text(inf["@_Id"])) throw new Error("Este XML não contém uma NF-e.");
@@ -99,6 +107,22 @@ export function parseNfeEntrada(xml: string): NfeEntrada {
     };
   });
 
+  const rawParcelas = Array.isArray(cobranca.dup) ? cobranca.dup : cobranca.dup ? [cobranca.dup] : [];
+  const parcelas = rawParcelas.map((raw, index) => {
+    const parcela = node(raw);
+    const numero = text(parcela.nDup) || String(index + 1).padStart(3, "0");
+    const vencimento = text(parcela.dVenc);
+    const valor = decimal(parcela.vDup, `valor da parcela ${numero}`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(vencimento) || Number.isNaN(Date.parse(`${vencimento}T00:00:00Z`))) {
+      throw new Error(`O vencimento da parcela ${numero} é inválido.`);
+    }
+    if (valor <= 0) throw new Error(`O valor da parcela ${numero} deve ser maior que zero.`);
+    return { numero, vencimento, valor };
+  });
+  if (new Set(parcelas.map((parcela) => parcela.numero)).size !== parcelas.length) {
+    throw new Error("A NF-e possui parcelas com o mesmo número.");
+  }
+
   const fornecedorDocumento = text(emit.CNPJ || emit.CPF).replace(/\D/g, "");
   const fornecedorNome = text(emit.xNome);
   if (!fornecedorDocumento || !fornecedorNome) throw new Error("Os dados do fornecedor estão incompletos.");
@@ -115,5 +139,6 @@ export function parseNfeEntrada(xml: string): NfeEntrada {
     valorTotal: decimal(total.vNF, "valor total da NF-e"),
     protocoloAutorizacao: text(protocol.nProt) || null,
     itens,
+    parcelas,
   };
 }
