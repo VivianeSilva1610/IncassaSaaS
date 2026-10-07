@@ -351,7 +351,7 @@ export async function updateProduct(id: string, formData: FormData) {
 
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/vendas/novo");
-  revalidatePath("/restaurante/custos");
+  revalidatePath("/restaurante/custos/precificacao");
   revalidatePath("/restaurante/cardapio");
   revalidatePath("/restaurante/cardapio/produtos");
   revalidatePath("/pranzo");
@@ -621,13 +621,13 @@ export async function addFixedCost(formData: FormData) {
   });
   if (error) throw new Error(`Não foi possível salvar o custo fixo: ${error.message}`);
 
-  revalidatePath("/restaurante/custos");
+  revalidatePath("/restaurante/custos/fixos");
 }
 
 export async function deleteFixedCost(id: string) {
   const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_fixed_costs").delete().eq("id", id);
-  revalidatePath("/restaurante/custos");
+  revalidatePath("/restaurante/custos/fixos");
 }
 
 export async function addZonaEntrega(formData: FormData) {
@@ -642,7 +642,7 @@ export async function addZonaEntrega(formData: FormData) {
   });
   if (error) throw new Error(`Não foi possível salvar o bairro: ${error.message}`);
 
-  revalidatePath("/restaurante/custos");
+  revalidatePath("/restaurante/custos/entrega");
 }
 
 export async function updateZonaEntrega(id: string, formData: FormData) {
@@ -659,19 +659,19 @@ export async function updateZonaEntrega(id: string, formData: FormData) {
     .eq("id", id);
   if (error) throw new Error(`Não foi possível atualizar o bairro: ${error.message}`);
 
-  revalidatePath("/restaurante/custos");
+  revalidatePath("/restaurante/custos/entrega");
 }
 
 export async function toggleZonaEntregaAtivo(id: string, ativo: boolean) {
   const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_zonas_entrega").update({ ativo: !ativo }).eq("id", id);
-  revalidatePath("/restaurante/custos");
+  revalidatePath("/restaurante/custos/entrega");
 }
 
 export async function deleteZonaEntrega(id: string) {
   const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_zonas_entrega").delete().eq("id", id);
-  revalidatePath("/restaurante/custos");
+  revalidatePath("/restaurante/custos/entrega");
 }
 
 export async function updatePricingConfig(formData: FormData) {
@@ -679,23 +679,43 @@ export async function updatePricingConfig(formData: FormData) {
 
   const volumeMensalEstimado = Number(formData.get("volume_mensal_estimado") ?? 0);
   const margemPercentual = Number(formData.get("margem_desejada") ?? 0);
-  const nomeNegocio = String(formData.get("nome_negocio") ?? "").trim() || null;
 
   const { error } = await supabase.from("del_pricing_config").upsert(
     {
       owner_id: restaurantOwnerId,
       volume_mensal_estimado: volumeMensalEstimado,
       margem_desejada: margemPercentual / 100,
-      nome_negocio: nomeNegocio,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "owner_id" },
   );
   if (error) throw new Error(`Não foi possível salvar os parâmetros: ${error.message}`);
 
-  revalidatePath("/restaurante/custos");
+  revalidatePath("/restaurante/custos/precificacao");
   revalidatePath("/restaurante");
   revalidatePath("/restaurante/vendas");
+}
+
+// Nome exibido no site/cardápio — independente do nome do negócio/razão
+// social (que fica em Fiscal > Estabelecimento). Um restaurante pode vender
+// sob um nome de menu diferente do nome oficial do negócio.
+export async function updateNomeMenu(formData: FormData) {
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+
+  const nomeMenu = String(formData.get("nome_menu") ?? "").trim() || null;
+
+  const { error } = await supabase.from("del_pricing_config").upsert(
+    {
+      owner_id: restaurantOwnerId,
+      nome_negocio: nomeMenu,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "owner_id" },
+  );
+  if (error) throw new Error(`Não foi possível salvar o nome do menu: ${error.message}`);
+
+  revalidatePath("/restaurante/cardapio");
+  revalidatePath("/restaurante");
 }
 
 export async function addProductIngredient(formData: FormData) {
@@ -722,13 +742,13 @@ export async function addProductIngredient(formData: FormData) {
     );
   if (error) throw new Error(`Não foi possível salvar a ficha técnica: ${error.message}`);
 
-  revalidatePath("/restaurante/custos");
+  revalidatePath("/restaurante/custos/precificacao");
 }
 
 export async function deleteProductIngredient(id: string) {
   const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_product_ingredients").delete().eq("id", id);
-  revalidatePath("/restaurante/custos");
+  revalidatePath("/restaurante/custos/precificacao");
 }
 
 export async function addCaixaMovimento(formData: FormData) {

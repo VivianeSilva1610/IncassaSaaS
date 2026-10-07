@@ -1,5 +1,5 @@
 import { requireRestaurantSubscription } from "@/lib/subscription";
-import { addProduct, deleteProduct, addCardapioDia, removeCardapioDia } from "@/app/restaurante/actions";
+import { addProduct, deleteProduct, addCardapioDia, removeCardapioDia, updateNomeMenu } from "@/app/restaurante/actions";
 
 function formatReal(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -10,10 +10,12 @@ const DIAS_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta"
 export default async function CardapioPage() {
   const { supabase } = await requireRestaurantSubscription("cardapio");
 
-  const [{ data: products }, { data: cardapioSemana }] = await Promise.all([
+  const [{ data: products }, { data: cardapioSemana }, { data: pricingConfig }] = await Promise.all([
     supabase.from("del_products").select("*").order("nome"),
     supabase.from("del_cardapio_semana").select("*, del_products(nome)").order("dia_semana"),
+    supabase.from("del_pricing_config").select("nome_negocio").maybeSingle(),
   ]);
+  const nomeMenu = pricingConfig?.nome_negocio ?? "";
 
   const tamanhos = (products ?? []).filter((p) => p.categoria === "tamanho");
   // Pratos já cadastrados como "prato" (menu normal) também valem como
@@ -31,6 +33,24 @@ export default async function CardapioPage() {
       </p>
 
       <section className="mt-6">
+        <h2 className="font-semibold text-stone-900">Nome do menu</h2>
+        <p className="mt-1 text-sm text-stone-600">
+          O nome que aparece no site pro cliente — pode ser diferente do nome oficial do seu negócio.
+        </p>
+        <form action={updateNomeMenu} className="mt-2 flex flex-wrap gap-2 rounded-xl border border-stone-200 bg-white p-4">
+          <input
+            name="nome_menu"
+            defaultValue={nomeMenu}
+            placeholder="Ex: Menu della Nonna"
+            className="min-w-48 flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm"
+          />
+          <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-transform hover:bg-stone-700 active:scale-[0.98]">
+            Salvar nome
+          </button>
+        </form>
+      </section>
+
+      <section className="mt-8">
         <h2 className="font-semibold text-stone-900">Tamanhos de marmitex</h2>
         <p className="mt-1 text-xs text-stone-500">Ex: Marmitex M — R$18,00 — 3 acompanhamentos inclusos.</p>
         <form action={addProduct} className="mt-2 grid gap-3 rounded-xl border border-stone-200 bg-white p-4 sm:grid-cols-3">
