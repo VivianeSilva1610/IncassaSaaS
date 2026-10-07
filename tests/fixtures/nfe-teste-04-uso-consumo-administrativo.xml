@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SIMULACAO SEM VALIDADE FISCAL: material de uso administrativo. -->
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00"><NFe><infNFe Id="NFe31261012345678000199550010000002041123456780" versao="4.00">
+  <ide><mod>55</mod><serie>1</serie><nNF>204</nNF><dhEmi>2026-10-08T11:00:00-03:00</dhEmi><tpAmb>2</tpAmb></ide>
+  <emit><CNPJ>12345678000199</CNPJ><xNome>PAPELARIA FICTICIA PARA TESTES LTDA</xNome><xFant>PAPELARIA TESTE</xFant></emit><dest><xNome>RESTAURANTE DE TESTE</xNome></dest>
+  <det nItem="1"><prod><cProd>PAP-A4</cProd><cEAN>SEM GTIN</cEAN><xProd>PAPEL A4 RESMA 500 FOLHAS</xProd><NCM>48025610</NCM><CFOP>5102</CFOP><uCom>UN</uCom><qCom>2.0000</qCom><vUnCom>32.0000</vUnCom><vProd>64.00</vProd></prod></det>
+  <det nItem="2"><prod><cProd>CAN-010</cProd><cEAN>SEM GTIN</cEAN><xProd>CANETA ESFEROGRAFICA CAIXA COM 10</xProd><NCM>96081000</NCM><CFOP>5102</CFOP><uCom>CX</uCom><qCom>1.0000</qCom><vUnCom>28.0000</vUnCom><vProd>28.00</vProd></prod></det>
+  <total><ICMSTot><vProd>92.00</vProd><vNF>92.00</vNF></ICMSTot></total>
+</infNFe></NFe><protNFe versao="4.00"><infProt><tpAmb>2</tpAmb><chNFe>31261012345678000199550010000002041123456780</chNFe><nProt>131260000000204</nProt><cStat>100</cStat><xMotivo>AUTORIZADO APENAS PARA SIMULACAO</xMotivo></infProt></protNFe></nfeProc>

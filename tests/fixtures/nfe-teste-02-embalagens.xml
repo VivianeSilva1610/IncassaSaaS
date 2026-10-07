@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SIMULACAO SEM VALIDADE FISCAL: embalagens utilizadas nas entregas. -->
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00"><NFe><infNFe Id="NFe31261012345678000199550010000002021123456780" versao="4.00">
+  <ide><mod>55</mod><serie>1</serie><nNF>202</nNF><dhEmi>2026-10-08T09:00:00-03:00</dhEmi><tpAmb>2</tpAmb></ide>
+  <emit><CNPJ>12345678000199</CNPJ><xNome>FORNECEDOR FICTICIO DE EMBALAGENS LTDA</xNome><xFant>EMBALAGENS TESTE</xFant></emit><dest><xNome>RESTAURANTE DE TESTE</xNome></dest>
+  <det nItem="1"><prod><cProd>EMB-500</cProd><cEAN>SEM GTIN</cEAN><xProd>EMBALAGEM MARMITA CAIXA COM 100</xProd><NCM>39241000</NCM><CFOP>5102</CFOP><uCom>CX</uCom><qCom>2.0000</qCom><vUnCom>95.0000</vUnCom><vProd>190.00</vProd></prod></det>
+  <det nItem="2"><prod><cProd>TAL-100</cProd><cEAN>SEM GTIN</cEAN><xProd>TALHER DESCARTAVEL PACOTE COM 100</xProd><NCM>39241000</NCM><CFOP>5102</CFOP><uCom>PCT</uCom><qCom>2.0000</qCom><vUnCom>25.0000</vUnCom><vProd>50.00</vProd></prod></det>
+  <total><ICMSTot><vProd>240.00</vProd><vNF>240.00</vNF></ICMSTot></total>
+</infNFe></NFe><protNFe versao="4.00"><infProt><tpAmb>2</tpAmb><chNFe>31261012345678000199550010000002021123456780</chNFe><nProt>131260000000202</nProt><cStat>100</cStat><xMotivo>AUTORIZADO APENAS PARA SIMULACAO</xMotivo></infProt></protNFe></nfeProc>
