@@ -8,17 +8,37 @@ const stockDestinations = new Set(["insumo_producao", "embalagem", "mercadoria_r
 
 export function ItemClassification({
   itemId,
-  defaultQuantity,
+  invoiceQuantity,
+  invoiceUnit,
   ingredients,
+  suggestedDestination,
+  suggestedIngredientId,
+  suggestedStockQuantity,
   disabled,
 }: {
   itemId: string;
-  defaultQuantity: number;
+  invoiceQuantity: number;
+  invoiceUnit: string | null;
   ingredients: Ingredient[];
+  suggestedDestination?: string;
+  suggestedIngredientId?: string;
+  suggestedStockQuantity?: number;
   disabled: boolean;
 }) {
-  const [destination, setDestination] = useState("insumo_producao");
+  const [destination, setDestination] = useState(suggestedDestination || "insumo_producao");
+  const [ingredientId, setIngredientId] = useState(suggestedIngredientId || "");
+  const [stockQuantity, setStockQuantity] = useState(
+    suggestedStockQuantity ? String(Number(suggestedStockQuantity.toFixed(4))) : "",
+  );
   const controlsStock = stockDestinations.has(destination);
+  const selectedIngredient = ingredients.find((ingredient) => ingredient.id === ingredientId);
+
+  function selectIngredient(id: string) {
+    setIngredientId(id);
+    const ingredient = ingredients.find((item) => item.id === id);
+    const sameUnit = ingredient && invoiceUnit && ingredient.unidade.toLowerCase() === invoiceUnit.toLowerCase();
+    setStockQuantity(sameUnit ? String(invoiceQuantity) : "");
+  }
 
   return (
     <div className="grid min-w-64 gap-2">
@@ -38,31 +58,45 @@ export function ItemClassification({
       </select>
 
       {controlsStock ? (
-        <div className="grid grid-cols-[1fr_8rem] gap-2">
-          <select
-            name={`ingrediente_${itemId}`}
-            required
-            disabled={disabled}
-            className="rounded-md border border-stone-300 px-2 py-2"
-          >
-            <option value="">Item de estoque...</option>
-            {ingredients.map((ingredient) => (
-              <option key={ingredient.id} value={ingredient.id}>
-                {ingredient.nome} ({ingredient.unidade})
-              </option>
-            ))}
-          </select>
-          <input
-            name={`quantidade_${itemId}`}
-            type="number"
-            required
-            min="0.0001"
-            step="0.0001"
-            defaultValue={defaultQuantity}
-            disabled={disabled}
-            aria-label="Quantidade que entra no estoque"
-            className="rounded-md border border-stone-300 px-2 py-2"
-          />
+        <div className="grid gap-2">
+          <label className="text-xs font-medium text-stone-600">
+            Produto correspondente no estoque
+            <select
+              name={`ingrediente_${itemId}`}
+              required
+              value={ingredientId}
+              onChange={(event) => selectIngredient(event.target.value)}
+              disabled={disabled}
+              className="mt-1 w-full rounded-md border border-stone-300 px-2 py-2 text-sm text-stone-900"
+            >
+              <option value="">Selecione o produto...</option>
+              {ingredients.map((ingredient) => (
+                <option key={ingredient.id} value={ingredient.id}>
+                  {ingredient.nome} ({ingredient.unidade})
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs font-medium text-stone-600">
+            Quantidade convertida que entra no estoque{selectedIngredient ? ` (${selectedIngredient.unidade})` : ""}
+            <input
+              name={`quantidade_${itemId}`}
+              type="number"
+              required
+              min="0.0001"
+              step="0.0001"
+              value={stockQuantity}
+              onChange={(event) => setStockQuantity(event.target.value)}
+              disabled={disabled}
+              placeholder={selectedIngredient ? `Total em ${selectedIngredient.unidade}` : "Selecione o produto primeiro"}
+              aria-label="Quantidade convertida que entra no estoque"
+              className="mt-1 w-full rounded-md border border-stone-300 px-2 py-2 text-sm text-stone-900"
+            />
+          </label>
+          <p className="rounded-md bg-amber-50 px-2 py-2 text-xs text-amber-900">
+            A quantidade fiscal permanece {invoiceQuantity} {invoiceUnit || "un."}. Este campo registra apenas a conversão para a unidade usada no estoque.
+          </p>
+          {suggestedIngredientId && <p className="text-xs text-emerald-700">Sugestão recuperada da última compra deste produto. Confira antes de confirmar.</p>}
         </div>
       ) : (
         <p className="rounded-md bg-stone-50 px-2 py-2 text-xs text-stone-600">

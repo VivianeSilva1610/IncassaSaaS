@@ -24,7 +24,7 @@ export default async function CompraDetalhePage({ params, searchParams }: { para
   const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("estoque");
   const { data: nota } = await supabase
     .from("del_notas_entrada")
-    .select("id, numero, serie, chave_acesso, fornecedor_nome, fornecedor_documento, destinatario_documento, valor_total, emitida_em, protocolo_autorizacao, status, importada_em")
+    .select("id, numero, serie, chave_acesso, fornecedor_id, fornecedor_nome, fornecedor_documento, destinatario_documento, valor_total, emitida_em, protocolo_autorizacao, status, importada_em")
     .eq("id", id)
     .eq("owner_id", restaurantOwnerId)
     .maybeSingle();
@@ -50,6 +50,12 @@ export default async function CompraDetalhePage({ params, searchParams }: { para
     .eq("owner_id", restaurantOwnerId)
     .order("vencimento")
     .order("numero");
+
+  const { data: memorias } = await supabase
+    .from("del_fornecedor_produto_mapeamentos")
+    .select("codigo_fornecedor, destinacao, ingrediente_id, fator_conversao")
+    .eq("owner_id", restaurantOwnerId)
+    .eq("fornecedor_id", nota.fornecedor_id);
 
   const processada = nota.status === "processada";
 
@@ -114,7 +120,7 @@ export default async function CompraDetalhePage({ params, searchParams }: { para
         <table className="w-full min-w-[850px] text-left text-sm">
           <thead className="border-b bg-stone-50 text-xs uppercase text-stone-500"><tr><th className="p-3">Item</th><th className="p-3">Produto da nota</th><th className="p-3">Dados fiscais</th><th className="p-3">Destinação e estoque</th><th className="p-3 text-right">Total</th></tr></thead>
           <tbody className="divide-y divide-stone-100">
-            {(itens ?? []).map((item) => { const ingrediente = (ingredientes ?? []).find((value) => value.id === item.ingrediente_id); return <tr key={item.id} className="align-top"><td className="p-3">{item.numero_item}</td><td className="p-3"><p className="font-medium text-stone-900">{item.descricao}</p><p className="text-xs text-stone-500">NF-e: {Number(item.quantidade)} {item.unidade} · {money(Number(item.valor_unitario))}/un.</p><p className="text-xs text-stone-500">EAN {item.ean || "—"}</p></td><td className="p-3 text-xs">NCM {item.ncm || "—"}<br />CFOP {item.cfop || "—"}</td><td className="p-3">{processada ? <div><p className="font-medium text-stone-800">{destinationLabels[item.destinacao] || item.destinacao}</p>{ingrediente && <p className="mt-1 text-xs text-stone-500">{ingrediente.nome}: {Number(item.quantidade_estoque)} {ingrediente.unidade}</p>}</div> : <ItemClassification itemId={item.id} defaultQuantity={Number(item.quantidade)} ingredients={(ingredientes ?? []).map(({ id: ingredientId, nome, unidade }) => ({ id: ingredientId, nome, unidade }))} disabled={!isGerente} />}</td><td className="p-3 text-right font-medium">{money(Number(item.valor_total))}</td></tr>; })}
+            {(itens ?? []).map((item) => { const ingrediente = (ingredientes ?? []).find((value) => value.id === item.ingrediente_id); const memoria = (memorias ?? []).find((value) => value.codigo_fornecedor === item.codigo_fornecedor); return <tr key={item.id} className="align-top"><td className="p-3">{item.numero_item}</td><td className="p-3"><p className="font-medium text-stone-900">{item.descricao}</p><p className="text-xs text-stone-500">NF-e: {Number(item.quantidade)} {item.unidade} · {money(Number(item.valor_unitario))}/un.</p><p className="text-xs text-stone-500">EAN {item.ean || "—"}</p></td><td className="p-3 text-xs">NCM {item.ncm || "—"}<br />CFOP {item.cfop || "—"}</td><td className="p-3">{processada ? <div><p className="font-medium text-stone-800">{destinationLabels[item.destinacao] || item.destinacao}</p>{ingrediente && <p className="mt-1 text-xs text-stone-500">{ingrediente.nome}: {Number(item.quantidade_estoque)} {ingrediente.unidade}</p>}</div> : <ItemClassification itemId={item.id} invoiceQuantity={Number(item.quantidade)} invoiceUnit={item.unidade} ingredients={(ingredientes ?? []).map(({ id: ingredientId, nome, unidade }) => ({ id: ingredientId, nome, unidade }))} suggestedDestination={memoria?.destinacao} suggestedIngredientId={memoria?.ingrediente_id ?? undefined} suggestedStockQuantity={memoria?.fator_conversao ? Number(memoria.fator_conversao) * Number(item.quantidade) : undefined} disabled={!isGerente} />}</td><td className="p-3 text-right font-medium">{money(Number(item.valor_total))}</td></tr>; })}
           </tbody>
         </table>
       </div>

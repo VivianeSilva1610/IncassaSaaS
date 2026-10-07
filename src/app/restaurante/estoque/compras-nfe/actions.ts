@@ -135,7 +135,7 @@ export async function processarCompra(notaId: string, formData: FormData) {
 
   const { data: nota } = await supabase
     .from("del_notas_entrada")
-    .select("id, status")
+    .select("id, status, fornecedor_id")
     .eq("id", notaId)
     .eq("owner_id", restaurantOwnerId)
     .maybeSingle();
@@ -144,7 +144,7 @@ export async function processarCompra(notaId: string, formData: FormData) {
 
   const { data: itens } = await supabase
     .from("del_notas_entrada_itens")
-    .select("id")
+    .select("id, codigo_fornecedor, descricao, unidade, quantidade")
     .eq("nota_entrada_id", notaId)
     .eq("owner_id", restaurantOwnerId)
     .order("numero_item");
@@ -200,6 +200,31 @@ export async function processarCompra(notaId: string, formData: FormData) {
     p_vencimento: gerarConta ? (primeiraParcela?.vencimento ?? vencimento) : null,
   });
   if (error) redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent(`Não foi possível processar: ${error.message}`)}`);
+
+  const itensPorId = new Map(itens.map((item) => [item.id, item]));
+  const memorias = mapeamentos.flatMap((mapeamento) => {
+    const item = itensPorId.get(mapeamento.item_id);
+    if (!item?.codigo_fornecedor || Number(item.quantidade) <= 0) return [];
+    const controlaEstoque = destinosComEstoque.has(mapeamento.destinacao);
+    return [{
+      owner_id: restaurantOwnerId,
+      fornecedor_id: nota.fornecedor_id,
+      codigo_fornecedor: item.codigo_fornecedor,
+      descricao_fornecedor: item.descricao,
+      unidade_fiscal: item.unidade,
+      destinacao: mapeamento.destinacao,
+      ingrediente_id: controlaEstoque ? mapeamento.ingrediente_id : null,
+      fator_conversao: controlaEstoque
+        ? Number((mapeamento.quantidade_estoque / Number(item.quantidade)).toFixed(6))
+        : null,
+      updated_at: new Date().toISOString(),
+    }];
+  });
+  if (memorias.length > 0) {
+    await supabase.from("del_fornecedor_produto_mapeamentos").upsert(memorias, {
+      onConflict: "owner_id,fornecedor_id,codigo_fornecedor",
+    });
+  }
 
   revalidatePath("/restaurante/estoque/compras-nfe");
   revalidatePath(`/restaurante/estoque/compras-nfe/${notaId}`);
