@@ -163,6 +163,7 @@ export async function addProduct(formData: FormData) {
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/vendas/novo");
   revalidatePath("/restaurante/cardapio");
+  revalidatePath("/restaurante/cardapio/produtos");
 }
 
 export async function updateProduct(id: string, formData: FormData) {
@@ -191,6 +192,7 @@ export async function updateProduct(id: string, formData: FormData) {
   revalidatePath("/restaurante/vendas/novo");
   revalidatePath("/restaurante/custos");
   revalidatePath("/restaurante/cardapio");
+  revalidatePath("/restaurante/cardapio/produtos");
   revalidatePath("/pranzo");
 }
 
@@ -199,12 +201,14 @@ export async function toggleProductAtivo(id: string, ativo: boolean) {
   await supabase.from("del_products").update({ ativo: !ativo }).eq("id", id);
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/vendas/novo");
+  revalidatePath("/restaurante/cardapio/produtos");
 }
 
 export async function toggleProductVisivelSite(id: string, visivelSite: boolean) {
   const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_products").update({ visivel_site: !visivelSite }).eq("id", id);
   revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/cardapio/produtos");
   revalidatePath("/pranzo");
 }
 
@@ -213,6 +217,7 @@ export async function deleteProduct(id: string) {
   await supabase.from("del_products").delete().eq("id", id);
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/vendas/novo");
+  revalidatePath("/restaurante/cardapio/produtos");
 }
 
 export async function createOrder(formData: FormData) {
