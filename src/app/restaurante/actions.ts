@@ -408,6 +408,7 @@ export async function emitirNotaFiscal(orderId: string) {
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/vendas/pedidos");
   revalidatePath("/restaurante/fiscal");
+  revalidatePath("/restaurante/fiscal/emissoes");
   revalidatePath("/restaurante/fiscal/notas");
 }
 
@@ -428,6 +429,7 @@ export async function marcarPedidoPago(orderId: string, formData: FormData) {
   revalidatePath("/restaurante/cozinha");
   revalidatePath("/restaurante/caixa");
   revalidatePath("/restaurante/fiscal");
+  revalidatePath("/restaurante/fiscal/emissoes");
   revalidatePath("/restaurante/fiscal/notas");
 }
 

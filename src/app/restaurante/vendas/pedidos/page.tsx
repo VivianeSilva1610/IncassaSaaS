@@ -1,5 +1,5 @@
 import { requireRestaurantSubscription } from "@/lib/subscription";
-import { deleteOrder, emitirNotaFiscal, marcarPedidoPago, updateOrderStatus } from "@/app/restaurante/actions";
+import { deleteOrder, marcarPedidoPago, updateOrderStatus } from "@/app/restaurante/actions";
 
 function formatReal(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -88,7 +88,11 @@ export default async function PedidosPage({ searchParams }: { searchParams: Prom
                       <button type="submit" className="text-xs text-emerald-700 hover:underline">Marcar como pago</button>
                     </form>
                   )}
-                  {o.pago && (nota && nota.status !== "erro" ? <a href={`/restaurante/fiscal/notas/${nota.id}/imprimir`} target="_blank" rel="noopener noreferrer" className="text-xs text-stone-500 hover:underline">Visualizar / imprimir nota</a> : <form action={emitirNotaFiscal.bind(null, o.id)}><button type="submit" className="text-xs text-amber-700 hover:underline">{nota?.status === "erro" ? "Tentar NFC-e novamente" : "Emitir NFC-e"}</button></form>)}
+                  {o.pago && nota?.status === "emitida" && <a href={`/restaurante/fiscal/notas/${nota.id}/imprimir`} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-700 hover:underline">NFC-e emitida · visualizar</a>}
+                  {o.pago && nota?.status === "cancelada" && <a href={`/restaurante/fiscal/notas/${nota.id}/imprimir`} target="_blank" rel="noopener noreferrer" className="text-xs text-stone-500 hover:underline">NFC-e cancelada · visualizar</a>}
+                  {o.pago && nota?.status === "pendente" && <a href="/restaurante/fiscal/emissoes" className="text-xs text-amber-700 hover:underline">Fiscal pendente</a>}
+                  {o.pago && nota?.status === "erro" && <a href="/restaurante/fiscal/emissoes" className="text-xs text-red-600 hover:underline">Erro fiscal · resolver</a>}
+                  {o.pago && !nota && <a href="/restaurante/fiscal/emissoes" className="text-xs text-stone-500 hover:underline">Fiscal não emitida</a>}
                   {!o.pago && !nota && <form action={deleteOrder.bind(null, o.id)}><button type="submit" className="text-xs text-red-600 hover:underline">Excluir</button></form>}
                 </div>
               </div>

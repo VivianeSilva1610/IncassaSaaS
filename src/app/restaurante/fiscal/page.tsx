@@ -2,6 +2,24 @@ import Link from "next/link";
 
 const MODULOS = [
   {
+    href: "/restaurante/fiscal/emissoes",
+    titulo: "Emissões fiscais",
+    descricao: "Vendas pagas sem nota, emissões pendentes e tentativas que precisam ser refeitas.",
+    icone: "!",
+  },
+  {
+    href: "/restaurante/fiscal/fechamento-diario",
+    titulo: "Fechamento diário",
+    descricao: "Concilie vendas, recebimentos, estornos e a relação das NFC-e do dia.",
+    icone: "D",
+  },
+  {
+    href: "/restaurante/fiscal/fechamento-mensal",
+    titulo: "Fechamento mensal",
+    descricao: "Consolide competência, caixa, documentos fiscais e pendências do mês.",
+    icone: "M",
+  },
+  {
     href: "/restaurante/fiscal/exportacao",
     titulo: "Exportar para o contador",
     descricao: "Relatórios por competência ou caixa, com pagamentos, estornos e documentos fiscais.",

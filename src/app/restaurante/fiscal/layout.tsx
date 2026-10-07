@@ -4,6 +4,9 @@ import { requireRestaurantSubscription } from "@/lib/subscription";
 
 const LINKS = [
   { href: "/restaurante/fiscal", label: "Visão geral" },
+  { href: "/restaurante/fiscal/emissoes", label: "Emissões" },
+  { href: "/restaurante/fiscal/fechamento-diario", label: "Fechamento diário" },
+  { href: "/restaurante/fiscal/fechamento-mensal", label: "Fechamento mensal" },
   { href: "/restaurante/fiscal/exportacao", label: "Exportação" },
   { href: "/restaurante/fiscal/estabelecimento", label: "Estabelecimento" },
   { href: "/restaurante/fiscal/classificacao", label: "Classificação" },

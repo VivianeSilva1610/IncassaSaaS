@@ -2,9 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getFiscalProvider } from "./nfce";
 
 type ItemFiscal = {
+  product_id: string;
   quantidade: number;
   preco_unitario: number;
-  del_products: { nome: string; ncm: string | null; cfop: string; cest: string | null; origem: number } | null;
+  del_products: { nome: string; categoria: string; ncm: string | null; cfop: string; cest: string | null; origem: number } | null;
 };
 
 export async function emitirNotaFiscalParaPedido(
@@ -19,7 +20,7 @@ export async function emitirNotaFiscalParaPedido(
 
   const { data: pedido } = await supabase
     .from("del_orders")
-    .select("id, totale, pago, cliente_nome, cliente_cpf_cnpj, del_order_items(quantidade, preco_unitario, del_products(nome, ncm, cfop, cest, origem))")
+    .select("id, totale, pago, cliente_nome, cliente_cpf_cnpj, del_order_items(product_id, quantidade, preco_unitario, del_products(nome, categoria, ncm, cfop, cest, origem))")
     .eq("id", params.orderId)
     .eq("owner_id", params.ownerId)
     .single();
@@ -41,6 +42,18 @@ export async function emitirNotaFiscalParaPedido(
   const provider = getFiscalProvider(config?.provedor ?? null);
   const numero = config?.proxima_numeracao ?? 1;
   const serie = config?.serie ?? 1;
+  const itensSnapshot = ((pedido.del_order_items ?? []) as unknown as ItemFiscal[]).map((item) => ({
+    product_id: item.product_id,
+    nome: item.del_products?.nome ?? "Produto não encontrado",
+    categoria: item.del_products?.categoria ?? null,
+    quantidade: Number(item.quantidade),
+    preco_unitario: Number(item.preco_unitario),
+    valor_total: Number(item.quantidade) * Number(item.preco_unitario),
+    ncm: item.del_products?.ncm ?? null,
+    cfop: item.del_products?.cfop ?? null,
+    cest: item.del_products?.cest ?? null,
+    origem: item.del_products?.origem ?? null,
+  }));
 
   const resultado = await provider.emitirNFCe({
     fiscalConfig: {
@@ -61,14 +74,14 @@ export async function emitirNotaFiscalParaPedido(
       totale: Number(pedido.totale),
       clienteNome: pedido.cliente_nome,
       clienteCpfCnpj: pedido.cliente_cpf_cnpj,
-      items: ((pedido.del_order_items ?? []) as unknown as ItemFiscal[]).map((it) => ({
-        nome: it.del_products?.nome ?? "?",
-        quantidade: Number(it.quantidade),
-        precoUnitario: Number(it.preco_unitario),
-        ncm: it.del_products?.ncm ?? null,
-        cfop: it.del_products?.cfop ?? "5102",
-        cest: it.del_products?.cest ?? null,
-        origem: Number(it.del_products?.origem ?? 0),
+      items: itensSnapshot.map((item) => ({
+        nome: item.nome,
+        quantidade: item.quantidade,
+        precoUnitario: item.preco_unitario,
+        ncm: item.ncm,
+        cfop: item.cfop ?? "5102",
+        cest: item.cest,
+        origem: Number(item.origem ?? 0),
       })),
     },
     numero,
@@ -91,6 +104,7 @@ export async function emitirNotaFiscalParaPedido(
       url_xml: resultado.urlXml ?? null,
       erro_mensagem: resultado.mensagemErro ?? null,
       emitida_em: resultado.status === "emitida" ? new Date().toISOString() : null,
+      itens_snapshot: itensSnapshot,
     })
     .select("id")
     .single();

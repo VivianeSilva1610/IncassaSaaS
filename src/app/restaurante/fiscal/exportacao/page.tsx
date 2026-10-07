@@ -22,10 +22,16 @@ export default function ExportacaoFiscalPage() {
           <label className="block text-xs font-medium text-stone-600">Data final</label>
           <input type="date" name="to" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm" />
         </div>
-        <button type="submit" className="rounded-md bg-stone-900 px-4 py-2.5 text-sm font-medium text-white sm:col-span-2">
-          Baixar arquivo CSV
-        </button>
+        <div className="grid gap-2 sm:col-span-2 sm:grid-cols-2">
+          <button type="submit" name="arquivo" value="resumo" className="rounded-md bg-stone-900 px-4 py-2.5 text-sm font-medium text-white">Baixar resumo de vendas</button>
+          <button type="submit" name="arquivo" value="itens" className="rounded-md bg-amber-700 px-4 py-2.5 text-sm font-medium text-white">Baixar itens vendidos</button>
+        </div>
       </form>
+      <div className="mt-4 rounded-lg border border-stone-200 bg-stone-50 p-4 text-xs text-stone-600">
+        <p><strong>Resumo:</strong> uma linha por venda, com pagamento, estorno e documento fiscal.</p>
+        <p className="mt-1"><strong>Itens vendidos:</strong> uma linha por produto, incluindo quantidade, valores, NCM, CFOP, CEST, origem e vínculo com a NFC-e.</p>
+        <p className="mt-1">Campos fiscais ausentes são marcados como classificação incompleta para revisão do contador.</p>
+      </div>
     </div>
   );
 }
