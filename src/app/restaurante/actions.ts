@@ -73,7 +73,7 @@ export async function addIngredient(formData: FormData) {
   });
   if (error) throw new Error(`Não foi possível salvar o ingrediente: ${error.message}`);
 
-  revalidatePath("/restaurante/estoque");
+  revalidatePath("/restaurante/estoque/produtos");
 }
 
 export async function updateIngredient(id: string, formData: FormData) {
@@ -91,14 +91,14 @@ export async function updateIngredient(id: string, formData: FormData) {
     .eq("id", id);
   if (error) throw new Error(`Não foi possível atualizar o ingrediente: ${error.message}`);
 
-  revalidatePath("/restaurante/estoque");
+  revalidatePath("/restaurante/estoque/produtos");
 }
 
 export async function deleteIngredient(id: string) {
   const { supabase, isGerente } = await requireRestaurantSubscription();
   if (!isGerente) throw new Error("Apenas o dono ou um gerente pode excluir do estoque.");
   await supabase.from("del_ingredients").delete().eq("id", id);
-  revalidatePath("/restaurante/estoque");
+  revalidatePath("/restaurante/estoque/produtos");
 }
 
 // Tela única de "compra de fornecedor": se o produto já existe (código
@@ -144,7 +144,8 @@ export async function registrarCompraFornecedor(formData: FormData) {
     if (error) throw new Error(`Não foi possível cadastrar o produto: ${error.message}`);
   }
 
-  revalidatePath("/restaurante/estoque");
+  revalidatePath("/restaurante/estoque/compras");
+  revalidatePath("/restaurante/estoque/produtos");
 }
 
 export async function addStockMovement(formData: FormData) {
@@ -160,7 +161,7 @@ export async function addStockMovement(formData: FormData) {
   }
 
   await registerStockMovement(supabase, { ownerId: restaurantOwnerId, ingredientId, tipo, quantidade, motivo });
-  revalidatePath("/restaurante/estoque");
+  revalidatePath("/restaurante/estoque/produtos");
 }
 
 const VALID_CATEGORIAS = ["prato", "bebida", "tamanho", "principal", "acompanhamento", "extra"];
