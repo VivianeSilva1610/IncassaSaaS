@@ -18,23 +18,30 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const supabase = createClient(rememberMe);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      const supabase = createClient(rememberMe);
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
-      if (error.code === "email_not_confirmed" || error.message.includes("Email not confirmed")) {
-        setError(
-          "Devi prima confermare la tua email. Controlla la posta in arrivo (anche spam e cestino) e clicca sul link che ti abbiamo mandato in fase di registrazione.",
-        );
-      } else {
-        setError("Email o password non corretti.");
+      if (signInError) {
+        if (signInError.code === "email_not_confirmed" || signInError.message.includes("Email not confirmed")) {
+          setError(
+            "Devi prima confermare la tua email. Controlla la posta in arrivo (anche spam e cestino) e clicca sul link che ti abbiamo mandato in fase di registrazione.",
+          );
+        } else if (signInError.status === 0) {
+          setError("Impossibile contattare il servizio di accesso. Controlla la connessione e riprova.");
+        } else {
+          setError("Email o password non corretti.");
+        }
+        return;
       }
-      setLoading(false);
-      return;
-    }
 
-    router.push("/app");
-    router.refresh();
+      router.push("/app");
+      router.refresh();
+    } catch {
+      setError("Impossibile contattare il servizio di accesso. Controlla la connessione e riprova.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -79,7 +86,7 @@ export default function LoginPage() {
       </form>
 
       <div className="mt-4 flex justify-between text-xs text-stone-500">
-        <Link href="/signup" className="text-amber-700 underline underline-offset-2">
+        <Link href="/cadastro-restaurante" className="text-amber-700 underline underline-offset-2">
           Crea un account
         </Link>
         <Link href="/recupera-password" className="text-amber-700 underline underline-offset-2">

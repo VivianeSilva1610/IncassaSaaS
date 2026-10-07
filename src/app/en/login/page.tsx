@@ -18,23 +18,30 @@ export default function LoginPageEn() {
     setLoading(true);
     setError(null);
 
-    const supabase = createClient(rememberMe);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      const supabase = createClient(rememberMe);
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
-      if (error.code === "email_not_confirmed" || error.message.includes("Email not confirmed")) {
-        setError(
-          "You need to confirm your email first. Check your inbox (including spam and trash) and click the link we sent you when you signed up.",
-        );
-      } else {
-        setError("Incorrect email or password.");
+      if (signInError) {
+        if (signInError.code === "email_not_confirmed" || signInError.message.includes("Email not confirmed")) {
+          setError(
+            "You need to confirm your email first. Check your inbox (including spam and trash) and click the link we sent you when you signed up.",
+          );
+        } else if (signInError.status === 0) {
+          setError("The login service could not be reached. Check your connection and try again.");
+        } else {
+          setError("Incorrect email or password.");
+        }
+        return;
       }
-      setLoading(false);
-      return;
-    }
 
-    router.push("/app");
-    router.refresh();
+      router.push("/app");
+      router.refresh();
+    } catch {
+      setError("The login service could not be reached. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -79,7 +86,7 @@ export default function LoginPageEn() {
       </form>
 
       <div className="mt-4 flex justify-between text-xs text-stone-500">
-        <Link href="/en/signup" className="text-amber-700 underline underline-offset-2">
+        <Link href="/cadastro-restaurante" className="text-amber-700 underline underline-offset-2">
           Create an account
         </Link>
         <Link href="/en/recupera-password" className="text-amber-700 underline underline-offset-2">
