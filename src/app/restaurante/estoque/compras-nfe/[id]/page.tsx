@@ -21,7 +21,7 @@ const destinationLabels: Record<string, string> = {
 export default async function CompraDetalhePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ sucesso?: string; erro?: string }> }) {
   const { id } = await params;
   const query = await searchParams;
-  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("estoque");
+  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("compras");
   const { data: nota } = await supabase
     .from("del_notas_entrada")
     .select("id, numero, serie, chave_acesso, fornecedor_id, fornecedor_nome, fornecedor_documento, destinatario_documento, valor_total, emitida_em, protocolo_autorizacao, status, importada_em")
@@ -61,7 +61,7 @@ export default async function CompraDetalhePage({ params, searchParams }: { para
 
   return (
     <div>
-      <Link href="/restaurante/estoque/compras-nfe" className="text-sm text-amber-700 hover:underline">← Voltar para compras</Link>
+      <Link href="/restaurante/compras/nfe" className="text-sm text-amber-700 hover:underline">← Voltar para compras</Link>
       {query.sucesso && <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{query.sucesso}</p>}
       {query.erro && <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{query.erro}</p>}
       <div className="mt-4 rounded-xl border border-stone-200 bg-white p-5">

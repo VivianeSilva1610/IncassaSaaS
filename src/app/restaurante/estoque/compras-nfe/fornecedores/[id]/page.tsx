@@ -8,7 +8,7 @@ function money(value: number) {
 
 export default async function FornecedorDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("estoque");
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("compras");
   const { data: supplier } = await supabase
     .from("del_fornecedores")
     .select("id, documento, razao_social, nome_fantasia, created_at")
@@ -30,7 +30,7 @@ export default async function FornecedorDetalhePage({ params }: { params: Promis
 
   return (
     <div>
-      <Link href="/restaurante/estoque/compras-nfe/fornecedores" className="text-sm text-amber-700 hover:underline">← Voltar para fornecedores</Link>
+      <Link href="/restaurante/compras/nfe/fornecedores" className="text-sm text-amber-700 hover:underline">← Voltar para fornecedores</Link>
       <div className="mt-4 rounded-xl border border-stone-200 bg-white p-5">
         <h1 className="text-2xl font-bold text-stone-900">{supplier.nome_fantasia || supplier.razao_social}</h1>
         <p className="mt-1 text-sm text-stone-600">{supplier.razao_social}</p>
@@ -45,7 +45,7 @@ export default async function FornecedorDetalhePage({ params }: { params: Promis
       <div className="mt-6 space-y-3">
         <h2 className="font-semibold text-stone-900">Histórico de notas</h2>
         {(notes ?? []).map((note) => (
-          <Link key={note.id} href={`/restaurante/estoque/compras-nfe/${note.id}`} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white p-4 hover:border-amber-300">
+          <Link key={note.id} href={`/restaurante/compras/nfe/${note.id}`} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white p-4 hover:border-amber-300">
             <div><p className="font-medium text-stone-900">NF-e {note.numero}{note.serie ? ` · série ${note.serie}` : ""}</p><p className="text-sm text-stone-500">{note.emitida_em ? new Date(note.emitida_em).toLocaleDateString("pt-BR") : "Data não informada"}</p></div>
             <div className="text-right"><p className="font-semibold text-stone-900">{money(Number(note.valor_total))}</p><p className="text-xs uppercase text-amber-700">{note.status}</p></div>
           </Link>

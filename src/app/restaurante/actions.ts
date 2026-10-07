@@ -135,7 +135,7 @@ export async function deleteIngredient(id: string) {
 // selecionado), só lança entrada de estoque; se não existe, cadastra um
 // produto novo com código novo e a quantidade comprada como estoque inicial.
 export async function registrarCompraFornecedor(formData: FormData) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("compras");
 
   const ingredientId = String(formData.get("ingredient_id") ?? "");
   const quantidade = Number(formData.get("quantidade") ?? 0);
@@ -183,7 +183,7 @@ export async function registrarCompraFornecedor(formData: FormData) {
     }
   }
 
-  revalidatePath("/restaurante/estoque/compras");
+  revalidatePath("/restaurante/compras/fornecedor");
   revalidatePath("/restaurante/estoque/produtos");
 }
 

@@ -9,18 +9,6 @@ const MODULOS = [
     icone: "📦",
   },
   {
-    href: "/restaurante/estoque/compras",
-    titulo: "Compra de fornecedor",
-    descricao: "Informe uma compra: soma ao estoque de um produto existente ou cadastra um novo.",
-    icone: "🧾",
-  },
-  {
-    href: "/restaurante/estoque/compras-nfe",
-    titulo: "Compras e fornecedores (NF-e)",
-    descricao: "Importe o XML da NF-e recebida, classifique os itens e acompanhe por fornecedor.",
-    icone: "📥",
-  },
-  {
     href: "/restaurante/estoque/inventario",
     titulo: "Inventário",
     descricao: "Conte o estoque físico e deixe o sistema ajustar as diferenças (perda ou sobra) sozinho.",

@@ -3,13 +3,13 @@ import { requireRestaurantSubscription } from "@/lib/subscription";
 import { registrarCompraFornecedor } from "@/app/restaurante/actions";
 
 export default async function EstoqueComprasPage() {
-  const { supabase } = await requireRestaurantSubscription("estoque");
+  const { supabase } = await requireRestaurantSubscription("compras");
   const { data: todosIngredientes } = await supabase.from("del_ingredients").select("*").order("nome");
 
   return (
     <div>
-      <Link href="/restaurante/estoque" className="text-sm text-amber-700 underline underline-offset-2">
-        ← Estoque
+      <Link href="/restaurante/compras" className="text-sm text-amber-700 underline underline-offset-2">
+        ← Compras
       </Link>
 
       <h1 className="mt-2 text-2xl font-bold text-stone-900">Compra de fornecedor</h1>
@@ -65,7 +65,7 @@ export default async function EstoqueComprasPage() {
 
       <p className="mt-4 text-xs text-stone-500">
         Pra importar uma NF-e real de fornecedor (XML), use{" "}
-        <Link href="/restaurante/estoque/compras-nfe" className="text-amber-700 underline underline-offset-2">
+        <Link href="/restaurante/compras/nfe" className="text-amber-700 underline underline-offset-2">
           Compras e fornecedores
         </Link>
         .

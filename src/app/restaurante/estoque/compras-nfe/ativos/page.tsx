@@ -6,7 +6,7 @@ function money(value: number) {
 }
 
 export default async function AtivosPage() {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("estoque");
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("compras");
   const { data: ativos } = await supabase
     .from("del_ativos")
     .select("id, nome, valor_aquisicao, adquirido_em, status, nota_entrada_item_id")
@@ -19,7 +19,7 @@ export default async function AtivosPage() {
 
   return (
     <div>
-      <Link href="/restaurante/estoque/compras-nfe" className="text-sm text-amber-700 hover:underline">← Voltar para compras</Link>
+      <Link href="/restaurante/compras/nfe" className="text-sm text-amber-700 hover:underline">← Voltar para compras</Link>
       <h1 className="mt-4 text-2xl font-bold text-stone-900">Ativos imobilizados</h1>
       <p className="mt-1 text-sm text-stone-600">
         Equipamentos classificados durante a conferência das compras. A classificação e a depreciação devem ser validadas pelo contador.

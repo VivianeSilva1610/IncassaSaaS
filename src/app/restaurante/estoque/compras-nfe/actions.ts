@@ -8,11 +8,11 @@ import { parseNfeEntrada } from "@/lib/fiscal/nfe-entrada";
 const MAX_XML_BYTES = 5 * 1024 * 1024;
 
 function comprasUrl(kind: "sucesso" | "erro", message: string) {
-  return `/restaurante/estoque/compras-nfe?${kind}=${encodeURIComponent(message)}`;
+  return `/restaurante/compras/nfe?${kind}=${encodeURIComponent(message)}`;
 }
 
 export async function importarNfeFornecedor(formData: FormData) {
-  const { user, supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("estoque");
+  const { user, supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("compras");
   if (!isGerente) redirect(comprasUrl("erro", "Apenas o dono ou um gerente pode importar compras."));
 
   const file = formData.get("xml");
@@ -125,13 +125,13 @@ export async function importarNfeFornecedor(formData: FormData) {
     }
   }
 
-  revalidatePath("/restaurante/estoque/compras-nfe");
-  redirect(`/restaurante/estoque/compras-nfe/${note.id}?sucesso=${encodeURIComponent("NF-e importada para conferência.")}`);
+  revalidatePath("/restaurante/compras/nfe");
+  redirect(`/restaurante/compras/nfe/${note.id}?sucesso=${encodeURIComponent("NF-e importada para conferência.")}`);
 }
 
 export async function processarCompra(notaId: string, formData: FormData) {
-  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("estoque");
-  if (!isGerente) redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("Apenas o dono ou um gerente pode confirmar a compra.")}`);
+  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("compras");
+  if (!isGerente) redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent("Apenas o dono ou um gerente pode confirmar a compra.")}`);
 
   const { data: nota } = await supabase
     .from("del_notas_entrada")
@@ -140,7 +140,7 @@ export async function processarCompra(notaId: string, formData: FormData) {
     .eq("owner_id", restaurantOwnerId)
     .maybeSingle();
   if (!nota) redirect(comprasUrl("erro", "Nota de entrada não encontrada."));
-  if (nota.status === "processada") redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("Esta compra já foi processada.")}`);
+  if (nota.status === "processada") redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent("Esta compra já foi processada.")}`);
 
   const { data: itens } = await supabase
     .from("del_notas_entrada_itens")
@@ -148,7 +148,7 @@ export async function processarCompra(notaId: string, formData: FormData) {
     .eq("nota_entrada_id", notaId)
     .eq("owner_id", restaurantOwnerId)
     .order("numero_item");
-  if (!itens?.length) redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("A nota não possui itens.")}`);
+  if (!itens?.length) redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent("A nota não possui itens.")}`);
 
   const destinosPermitidos = new Set([
     "insumo_producao",
@@ -169,10 +169,10 @@ export async function processarCompra(notaId: string, formData: FormData) {
     };
   });
   if (mapeamentos.some((item) => !destinosPermitidos.has(item.destinacao))) {
-    redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("Classifique a destinação de todos os itens.")}`);
+    redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent("Classifique a destinação de todos os itens.")}`);
   }
   if (mapeamentos.some((item) => destinosComEstoque.has(item.destinacao) && (!/^[0-9a-f-]{36}$/i.test(item.ingrediente_id) || !Number.isFinite(item.quantidade_estoque) || item.quantidade_estoque <= 0))) {
-    redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("Itens com controle de estoque precisam de vínculo e quantidade válida.")}`);
+    redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent("Itens com controle de estoque precisam de vínculo e quantidade válida.")}`);
   }
 
   const gerarConta = formData.get("gerar_conta") === "on";
@@ -188,7 +188,7 @@ export async function processarCompra(notaId: string, formData: FormData) {
         .maybeSingle()
     : { data: null };
   if (gerarConta && !primeiraParcela && !/^\d{4}-\d{2}-\d{2}$/.test(vencimento)) {
-    redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("Informe o vencimento da conta a pagar.")}`);
+    redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent("Informe o vencimento da conta a pagar.")}`);
   }
 
   const { error } = await supabase.rpc("del_processar_nota_entrada", {
@@ -199,7 +199,7 @@ export async function processarCompra(notaId: string, formData: FormData) {
     // migration 0060 substitui a conta única pelas parcelas e datas do XML.
     p_vencimento: gerarConta ? (primeiraParcela?.vencimento ?? vencimento) : null,
   });
-  if (error) redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent(`Não foi possível processar: ${error.message}`)}`);
+  if (error) redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent(`Não foi possível processar: ${error.message}`)}`);
 
   const itensPorId = new Map(itens.map((item) => [item.id, item]));
   const memorias = mapeamentos.flatMap((mapeamento) => {
@@ -226,16 +226,16 @@ export async function processarCompra(notaId: string, formData: FormData) {
     });
   }
 
-  revalidatePath("/restaurante/estoque/compras-nfe");
-  revalidatePath(`/restaurante/estoque/compras-nfe/${notaId}`);
+  revalidatePath("/restaurante/compras/nfe");
+  revalidatePath(`/restaurante/compras/nfe/${notaId}`);
   revalidatePath("/restaurante/estoque");
   revalidatePath("/restaurante/financeiro/contas-a-pagar");
-  redirect(`/restaurante/estoque/compras-nfe/${notaId}?sucesso=${encodeURIComponent("Compra classificada e processada com sucesso.")}`);
+  redirect(`/restaurante/compras/nfe/${notaId}?sucesso=${encodeURIComponent("Compra classificada e processada com sucesso.")}`);
 }
 
 export async function excluirNotaEntrada(notaId: string) {
-  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("estoque");
-  if (!isGerente) redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("Apenas o dono ou um gerente pode excluir a nota.")}`);
+  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("compras");
+  if (!isGerente) redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent("Apenas o dono ou um gerente pode excluir a nota.")}`);
 
   const { data: nota } = await supabase
     .from("del_notas_entrada")
@@ -246,7 +246,7 @@ export async function excluirNotaEntrada(notaId: string) {
 
   if (!nota) redirect(comprasUrl("erro", "Nota de entrada não encontrada."));
   if (!['importada', 'conferida'].includes(nota.status)) {
-    redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("Esta nota já afetou o estoque ou foi cancelada e não pode ser excluída. Faça um estorno.")}`);
+    redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent("Esta nota já afetou o estoque ou foi cancelada e não pode ser excluída. Faça um estorno.")}`);
   }
 
   const { error } = await supabase
@@ -255,15 +255,15 @@ export async function excluirNotaEntrada(notaId: string) {
     .eq("id", notaId)
     .eq("owner_id", restaurantOwnerId)
     .in("status", ["importada", "conferida"]);
-  if (error) redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent(`Não foi possível excluir a nota: ${error.message}`)}`);
+  if (error) redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent(`Não foi possível excluir a nota: ${error.message}`)}`);
 
-  revalidatePath("/restaurante/estoque/compras-nfe");
+  revalidatePath("/restaurante/compras/nfe");
   redirect(comprasUrl("sucesso", "Nota importada excluída. Agora você pode corrigir o cadastro e importá-la novamente."));
 }
 
 export async function criarItemEstoqueNaCompra(notaId: string, formData: FormData) {
-  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("estoque");
-  if (!isGerente) redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("Apenas o dono ou um gerente pode cadastrar itens de estoque.")}`);
+  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("compras");
+  if (!isGerente) redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent("Apenas o dono ou um gerente pode cadastrar itens de estoque.")}`);
 
   const { data: nota } = await supabase
     .from("del_notas_entrada")
@@ -272,7 +272,7 @@ export async function criarItemEstoqueNaCompra(notaId: string, formData: FormDat
     .eq("owner_id", restaurantOwnerId)
     .maybeSingle();
   if (!nota || !["importada", "conferida"].includes(nota.status)) {
-    redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("Esta compra não permite novos cadastros de estoque.")}`);
+    redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent("Esta compra não permite novos cadastros de estoque.")}`);
   }
 
   const notaItemId = String(formData.get("nota_item_id") ?? "");
@@ -293,16 +293,16 @@ export async function criarItemEstoqueNaCompra(notaId: string, formData: FormDat
   const ncmXml = String(notaItem?.ncm ?? "").replace(/\D/g, "");
   const ncm = ncmInformado || ncmXml || null;
   if (ncm && !/^\d{8}$/.test(ncm)) {
-    redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("O NCM deve conter 8 dígitos.")}`);
+    redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent("O NCM deve conter 8 dígitos.")}`);
   }
   const estoqueMinimoRaw = String(formData.get("estoque_minimo") ?? "").trim();
   const estoqueMinimo = estoqueMinimoRaw ? Number(estoqueMinimoRaw) : null;
   const unidadesPermitidas = new Set(["kg", "g", "l", "ml", "un", "cx", "pct"]);
   if (nome.length < 2 || nome.length > 120 || !unidadesPermitidas.has(unidade)) {
-    redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("Informe um nome e uma unidade de estoque válidos.")}`);
+    redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent("Informe um nome e uma unidade de estoque válidos.")}`);
   }
   if (estoqueMinimo !== null && (!Number.isFinite(estoqueMinimo) || estoqueMinimo < 0)) {
-    redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("O estoque mínimo não é válido.")}`);
+    redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent("O estoque mínimo não é válido.")}`);
   }
 
   const { data: existente } = await supabase
@@ -313,7 +313,7 @@ export async function criarItemEstoqueNaCompra(notaId: string, formData: FormDat
     .limit(1)
     .maybeSingle();
   if (existente) {
-    redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("Já existe um item de estoque com esse nome. Selecione-o na lista.")}`);
+    redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent("Já existe um item de estoque com esse nome. Selecione-o na lista.")}`);
   }
 
   const { data: ultimo } = await supabase
@@ -337,9 +337,9 @@ export async function criarItemEstoqueNaCompra(notaId: string, formData: FormDat
     ncm_origem: ncm ? (ncmInformado ? "manual" : "xml") : null,
     ncm_revisado: ncm ? formData.get("ncm_revisado") === "on" : false,
   });
-  if (error) redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent(`Não foi possível cadastrar o item: ${error.message}`)}`);
+  if (error) redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent(`Não foi possível cadastrar o item: ${error.message}`)}`);
 
-  revalidatePath(`/restaurante/estoque/compras-nfe/${notaId}`);
+  revalidatePath(`/restaurante/compras/nfe/${notaId}`);
   revalidatePath("/restaurante/estoque");
-  redirect(`/restaurante/estoque/compras-nfe/${notaId}?sucesso=${encodeURIComponent(`${nome} foi cadastrado com saldo zero. Agora selecione-o no item da nota.`)}`);
+  redirect(`/restaurante/compras/nfe/${notaId}?sucesso=${encodeURIComponent(`${nome} foi cadastrado com saldo zero. Agora selecione-o no item da nota.`)}`);
 }

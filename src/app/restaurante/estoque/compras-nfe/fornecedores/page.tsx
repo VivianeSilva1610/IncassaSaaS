@@ -13,7 +13,7 @@ function document(value: string) {
 }
 
 export default async function FornecedoresPage({ searchParams }: { searchParams: Promise<{ busca?: string }> }) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("estoque");
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("compras");
   const { busca = "" } = await searchParams;
   const normalizedSearch = busca.trim().toLocaleLowerCase("pt-BR");
 
@@ -42,14 +42,14 @@ export default async function FornecedoresPage({ searchParams }: { searchParams:
 
   return (
     <div>
-      <Link href="/restaurante/estoque/compras-nfe" className="text-sm text-amber-700 hover:underline">← Voltar para compras</Link>
+      <Link href="/restaurante/compras/nfe" className="text-sm text-amber-700 hover:underline">← Voltar para compras</Link>
       <h1 className="mt-4 text-2xl font-bold text-stone-900">Fornecedores</h1>
       <p className="mt-1 text-sm text-stone-600">Cadastro formado automaticamente pelos XMLs importados, separado por estabelecimento.</p>
 
       <form className="mt-5 flex gap-2 rounded-xl border border-stone-200 bg-white p-4">
         <input name="busca" defaultValue={busca} placeholder="Nome, nome fantasia, CNPJ ou CPF" className="min-w-0 flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm" />
         <button className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white">Buscar</button>
-        {busca && <Link href="/restaurante/estoque/compras-nfe/fornecedores" className="self-center text-sm text-stone-500 hover:underline">Limpar</Link>}
+        {busca && <Link href="/restaurante/compras/nfe/fornecedores" className="self-center text-sm text-stone-500 hover:underline">Limpar</Link>}
       </form>
 
       <div className="mt-6 space-y-3">
@@ -59,7 +59,7 @@ export default async function FornecedoresPage({ searchParams }: { searchParams:
           const totalProcessed = processed.reduce((total, note) => total + Number(note.valor_total), 0);
           const pending = supplierNotes.filter((note) => note.status !== "processada").length;
           return (
-            <Link key={supplier.id} href={`/restaurante/estoque/compras-nfe/fornecedores/${supplier.id}`} className="block rounded-xl border border-stone-200 bg-white p-4 hover:border-amber-300">
+            <Link key={supplier.id} href={`/restaurante/compras/nfe/fornecedores/${supplier.id}`} className="block rounded-xl border border-stone-200 bg-white p-4 hover:border-amber-300">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div><p className="font-medium text-stone-900">{supplier.nome_fantasia || supplier.razao_social}</p><p className="text-sm text-stone-500">{supplier.razao_social} · {document(supplier.documento)}</p></div>
                 <div className="text-right"><p className="font-semibold text-stone-900">{money(totalProcessed)}</p><p className="text-xs text-stone-500">{processed.length} processada(s){pending ? ` · ${pending} pendente(s)` : ""}</p></div>
