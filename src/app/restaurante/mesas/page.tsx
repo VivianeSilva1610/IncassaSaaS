@@ -78,7 +78,8 @@ export default async function MesasPage() {
                   <form action={fecharComanda.bind(null, comanda.id)} className="mt-2 flex flex-wrap items-center gap-2">
                     <select name="forma_pagamento" className="rounded-md border border-stone-300 px-2 py-1.5 text-xs">
                       <option value="dinheiro">Dinheiro</option>
-                      <option value="cartao">Cartão</option>
+                      <option value="cartao_debito">Cartão de débito</option>
+                      <option value="cartao_credito">Cartão de crédito</option>
                       <option value="pix">Pix</option>
                     </select>
                     <button type="submit" className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white">

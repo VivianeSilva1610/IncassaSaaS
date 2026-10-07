@@ -376,7 +376,8 @@ export async function emitirNotaFiscal(orderId: string) {
 // Pedidos de mesa/balcão/telefone não passam por gateway de pagamento —
 // o cliente paga na hora, então é o atendente quem registra que recebeu.
 // A emissão fiscal só é disparada quando a opção automática estiver ativa;
-// por padrão, marcar como pago registra apenas o evento financeiro.
+// No balcão e na mesa, o recebimento também conclui a entrega/consumo e a
+// competência. Nos demais canais, pagamento e entrega continuam separados.
 export async function marcarPedidoPago(orderId: string, formData: FormData) {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
   await confirmarPagamentoEEmitirNota(supabase, {
@@ -386,6 +387,8 @@ export async function marcarPedidoPago(orderId: string, formData: FormData) {
   });
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/vendas/pedidos");
+  revalidatePath("/restaurante/cozinha");
+  revalidatePath("/restaurante/caixa");
   revalidatePath("/restaurante/fiscal");
   revalidatePath("/restaurante/fiscal/notas");
 }
@@ -655,18 +658,49 @@ export async function deleteMesa(id: string) {
 }
 
 export async function fecharComanda(id: string, formData: FormData) {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
-  const formaPagamento = String(formData.get("forma_pagamento") ?? "") || null;
+  const formaPagamento = String(formData.get("forma_pagamento") ?? "");
+  const formasPermitidas = ["pix", "dinheiro", "cartao_debito", "cartao_credito", "outro"];
+  if (!formasPermitidas.includes(formaPagamento)) throw new Error("Selecione uma forma de pagamento válida.");
+
+  const { data: comanda, error: consultaError } = await supabase
+    .from("del_comandas")
+    .select("id, status, del_orders(id, status)")
+    .eq("id", id)
+    .eq("owner_id", restaurantOwnerId)
+    .maybeSingle();
+  if (consultaError) throw new Error(`Não foi possível consultar a comanda: ${consultaError.message}`);
+  if (!comanda) throw new Error("Comanda não encontrada.");
+  if (comanda.status !== "aberta") throw new Error("Esta comanda já foi fechada.");
+
+  const pedidos = comanda.del_orders ?? [];
+  if (pedidos.length === 0) throw new Error("Não é possível fechar uma comanda sem pedidos.");
+  if (pedidos.some((pedido) => pedido.status === "cancelado")) {
+    throw new Error("A comanda contém pedido cancelado. Revise os pedidos antes de receber o pagamento.");
+  }
+
+  for (const pedido of pedidos) {
+    await confirmarPagamentoEEmitirNota(supabase, {
+      ownerId: restaurantOwnerId,
+      orderId: pedido.id,
+      formaPagamento,
+    });
+  }
 
   const { error } = await supabase
     .from("del_comandas")
     .update({ status: "fechada", forma_pagamento: formaPagamento, fechada_em: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("owner_id", restaurantOwnerId)
+    .eq("status", "aberta");
   if (error) throw new Error(`Não foi possível fechar a comanda: ${error.message}`);
 
   revalidatePath("/restaurante/mesas");
   revalidatePath("/restaurante/vendas/mesas");
+  revalidatePath("/restaurante/vendas/pedidos");
+  revalidatePath("/restaurante/caixa");
+  revalidatePath("/restaurante/fiscal/notas");
 }
 
 async function getRestauranteIdDoOwner(supabase: SupabaseClient, ownerId: string): Promise<string> {

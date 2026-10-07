@@ -183,22 +183,50 @@ export async function confirmarPagamentoEEmitirNota(
   supabase: SupabaseClient,
   params: { ownerId: string; orderId: string; formaPagamento?: string; valorPago?: number },
 ) {
-  const pagoEm = new Date().toISOString();
-  const { data: pedidoConfirmado, error } = await supabase
+  const { data: pedido, error: pedidoError } = await supabase
     .from("del_orders")
-    .update({
-      pago: true,
-      pago_em: pagoEm,
-      forma_pagamento: params.formaPagamento ?? null,
-      valor_pago: params.valorPago ?? null,
-    })
+    .select("id, canal, status, pago, totale")
     .eq("id", params.orderId)
     .eq("owner_id", params.ownerId)
-    .eq("pago", false)
-    .select("id")
     .maybeSingle();
+  if (pedidoError) throw new Error(`Não foi possível consultar o pedido: ${pedidoError.message}`);
+  if (!pedido) throw new Error("Pedido não encontrado.");
+  if (pedido.status === "cancelado") throw new Error("Um pedido cancelado não pode ser marcado como pago.");
+
+  const agora = new Date().toISOString();
+  const concluiNaHora = pedido.canal === "balcao" || pedido.canal === "mesa";
+  const atualizacao: Record<string, string | number | boolean> = {};
+
+  if (!pedido.pago) {
+    atualizacao.pago = true;
+    atualizacao.pago_em = agora;
+    atualizacao.forma_pagamento = params.formaPagamento ?? "outro";
+    atualizacao.valor_pago = params.valorPago ?? Number(pedido.totale);
+  }
+  if (concluiNaHora && pedido.status !== "entregue") {
+    atualizacao.status = "entregue";
+    atualizacao.entregue_em = agora;
+    atualizacao.competencia_em = agora;
+  }
+
+  if (Object.keys(atualizacao).length === 0) {
+    return { jaConfirmado: true as const, notaId: null };
+  }
+
+  let updateQuery = supabase
+    .from("del_orders")
+    .update(atualizacao)
+    .eq("id", params.orderId)
+    .eq("owner_id", params.ownerId)
+    .neq("status", "cancelado");
+  if (!pedido.pago) updateQuery = updateQuery.eq("pago", false);
+  const { data: pedidoAtualizado, error } = await updateQuery.select("id").maybeSingle();
   if (error) throw new Error(`Não foi possível marcar o pedido como pago: ${error.message}`);
-  if (!pedidoConfirmado) return { jaConfirmado: true as const, notaId: null };
+  if (!pedidoAtualizado) return { jaConfirmado: true as const, notaId: null };
+
+  // Se o pagamento já existia, esta chamada apenas concluiu a operação de
+  // balcão/mesa. Não tenta emitir novamente uma nota possivelmente já criada.
+  if (pedido.pago) return { jaConfirmado: true as const, notaId: null };
 
   const { data: config } = await supabase
     .from("del_fiscal_config")

@@ -134,6 +134,11 @@ export default async function NotasFiscaisPage({
             {n.chave_acesso && <p className="mt-1 break-all text-xs text-stone-500">Chave: {n.chave_acesso}</p>}
             {n.justificativa_cancelamento && <p className="mt-1 text-xs text-stone-500">Motivo: {n.justificativa_cancelamento}</p>}
             {n.protocolo_cancelamento && <p className="mt-1 text-xs text-stone-500">Protocolo: {n.protocolo_cancelamento}</p>}
+            {(n.status === "emitida" || n.status === "cancelada") && (
+              <a href={`/restaurante/fiscal/notas/${n.id}/imprimir`} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-xs font-medium text-amber-700 hover:underline">
+                Visualizar / imprimir
+              </a>
+            )}
             {Number(n.del_orders?.valor_estornado ?? 0) > 0 && n.status === "emitida" && (
               <p className="mt-2 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800">O pagamento foi estornado, mas a nota continua válida. Verifique o cancelamento fiscal ou a devolução adequada.</p>
             )}
