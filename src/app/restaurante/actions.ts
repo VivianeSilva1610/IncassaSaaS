@@ -346,6 +346,44 @@ export async function updateFiscalConfig(formData: FormData) {
   revalidatePath("/restaurante/fiscal/estabelecimento");
 }
 
+export async function updateFiscalConfigIt(formData: FormData) {
+  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
+  if (!isOwner) throw new Error("Apenas o dono do restaurante pode editar os dados fiscais.");
+
+  const ambiente = String(formData.get("ambiente") ?? "homologacao");
+  const provedor = String(formData.get("provedor") ?? "") || null;
+  if (ambiente === "producao") {
+    throw new Error("A emissão em produção permanece bloqueada até integrar e homologar um provedor fiscal real com o commercialista.");
+  }
+
+  const restaurantId = await getRestauranteIdDoOwner(supabase, restaurantOwnerId);
+
+  const { error: perfilError } = await supabase.from("restaurant_fiscal_profiles").upsert(
+    { restaurant_id: restaurantId, ambiente, updated_at: new Date().toISOString() },
+    { onConflict: "restaurant_id" },
+  );
+  if (perfilError) throw new Error(`Não foi possível salvar o perfil fiscal: ${perfilError.message}`);
+
+  const { error } = await supabase.from("restaurant_fiscal_it").upsert(
+    {
+      restaurant_id: restaurantId,
+      ragione_sociale: String(formData.get("ragione_sociale") ?? "").trim() || null,
+      partita_iva: String(formData.get("partita_iva") ?? "").trim() || null,
+      codice_fiscale: String(formData.get("codice_fiscale") ?? "").trim() || null,
+      regime_fiscale: String(formData.get("regime_fiscale") ?? "").trim() || null,
+      pec: String(formData.get("pec") ?? "").trim() || null,
+      codice_destinatario: String(formData.get("codice_destinatario") ?? "").trim() || null,
+      provedor,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "restaurant_id" },
+  );
+  if (error) throw new Error(`Não foi possível salvar os dados fiscais: ${error.message}`);
+
+  revalidatePath("/restaurante/fiscal");
+  revalidatePath("/restaurante/fiscal/estabelecimento");
+}
+
 export async function updateProductFiscal(id: string, formData: FormData) {
   const { supabase } = await requireRestaurantSubscription();
 

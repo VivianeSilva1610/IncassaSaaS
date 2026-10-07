@@ -1,8 +1,58 @@
-import { updateFiscalConfig } from "@/app/restaurante/actions";
+import { updateFiscalConfig, updateFiscalConfigIt } from "@/app/restaurante/actions";
 import { requireRestaurantSubscription } from "@/lib/subscription";
 
 export default async function EstabelecimentoFiscalPage() {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { data: restaurant } = await supabase
+    .from("restaurants")
+    .select("id, country_code")
+    .eq("owner_user_id", restaurantOwnerId)
+    .maybeSingle();
+
+  if (restaurant?.country_code === "IT") {
+    const { data: configIt } = await supabase
+      .from("restaurant_fiscal_it")
+      .select("*")
+      .eq("restaurant_id", restaurant.id)
+      .maybeSingle();
+    const completoIt = !!(configIt?.partita_iva && configIt?.codice_fiscale && configIt?.ragione_sociale);
+
+    return (
+      <div>
+        <h1 className="text-2xl font-bold text-stone-900">Dados do estabelecimento</h1>
+        <p className="mt-1 text-sm text-stone-600">Cadastre o emitente, Partita IVA, regime e provedor de fattura elettronica.</p>
+
+        <div className={`mt-4 rounded-lg border p-3 text-sm ${completoIt ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-amber-300 bg-amber-50 text-amber-800"}`}>
+          {completoIt
+            ? "Cadastro básico preenchido. A produção continua bloqueada até a homologação e validação com o commercialista."
+            : "Complete Ragione Sociale, Partita IVA e Codice Fiscale para preparar a validação com o commercialista."}
+        </div>
+
+        <form action={updateFiscalConfigIt} className="mt-6 grid gap-3 rounded-xl border border-stone-200 bg-white p-5 sm:grid-cols-2">
+          <input name="ragione_sociale" defaultValue={configIt?.ragione_sociale ?? ""} placeholder="Ragione sociale" className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2" />
+          <input name="partita_iva" defaultValue={configIt?.partita_iva ?? ""} placeholder="Partita IVA" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+          <input name="codice_fiscale" defaultValue={configIt?.codice_fiscale ?? ""} placeholder="Codice Fiscale" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+          <select name="regime_fiscale" defaultValue={configIt?.regime_fiscale ?? ""} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
+            <option value="">Regime fiscale — confirmar com commercialista</option>
+            <option value="RF01">RF01 — Ordinario</option>
+            <option value="RF19">RF19 — Forfettario</option>
+          </select>
+          <input name="pec" defaultValue={configIt?.pec ?? ""} placeholder="PEC" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+          <input name="codice_destinatario" defaultValue={configIt?.codice_destinatario ?? ""} placeholder="Codice Destinatario (SdI)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+          <select name="provedor" defaultValue={configIt?.provedor ?? ""} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
+            <option value="">Nessun provider contrattato</option>
+            <option value="simulado">🧪 Simulazione</option>
+          </select>
+          <select name="ambiente" defaultValue="homologacao" className="rounded-md border border-stone-300 px-3 py-2 text-sm">
+            <option value="homologacao">Homologação (teste)</option>
+            <option value="producao" disabled>Produção (bloqueada)</option>
+          </select>
+          <button type="submit" className="rounded-md bg-stone-900 px-4 py-2.5 text-sm font-medium text-white sm:col-span-2">Salvar dados fiscais</button>
+        </form>
+      </div>
+    );
+  }
+
   const { data: config } = await supabase.from("del_fiscal_config").select("*").eq("owner_id", restaurantOwnerId).maybeSingle();
   const completo = !!(config?.cnpj && config?.razao_social && config?.municipio && config?.uf);
 

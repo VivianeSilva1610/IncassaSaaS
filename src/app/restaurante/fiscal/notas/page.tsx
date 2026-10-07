@@ -35,6 +35,24 @@ export default async function NotasFiscaisPage({
   searchParams: Promise<{ busca?: string; from?: string; to?: string }>;
 }) {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { data: restaurant } = await supabase
+    .from("restaurants")
+    .select("country_code")
+    .eq("owner_user_id", restaurantOwnerId)
+    .maybeSingle();
+
+  if (restaurant?.country_code === "IT") {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold text-stone-900">Notas fiscais</h1>
+        <p className="mt-4 rounded-lg border border-stone-200 bg-stone-50 p-4 text-sm text-stone-600">
+          A emissão de fattura elettronica para restaurantes na Itália ainda não está disponível
+          — esta área lista apenas notas fiscais brasileiras (NFC-e).
+        </p>
+      </div>
+    );
+  }
+
   const { busca: buscaParam, from, to } = await searchParams;
   const busca = buscaParam?.trim().slice(0, 100) ?? "";
   const documentoBusca = busca.replace(/\D/g, "");

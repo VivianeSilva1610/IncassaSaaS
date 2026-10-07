@@ -3,6 +3,24 @@ import { requireRestaurantSubscription } from "@/lib/subscription";
 
 export default async function ClassificacaoFiscalPage() {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { data: restaurant } = await supabase
+    .from("restaurants")
+    .select("country_code")
+    .eq("owner_user_id", restaurantOwnerId)
+    .maybeSingle();
+
+  if (restaurant?.country_code === "IT") {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold text-stone-900">Classificação fiscal</h1>
+        <p className="mt-4 rounded-lg border border-stone-200 bg-stone-50 p-4 text-sm text-stone-600">
+          NCM, CFOP e CEST são classificações fiscais brasileiras e não se aplicam a este
+          restaurante. Essa área ainda não tem um equivalente para a Itália.
+        </p>
+      </div>
+    );
+  }
+
   const { data: products } = await supabase
     .from("del_products")
     .select("id, nome, categoria, ncm, cfop, cest, origem")
