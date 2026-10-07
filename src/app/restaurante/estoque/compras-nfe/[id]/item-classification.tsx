@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-type Ingredient = { id: string; nome: string; unidade: string };
+type Ingredient = { id: string; nome: string; unidade: string; unidadeCompra?: string; fatorConversaoCompra?: number };
 
 const stockDestinations = new Set(["insumo_producao", "embalagem", "mercadoria_revenda"]);
 
@@ -37,7 +37,13 @@ export function ItemClassification({
     setIngredientId(id);
     const ingredient = ingredients.find((item) => item.id === id);
     const sameUnit = ingredient && invoiceUnit && ingredient.unidade.toLowerCase() === invoiceUnit.toLowerCase();
-    setStockQuantity(sameUnit ? String(invoiceQuantity) : "");
+    if (sameUnit) {
+      setStockQuantity(String(invoiceQuantity));
+    } else if (ingredient?.fatorConversaoCompra) {
+      setStockQuantity(String(Number((invoiceQuantity * ingredient.fatorConversaoCompra).toFixed(4))));
+    } else {
+      setStockQuantity("");
+    }
   }
 
   return (
@@ -97,6 +103,11 @@ export function ItemClassification({
             A quantidade fiscal permanece {invoiceQuantity} {invoiceUnit || "un."}. Este campo registra apenas a conversão para a unidade usada no estoque.
           </p>
           {suggestedIngredientId && <p className="text-xs text-emerald-700">Sugestão recuperada da última compra deste produto. Confira antes de confirmar.</p>}
+          {!suggestedIngredientId && selectedIngredient?.fatorConversaoCompra != null && invoiceUnit && selectedIngredient.unidade.toLowerCase() !== invoiceUnit.toLowerCase() && (
+            <p className="text-xs text-emerald-700">
+              Calculado a partir da conversão cadastrada no ingrediente (1 {selectedIngredient.unidadeCompra ?? "unidade de compra"} = {selectedIngredient.fatorConversaoCompra} {selectedIngredient.unidade}). Confira antes de confirmar.
+            </p>
+          )}
         </div>
       ) : (
         <p className="rounded-md bg-stone-50 px-2 py-2 text-xs text-stone-600">

@@ -65,6 +65,15 @@ export default async function EstoqueProdutosPage({
           placeholder="Custo por unidade R$ (opcional)"
           className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2"
         />
+        <input name="unidade_compra" placeholder="Unidade de compra (opcional, ex: saco, caixa)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        <input
+          name="fator_conversao_compra"
+          type="number"
+          step="0.0001"
+          min="0"
+          placeholder="Quantas unid. de estoque tem 1 unid. de compra (ex: 25)"
+          className="rounded-md border border-stone-300 px-3 py-2 text-sm"
+        />
         <input name="ncm" inputMode="numeric" maxLength={8} placeholder="NCM com 8 dígitos (opcional)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
         <label className="flex items-center gap-2 text-sm text-stone-600"><input name="ncm_revisado" type="checkbox" /> NCM conferido</label>
         <button
@@ -107,6 +116,7 @@ export default async function EstoqueProdutosPage({
                     {Number(i.quantidade_atual)} {i.unidade}
                     {i.estoque_minimo != null && ` · mínimo ${Number(i.estoque_minimo)} ${i.unidade}`}
                     {i.custo_unitario != null && ` · R$${Number(i.custo_unitario).toFixed(2)}/${i.unidade}`}
+                    {i.unidade_compra && ` · comprado em ${i.unidade_compra} (1 ${i.unidade_compra} = ${Number(i.fator_conversao_compra)} ${i.unidade})`}
                   </p>
                   {i.ncm && <p className="mt-1 text-xs text-stone-500">NCM {i.ncm} · origem {i.ncm_origem === "xml" ? "XML" : "manual"}{!i.ncm_revisado && " · revisar"}</p>}
                 </div>
@@ -140,6 +150,16 @@ export default async function EstoqueProdutosPage({
                           min="0"
                           defaultValue={i.custo_unitario ?? ""}
                           placeholder="Custo por unidade (R$)"
+                          className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
+                        />
+                        <input name="unidade_compra" defaultValue={i.unidade_compra ?? ""} placeholder="Unidade de compra (ex: saco)" className="rounded-md border border-stone-300 px-2 py-1.5 text-sm" />
+                        <input
+                          name="fator_conversao_compra"
+                          type="number"
+                          step="0.0001"
+                          min="0"
+                          defaultValue={i.fator_conversao_compra ?? ""}
+                          placeholder="Quantas unid. de estoque por unid. de compra"
                           className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
                         />
                         <input name="ncm" inputMode="numeric" maxLength={8} defaultValue={i.ncm ?? ""} placeholder="NCM (opcional)" className="rounded-md border border-stone-300 px-2 py-1.5 text-sm" />

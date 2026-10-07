@@ -64,12 +64,28 @@ function ncmOpcional(formData: FormData) {
   return ncm || null;
 }
 
+// Unidade de compra (ex: saco, caixa) é opcional, mas se informada precisa
+// vir com o fator de conversão pra unidade de estoque (ex: 1 saco = 25kg).
+function unidadeCompraOpcional(formData: FormData) {
+  const unidadeCompra = String(formData.get("unidade_compra") ?? "").trim() || null;
+  const fatorRaw = String(formData.get("fator_conversao_compra") ?? "").trim();
+  const fatorConversaoCompra = fatorRaw ? Number(fatorRaw) : null;
+  if ((unidadeCompra == null) !== (fatorConversaoCompra == null)) {
+    throw new Error("Informe a unidade de compra e o fator de conversão juntos, ou deixe os dois em branco.");
+  }
+  if (fatorConversaoCompra != null && !(fatorConversaoCompra > 0)) {
+    throw new Error("O fator de conversão precisa ser maior que zero.");
+  }
+  return { unidadeCompra, fatorConversaoCompra };
+}
+
 export async function addIngredient(formData: FormData) {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
   const codigo = await proximoCodigo(supabase, restaurantOwnerId);
   const custoUnitario = formData.get("custo_unitario") ? Number(formData.get("custo_unitario")) : null;
   const ncm = ncmOpcional(formData);
+  const { unidadeCompra, fatorConversaoCompra } = unidadeCompraOpcional(formData);
 
   const { data: novoIngrediente, error } = await supabase
     .from("del_ingredients")
@@ -81,6 +97,8 @@ export async function addIngredient(formData: FormData) {
       quantidade_atual: Number(formData.get("quantidade_atual") ?? 0),
       estoque_minimo: formData.get("estoque_minimo") ? Number(formData.get("estoque_minimo")) : null,
       custo_unitario: custoUnitario,
+      unidade_compra: unidadeCompra,
+      fator_conversao_compra: fatorConversaoCompra,
       ncm,
       ncm_origem: ncm ? "manual" : null,
       ncm_revisado: ncm ? formData.get("ncm_revisado") === "on" : false,
@@ -102,6 +120,7 @@ export async function updateIngredient(id: string, formData: FormData) {
 
   const custoUnitario = formData.get("custo_unitario") ? Number(formData.get("custo_unitario")) : null;
   const ncm = ncmOpcional(formData);
+  const { unidadeCompra, fatorConversaoCompra } = unidadeCompraOpcional(formData);
 
   const { error } = await supabase
     .from("del_ingredients")
@@ -110,6 +129,8 @@ export async function updateIngredient(id: string, formData: FormData) {
       unidade: String(formData.get("unidade") ?? "un"),
       estoque_minimo: formData.get("estoque_minimo") ? Number(formData.get("estoque_minimo")) : null,
       custo_unitario: custoUnitario,
+      unidade_compra: unidadeCompra,
+      fator_conversao_compra: fatorConversaoCompra,
       ncm,
       ncm_origem: ncm ? "manual" : null,
       ncm_revisado: ncm ? formData.get("ncm_revisado") === "on" : false,
@@ -138,15 +159,33 @@ export async function registrarCompraFornecedor(formData: FormData) {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("compras");
 
   const ingredientId = String(formData.get("ingredient_id") ?? "");
-  const quantidade = Number(formData.get("quantidade") ?? 0);
+  const quantidadeInformada = Number(formData.get("quantidade") ?? 0);
+  const unidadeInformada = String(formData.get("unidade_informada") ?? "estoque");
   const fornecedor = String(formData.get("fornecedor") ?? "").trim() || null;
-  const custoUnitario = formData.get("custo_unitario") ? Number(formData.get("custo_unitario")) : null;
+  const custoInformado = formData.get("custo_unitario") ? Number(formData.get("custo_unitario")) : null;
 
-  if (quantidade <= 0) {
+  if (quantidadeInformada <= 0) {
     throw new Error("Informe a quantidade comprada.");
   }
 
   if (ingredientId) {
+    let quantidade = quantidadeInformada;
+    let custoUnitario = custoInformado;
+
+    if (unidadeInformada === "compra") {
+      const { data: ingrediente } = await supabase
+        .from("del_ingredients")
+        .select("fator_conversao_compra, unidade_compra")
+        .eq("id", ingredientId)
+        .maybeSingle();
+      if (!ingrediente?.fator_conversao_compra) {
+        throw new Error("Esse ingrediente ainda não tem uma unidade de compra configurada — cadastre em Estoque → Produtos antes.");
+      }
+      const fator = Number(ingrediente.fator_conversao_compra);
+      quantidade = quantidadeInformada * fator;
+      if (custoInformado != null) custoUnitario = custoInformado / fator;
+    }
+
     await registerStockMovement(supabase, {
       ownerId: restaurantOwnerId,
       ingredientId,
@@ -159,6 +198,8 @@ export async function registrarCompraFornecedor(formData: FormData) {
       await registrarCustoHistorico(supabase, { ownerId: restaurantOwnerId, ingredientId, custoUnitario });
     }
   } else {
+    const quantidade = quantidadeInformada;
+    const custoUnitario = custoInformado;
     const nome = String(formData.get("nome") ?? "").trim();
     if (!nome) throw new Error("Informe o nome do novo produto.");
     const unidade = String(formData.get("unidade") ?? "un");
