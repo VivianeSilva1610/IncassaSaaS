@@ -8,7 +8,7 @@ type Tamanho = { id: string; nome: string; preco: number; maxAcompanhamentos: nu
 type CardapioDia = { diaSemana: number; productId: string };
 
 type FixedRow = { key: number; productId: string; label: string; preco: number; groupKey: number };
-type FreeRow = { key: number };
+type FreeRow = { key: number; productId: string; quantidade: number };
 
 const DIAS_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
@@ -33,10 +33,11 @@ export function NewOrderForm({
   cardapioSemana?: CardapioDia[];
   isOwner?: boolean;
 }) {
-  const [freeRows, setFreeRows] = useState<FreeRow[]>([{ key: 0 }]);
+  const [freeRows, setFreeRows] = useState<FreeRow[]>([{ key: 0, productId: "", quantidade: 1 }]);
   const [fixedRows, setFixedRows] = useState<FixedRow[]>([]);
   const [nextKey, setNextKey] = useState(1);
   const [nextGroupKey, setNextGroupKey] = useState(0);
+  const [taxaEntrega, setTaxaEntrega] = useState(0);
 
   const [diaSemana, setDiaSemana] = useState(new Date().getDay());
   const [tamanhoId, setTamanhoId] = useState("");
@@ -51,12 +52,20 @@ export function NewOrderForm({
   );
 
   function addFreeRow() {
-    setFreeRows((prev) => [...prev, { key: nextKey }]);
+    setFreeRows((prev) => [...prev, { key: nextKey, productId: "", quantidade: 1 }]);
     setNextKey((k) => k + 1);
   }
 
   function removeFreeRow(key: number) {
     setFreeRows((prev) => (prev.length > 1 ? prev.filter((r) => r.key !== key) : prev));
+  }
+
+  function updateFreeRow(key: number, changes: Partial<Pick<FreeRow, "productId" | "quantidade">>) {
+    setFreeRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...changes } : r)));
+  }
+
+  function precoDoProduto(productId: string) {
+    return products.find((p) => p.id === productId)?.preco ?? 0;
   }
 
   function toggleAcompanhamento(id: string) {
@@ -125,6 +134,10 @@ export function NewOrderForm({
   }
 
   const gruposUnicos = Array.from(new Set(fixedRows.map((r) => r.groupKey)));
+  const totalPedido =
+    fixedRows.reduce((sum, r) => sum + r.preco, 0) +
+    freeRows.reduce((sum, r) => sum + precoDoProduto(r.productId) * r.quantidade, 0) +
+    taxaEntrega;
 
   return (
     <form action={createOrder} className="mt-6 space-y-4 rounded-xl border border-stone-200 bg-white p-4">
@@ -141,7 +154,8 @@ export function NewOrderForm({
           type="number"
           step="0.01"
           min="0"
-          defaultValue={0}
+          value={taxaEntrega}
+          onChange={(e) => setTaxaEntrega(Number(e.target.value) || 0)}
           placeholder="Taxa de entrega (R$)"
           className="rounded-md border border-stone-300 px-3 py-2 text-sm"
         />
@@ -285,49 +299,54 @@ export function NewOrderForm({
 
       <div className="space-y-2">
         <p className="text-sm font-medium text-stone-900">Itens avulsos (pratos, bebidas…)</p>
-        {freeRows.map((row) => (
-          <div key={row.key} className="flex items-end gap-2">
-            <select
-              name="product_id"
-              className="flex-1 rounded-md border border-stone-300 px-2 py-1.5 text-sm"
-              onChange={(e) => {
-                const option = e.currentTarget.selectedOptions[0];
-                const priceInput = e.currentTarget.parentElement?.querySelector<HTMLInputElement>(
-                  'input[name="preco_unitario"]',
-                );
-                if (priceInput && option) priceInput.value = option.dataset.preco ?? "0";
-              }}
-            >
-              <option value="">Item…</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id} data-preco={p.preco}>
-                  {p.nome} — R${Number(p.preco).toFixed(2)}
-                </option>
-              ))}
-            </select>
-            <input
-              name="quantidade"
-              type="number"
-              step="1"
-              min="1"
-              defaultValue={1}
-              className="w-20 rounded-md border border-stone-300 px-2 py-1.5 text-sm"
-            />
-            <input name="preco_unitario" type="hidden" defaultValue={0} />
-            <button
-              type="button"
-              onClick={() => removeFreeRow(row.key)}
-              className="rounded-md px-2 py-1.5 text-xs text-stone-400 hover:text-red-600"
-            >
-              ✕
-            </button>
-          </div>
-        ))}
+        {freeRows.map((row) => {
+          const preco = precoDoProduto(row.productId);
+          return (
+            <div key={row.key} className="flex items-end gap-2">
+              <select
+                name="product_id"
+                value={row.productId}
+                onChange={(e) => updateFreeRow(row.key, { productId: e.target.value })}
+                className="flex-1 rounded-md border border-stone-300 px-2 py-1.5 text-sm"
+              >
+                <option value="">Item…</option>
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nome} — R${Number(p.preco).toFixed(2)}
+                  </option>
+                ))}
+              </select>
+              <input
+                name="quantidade"
+                type="number"
+                step="1"
+                min="1"
+                value={row.quantidade}
+                onChange={(e) => updateFreeRow(row.key, { quantidade: Number(e.target.value) || 1 })}
+                className="w-20 rounded-md border border-stone-300 px-2 py-1.5 text-sm"
+              />
+              <span className="w-20 shrink-0 text-right text-sm text-stone-600">{formatReal(preco * row.quantidade)}</span>
+              <input name="preco_unitario" type="hidden" value={preco} readOnly />
+              <button
+                type="button"
+                onClick={() => removeFreeRow(row.key)}
+                className="rounded-md px-2 py-1.5 text-xs text-stone-400 hover:text-red-600"
+              >
+                ✕
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       <button type="button" onClick={addFreeRow} className="text-xs text-amber-700 underline underline-offset-2">
         + Adicionar item avulso
       </button>
+
+      <div className="flex items-center justify-between rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-sm">
+        <span className="font-medium text-stone-700">Total do pedido</span>
+        <span className="text-base font-semibold text-stone-900">{formatReal(totalPedido)}</span>
+      </div>
 
       <button
         type="submit"
