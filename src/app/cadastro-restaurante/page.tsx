@@ -150,11 +150,11 @@ export default function CadastroRestaurantePage() {
             />
             <span>
               Li e aceito os{" "}
-              <Link href="/termini" target="_blank" className="text-amber-700 underline underline-offset-2">
+              <Link href="/pt/termos" target="_blank" className="text-amber-700 underline underline-offset-2">
                 Termos de Serviço
               </Link>{" "}
               e a{" "}
-              <Link href="/privacy" target="_blank" className="text-amber-700 underline underline-offset-2">
+              <Link href="/pt/privacidade" target="_blank" className="text-amber-700 underline underline-offset-2">
                 Política de Privacidade
               </Link>
               .

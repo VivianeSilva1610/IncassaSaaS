@@ -10,6 +10,12 @@ export default function HomeEn() {
         { href: "/pt", label: homepage.portugueseLink },
       ]}
       loginHref="/login"
+      legalLinks={{
+        privacyHref: "/en/privacy-restaurante",
+        termsHref: "/en/termini-restaurante",
+        privacyLabel: "Privacy",
+        termsLabel: "Terms",
+      }}
     />
   );
 }

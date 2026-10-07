@@ -10,6 +10,12 @@ export default function HomePt() {
         { href: "/en", label: homepage.englishLink },
       ]}
       loginHref="/login"
+      legalLinks={{
+        privacyHref: "/pt/privacidade",
+        termsHref: "/pt/termos",
+        privacyLabel: "Privacidade",
+        termsLabel: "Termos",
+      }}
     />
   );
 }

@@ -16,6 +16,12 @@ export default function Home() {
         { href: "/en", label: homepage.englishLink },
         { href: "/pt", label: homepage.portugueseLink },
       ]}
+      legalLinks={{
+        privacyHref: "/privacy-restaurante",
+        termsHref: "/termini-restaurante",
+        privacyLabel: "Privacy",
+        termsLabel: "Termini",
+      }}
     />
   );
 }

@@ -34,10 +34,12 @@ export function RestaurantHomepage({
   content,
   langLinks,
   loginHref = "/login",
+  legalLinks,
 }: {
   content: HomepageContent;
   langLinks: { href: string; label: string }[];
   loginHref?: string;
+  legalLinks: { privacyHref: string; termsHref: string; privacyLabel: string; termsLabel: string };
 }) {
   const contactHref = `mailto:${SUPPORT_EMAIL}`;
 
@@ -163,14 +165,11 @@ export function RestaurantHomepage({
       <footer className="mt-16 border-t border-stone-200 pt-6 text-center text-xs text-stone-400">
         <p>© {new Date().getFullYear()} INCASSA. {content.footerRights}</p>
         <p className="mt-2 space-x-3">
-          <Link href="/privacy" className="underline underline-offset-2 hover:text-stone-600">
-            Privacy
+          <Link href={legalLinks.privacyHref} className="underline underline-offset-2 hover:text-stone-600">
+            {legalLinks.privacyLabel}
           </Link>
-          <Link href="/termini" className="underline underline-offset-2 hover:text-stone-600">
-            Termini
-          </Link>
-          <Link href="/recesso" className="underline underline-offset-2 hover:text-stone-600">
-            Recesso
+          <Link href={legalLinks.termsHref} className="underline underline-offset-2 hover:text-stone-600">
+            {legalLinks.termsLabel}
           </Link>
         </p>
       </footer>
