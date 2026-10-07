@@ -78,7 +78,12 @@ export default async function CustosPrecificacaoPage({
       </section>
 
       <section className="mt-8">
-        <h2 className="font-semibold text-stone-900">Ficha técnica e preço sugerido por prato</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-semibold text-stone-900">Ficha técnica e preço sugerido por prato</h2>
+          <Link href="/restaurante/custos/precificacao/pranzo" className="text-sm text-amber-700 underline underline-offset-2">
+            Custo do Pranzo completo (tamanho + principal + acompanhamentos) →
+          </Link>
+        </div>
 
         <form method="get" className="mt-2 flex flex-wrap items-center gap-2">
           <input
