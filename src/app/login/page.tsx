@@ -35,7 +35,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/app");
+      router.push("/restaurante");
       router.refresh();
     } catch {
       setError("Impossibile contattare il servizio di accesso. Controlla la connessione e riprova.");
@@ -46,7 +46,7 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-6 py-16">
-      <h1 className="text-2xl font-bold text-stone-900">Accedi a INCASSA</h1>
+      <h1 className="text-2xl font-bold text-stone-900">Accedi</h1>
       <p className="mt-2 text-sm text-stone-600">Inserisci email e password.</p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-3">

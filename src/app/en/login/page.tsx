@@ -35,7 +35,7 @@ export default function LoginPageEn() {
         return;
       }
 
-      router.push("/app");
+      router.push("/restaurante");
       router.refresh();
     } catch {
       setError("The login service could not be reached. Check your connection and try again.");
@@ -46,7 +46,7 @@ export default function LoginPageEn() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-6 py-16">
-      <h1 className="text-2xl font-bold text-stone-900">Log in to INCASSA</h1>
+      <h1 className="text-2xl font-bold text-stone-900">Log in</h1>
       <p className="mt-2 text-sm text-stone-600">Enter your email and password.</p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-3">

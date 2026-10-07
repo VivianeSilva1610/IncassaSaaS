@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 
 // FASE 3 — domínios personalizados. Hosts que são sempre a própria
@@ -49,48 +48,13 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  if (!request.nextUrl.pathname.startsWith("/app")) {
-    return NextResponse.next();
-  }
-
-  let supabaseResponse = NextResponse.next({ request });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options),
-          );
-        },
-      },
-    },
-  );
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user && request.nextUrl.pathname.startsWith("/app")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-
-  return supabaseResponse;
+  return NextResponse.next();
 }
 
 export const config = {
-  // Antes só cobria /app/:path* (sessão/redirect). Agora cobre
-  // praticamente toda página, pra poder resolver domínio pelo Host — mas
-  // a lógica de sessão continua só rodando de fato pra /app/*, igual
-  // antes (ver o "if (!pathname.startsWith('/app')) return next()" acima).
+  // O produto INCASSA (/app/*) foi desativado — a única coisa que este
+  // proxy ainda faz é resolver domínio personalizado pelo Host. A sessão
+  // de cada página do restaurante é lida direto no Server Component via
+  // requireRestaurantSubscription(), não precisa de refresh aqui.
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest).*)"],
 };

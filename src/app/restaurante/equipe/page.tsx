@@ -21,7 +21,7 @@ export default async function EquipePage() {
       <p className="mt-1 text-sm text-stone-600">
         Pessoas que podem acessar e trabalhar no seu restaurante (estoque, vendas, custos, caixa) com o
         próprio login. Para dar acesso a alguém, cadastre o e-mail aqui — a pessoa só precisa criar uma
-        conta em incassa.eu/signup usando esse mesmo e-mail. Marcar alguém como <strong>gerente</strong>{" "}
+        conta em incassa.eu/criar-conta usando esse mesmo e-mail. Marcar alguém como <strong>gerente</strong>{" "}
         libera editar e excluir itens do estoque, e permite que essa pessoa também conceda essa mesma
         permissão pra outros da equipe.
       </p>

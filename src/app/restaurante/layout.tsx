@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireRestaurantSubscription } from "@/lib/subscription";
-import { signOut } from "@/app/app/actions";
+import { signOut } from "@/lib/auth-actions";
 
 const navItems = [
   { href: "/restaurante", label: "Visão geral" },
