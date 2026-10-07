@@ -13,9 +13,11 @@ type ZonaEntrega = { id: string; bairro: string; taxa: number; pedidoMinimoGrati
 export function CartBar({
   zonasEntrega,
   whatsappRetiradaHref,
+  restaurantSlug,
 }: {
   zonasEntrega: ZonaEntrega[];
   whatsappRetiradaHref: string;
+  restaurantSlug: string;
 }) {
   const { itens, remover, adicionar, total, quantidadeTotal, limpar } = useCart();
   const [aberto, setAberto] = useState(false);
@@ -66,6 +68,7 @@ export function CartBar({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          restaurantSlug,
           items: itens.map((i) => ({ productId: i.productId, quantidade: i.quantidade })),
           clienteNome,
           clienteTelefone,

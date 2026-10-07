@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { findOrCreateAsaasCustomer, createAsaasPixPayment, getAsaasPixQrCode } from "@/lib/asaas";
-import { getPranzoOwnerId } from "@/lib/pranzo";
+import { getRestaurantBySlug } from "@/lib/restaurant";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
+  const restaurantSlug = String(body.restaurantSlug ?? "").trim();
   const itemsRaw: { productId?: string; quantidade?: number }[] = Array.isArray(body.items) ? body.items : [];
   const clienteNome = String(body.clienteNome ?? "").trim();
   const clienteTelefone = String(body.clienteTelefone ?? "").trim() || null;
@@ -13,16 +14,19 @@ export async function POST(req: Request) {
   const endereco = String(body.endereco ?? "").trim() || null;
   const note = String(body.note ?? "").trim() || null;
 
-  if (!clienteNome || !cpfCnpj || !bairroId || itemsRaw.length === 0) {
+  if (!restaurantSlug || !clienteNome || !cpfCnpj || !bairroId || itemsRaw.length === 0) {
     return NextResponse.json({ error: "Preencha nome, CPF, bairro e pelo menos um item." }, { status: 400 });
   }
 
   const admin = getSupabaseAdmin();
 
-  const ownerId = await getPranzoOwnerId(admin);
-  if (!ownerId) {
-    return NextResponse.json({ error: "Loja não encontrada." }, { status: 500 });
+  // restaurant_id/owner_id sempre resolvidos no servidor a partir do slug
+  // — nunca confiados num ID vindo do navegador.
+  const restaurant = await getRestaurantBySlug(admin, restaurantSlug);
+  if (!restaurant) {
+    return NextResponse.json({ error: "Loja não encontrada." }, { status: 404 });
   }
+  const ownerId = restaurant.ownerUserId;
 
   // Taxa de entrega sempre buscada no banco pelo id do bairro, nunca
   // confiada no valor que o cliente mandou.
@@ -116,7 +120,7 @@ export async function POST(req: Request) {
     const payment = await createAsaasPixPayment({
       customerId,
       value: totale,
-      description: `Pedido Pranzo — ${items.map((i) => `${i.quantidade}x ${i.nome}`).join(", ")}`,
+      description: `Pedido ${restaurant.name} — ${items.map((i) => `${i.quantidade}x ${i.nome}`).join(", ")}`,
       externalReference: order.id,
     });
 
