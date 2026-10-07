@@ -419,6 +419,12 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
           </div>
           {ehPranzo && <p>Comida de verdade, feita com carinho.</p>}
           <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
+          {ehPranzo && (
+            <>
+              <Link href="/loja/pranzo/termos">Termos de Uso</Link>
+              <Link href="/loja/pranzo/privacidade">Privacidade</Link>
+            </>
+          )}
           <a href="#cardapio">Voltar ao topo ↑</a>
         </footer>
       </main>
