@@ -24,6 +24,7 @@ type ItemCardapio = {
   nome: string;
   descricao: string | null;
   imagem: string | null;
+  video: string | null;
   destaque: string | null;
   preco: number;
 };
@@ -36,7 +37,7 @@ async function buscarCardapio(
 ): Promise<{ pratos: ItemCardapio[]; sobremesas: ItemCardapio[]; bebidas: ItemCardapio[] }> {
   const { data, error } = await admin
     .from("del_products")
-    .select("id, nome, nome_site, descrizione, imagem_url, destaque, preco, categoria, dias_site, ordem")
+    .select("id, nome, descrizione, imagem_url, video_url, destaque, preco, categoria, dias_site, ordem")
     .eq("owner_id", ownerId)
     .eq("ativo", true)
     .eq("visivel_site", true)
@@ -57,9 +58,10 @@ async function buscarCardapio(
 
   const mapear = (p: (typeof disponiveisHoje)[number]): ItemCardapio => ({
     productId: p.id,
-    nome: p.nome_site ?? p.nome,
+    nome: p.nome,
     descricao: p.descrizione,
     imagem: p.imagem_url,
+    video: p.video_url,
     destaque: p.destaque,
     preco: Number(p.preco),
   });
@@ -251,7 +253,11 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
           <div className={styles.menuGrid}>
             {cardapio.pratos.map((prato, index) => (
               <article className={styles.foodCard} key={prato.productId}>
-                {prato.imagem && (
+                {prato.video ? (
+                  <div className={styles.foodImageWrap}>
+                    <video src={prato.video} controls playsInline preload="metadata" className={styles.foodImage} aria-label={`Vídeo de ${prato.nome}`} />
+                  </div>
+                ) : prato.imagem && (
                   <div className={styles.foodImageWrap}>
                     <Image src={prato.imagem} alt={prato.nome} fill sizes="(max-width: 700px) 92vw, (max-width: 1100px) 45vw, 30vw" className={styles.foodImage} />
                     <span className={styles.foodNumber}>{String(index + 1).padStart(2, "0")}</span>
@@ -283,7 +289,11 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
               <div className={styles.dessertGrid}>
                 {cardapio.sobremesas.map((sobremesa, index) => (
                   <article className={`${styles.foodCard} ${styles.dessertCard}`} key={sobremesa.productId}>
-                    {sobremesa.imagem && (
+                    {sobremesa.video ? (
+                      <div className={styles.foodImageWrap}>
+                        <video src={sobremesa.video} controls playsInline preload="metadata" className={styles.foodImage} aria-label={`Vídeo de ${sobremesa.nome}`} />
+                      </div>
+                    ) : sobremesa.imagem && (
                       <div className={styles.foodImageWrap}>
                         <Image src={sobremesa.imagem} alt={sobremesa.nome} fill sizes="(max-width: 700px) 92vw, 45vw" className={styles.foodImage} />
                         <span className={styles.foodNumber}>D{index + 1}</span>

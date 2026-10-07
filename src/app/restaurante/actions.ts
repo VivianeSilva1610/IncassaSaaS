@@ -265,11 +265,24 @@ export async function realizarInventario(formData: FormData) {
   redirect(`/restaurante/estoque/inventario/${inventario.id}?itens=${itensComDiferenca}`);
 }
 
-const VALID_CATEGORIAS = ["prato", "bebida", "tamanho", "principal", "acompanhamento", "extra"];
+const VALID_CATEGORIAS = ["prato", "bebida", "sobremesa", "tamanho", "principal", "acompanhamento", "extra"];
 
 function parseCategoria(formData: FormData): string {
   const categoria = String(formData.get("categoria") ?? "prato");
   return VALID_CATEGORIAS.includes(categoria) ? categoria : "prato";
+}
+
+function mediaUrl(formData: FormData, field: "imagem_url" | "video_url"): string | null {
+  const value = String(formData.get(field) ?? "").trim();
+  if (!value) return null;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`Informe uma URL válida para ${field === "imagem_url" ? "a foto" : "o vídeo"}.`);
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) throw new Error("A mídia precisa usar um endereço http ou https.");
+  return url.toString();
 }
 
 export async function addProduct(formData: FormData) {
@@ -280,13 +293,17 @@ export async function addProduct(formData: FormData) {
     ? Number(formData.get("max_acompanhamentos"))
     : null;
 
+  const nome = String(formData.get("nome") ?? "").trim();
   const { error } = await supabase.from("del_products").insert({
     owner_id: restaurantOwnerId,
-    nome: String(formData.get("nome") ?? ""),
+    nome,
+    nome_site: nome,
     descrizione: String(formData.get("descrizione") ?? "") || null,
     preco: Number(formData.get("preco") ?? 0),
     categoria,
     max_acompanhamentos: categoria === "tamanho" ? maxAcompanhamentos : null,
+    imagem_url: mediaUrl(formData, "imagem_url"),
+    video_url: mediaUrl(formData, "video_url"),
   });
   if (error) throw new Error(`Não foi possível salvar o item: ${error.message}`);
 
@@ -297,25 +314,39 @@ export async function addProduct(formData: FormData) {
 }
 
 export async function updateProduct(id: string, formData: FormData) {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
   const categoria = parseCategoria(formData);
   const maxAcompanhamentos = formData.get("max_acompanhamentos")
     ? Number(formData.get("max_acompanhamentos"))
     : null;
   const diasSite = formData.getAll("dias_site").map((v) => Number(v));
+  const nome = String(formData.get("nome") ?? "").trim();
+  const removerImagem = formData.get("remover_imagem") === "on";
+  const removerVideo = formData.get("remover_video") === "on";
+  const imagemInformada = mediaUrl(formData, "imagem_url");
+  const videoInformado = mediaUrl(formData, "video_url");
+
+  const mediaUpdate: { imagem_url?: string | null; video_url?: string | null } = {};
+  if (removerImagem) mediaUpdate.imagem_url = null;
+  else if (imagemInformada) mediaUpdate.imagem_url = imagemInformada;
+  if (removerVideo) mediaUpdate.video_url = null;
+  else if (videoInformado) mediaUpdate.video_url = videoInformado;
 
   const { error } = await supabase
     .from("del_products")
     .update({
-      nome: String(formData.get("nome") ?? ""),
+      nome,
+      nome_site: nome,
       preco: Number(formData.get("preco") ?? 0),
       descrizione: String(formData.get("descrizione") ?? "") || null,
       categoria,
       max_acompanhamentos: categoria === "tamanho" ? maxAcompanhamentos : null,
       dias_site: diasSite.length > 0 ? diasSite : null,
+      ...mediaUpdate,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("owner_id", restaurantOwnerId);
   if (error) throw new Error(`Não foi possível atualizar o item: ${error.message}`);
 
   revalidatePath("/restaurante/vendas");
@@ -324,6 +355,7 @@ export async function updateProduct(id: string, formData: FormData) {
   revalidatePath("/restaurante/cardapio");
   revalidatePath("/restaurante/cardapio/produtos");
   revalidatePath("/pranzo");
+  revalidatePath("/loja/[slug]", "page");
 }
 
 export async function toggleProductAtivo(id: string, ativo: boolean) {

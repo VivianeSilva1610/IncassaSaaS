@@ -35,6 +35,8 @@ export default async function ProdutosOnlinePage() {
           <option value="prato">Prato</option><option value="bebida">Bebida</option><option value="sobremesa">Sobremesa</option>
         </select>
         <input name="descrizione" placeholder="Descrição" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        <input name="imagem_url" type="url" placeholder="URL da foto (opcional)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        <input name="video_url" type="url" placeholder="URL do vídeo (opcional)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
         <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700 sm:col-span-2">Adicionar ao menu online</button>
       </form>
 
@@ -48,7 +50,7 @@ export default async function ProdutosOnlinePage() {
               {itens.map((produto) => (
                 <article key={produto.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white p-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    {produto.imagem_url && <img src={produto.imagem_url} alt={produto.nome} className="h-12 w-12 rounded-lg object-cover" />}
+                    {produto.video_url ? <video src={produto.video_url} muted playsInline preload="metadata" className="h-12 w-12 rounded-lg object-cover" /> : produto.imagem_url && <img src={produto.imagem_url} alt={produto.nome} className="h-12 w-12 rounded-lg object-cover" />}
                     <div className={produto.ativo ? "" : "text-stone-400 line-through"}>
                       <p className="font-medium">{produto.nome} — {formatReal(Number(produto.preco))}</p>
                       {produto.descrizione && <p className="text-xs text-stone-500">{produto.descrizione}</p>}
@@ -67,6 +69,10 @@ export default async function ProdutosOnlinePage() {
                           <option value="prato">Prato</option><option value="bebida">Bebida</option><option value="sobremesa">Sobremesa</option>
                         </select>
                         <input name="descrizione" defaultValue={produto.descrizione ?? ""} placeholder="Descrição" className="rounded-md border px-2 py-1.5 text-sm" />
+                        <label className="text-[11px] text-stone-500">Foto<input name="imagem_url" type="url" defaultValue={produto.imagem_url ?? ""} placeholder="https://..." className="mt-1 w-full rounded-md border px-2 py-1.5 text-sm text-stone-900" /></label>
+                        {produto.imagem_url && <label className="flex items-center gap-1 text-xs text-red-600"><input name="remover_imagem" type="checkbox" /> Remover foto</label>}
+                        <label className="text-[11px] text-stone-500">Vídeo<input name="video_url" type="url" defaultValue={produto.video_url ?? ""} placeholder="Link direto para MP4/WebM" className="mt-1 w-full rounded-md border px-2 py-1.5 text-sm text-stone-900" /></label>
+                        {produto.video_url && <label className="flex items-center gap-1 text-xs text-red-600"><input name="remover_video" type="checkbox" /> Remover vídeo</label>}
                         <fieldset><legend className="text-[11px] text-stone-500">Dias no site (nenhum = todos)</legend><div className="mt-1 flex flex-wrap gap-2">
                           {DIAS.map((label, dia) => <label key={dia} className="flex items-center gap-1 text-xs"><input type="checkbox" name="dias_site" value={dia} defaultChecked={(produto.dias_site ?? []).includes(dia)} />{label}</label>)}
                         </div></fieldset>
