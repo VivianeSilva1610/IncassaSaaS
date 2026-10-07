@@ -201,6 +201,23 @@ export async function processarCompra(notaId: string, formData: FormData) {
   });
   if (error) redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent(`Não foi possível processar: ${error.message}`)}`);
 
+  const pedidoCompraId = String(formData.get("pedido_compra_id") ?? "");
+  if (/^[0-9a-f-]{36}$/i.test(pedidoCompraId)) {
+    const { data: pedido } = await supabase
+      .from("del_pedidos_compra")
+      .select("id")
+      .eq("id", pedidoCompraId)
+      .eq("owner_id", restaurantOwnerId)
+      .eq("fornecedor_id", nota.fornecedor_id)
+      .eq("status", "emitido")
+      .maybeSingle();
+    if (pedido) {
+      await supabase.from("del_notas_entrada").update({ pedido_compra_id: pedidoCompraId }).eq("id", notaId);
+      await supabase.from("del_pedidos_compra").update({ status: "recebido", recebido_em: new Date().toISOString() }).eq("id", pedidoCompraId);
+      revalidatePath("/restaurante/compras/pedidos");
+    }
+  }
+
   const itensPorId = new Map(itens.map((item) => [item.id, item]));
   const memorias = mapeamentos.flatMap((mapeamento) => {
     const item = itensPorId.get(mapeamento.item_id);

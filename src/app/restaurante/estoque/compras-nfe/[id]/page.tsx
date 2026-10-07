@@ -57,6 +57,16 @@ export default async function CompraDetalhePage({ params, searchParams }: { para
     .eq("owner_id", restaurantOwnerId)
     .eq("fornecedor_id", nota.fornecedor_id);
 
+  // Pedidos de compra emitidos pra esse mesmo fornecedor — pra conferir a
+  // NF-e contra o que foi aprovado antes de confirmar o recebimento.
+  const { data: pedidosEmitidos } = await supabase
+    .from("del_pedidos_compra")
+    .select("id, numero_controle")
+    .eq("owner_id", restaurantOwnerId)
+    .eq("fornecedor_id", nota.fornecedor_id)
+    .eq("status", "emitido")
+    .order("created_at", { ascending: false });
+
   const processada = nota.status === "processada";
 
   return (
@@ -124,7 +134,7 @@ export default async function CompraDetalhePage({ params, searchParams }: { para
           </tbody>
         </table>
       </div>
-      {!processada && isGerente && <div className="mt-4 rounded-xl border border-stone-200 bg-white p-4"><p className="text-sm font-medium text-stone-900">Confirmação do recebimento</p><p className="mt-1 text-xs text-stone-500">Classifique cada item. Somente insumos, embalagens e mercadorias para revenda movimentam estoque; ativos ganham registro patrimonial.</p><div className="mt-4 flex flex-wrap items-end gap-4"><label className="flex items-center gap-2 text-sm"><input name="gerar_conta" type="checkbox" defaultChecked /> Gerar conta a pagar</label>{(parcelas ?? []).length > 0 ? <p className="rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-800">Serão geradas {(parcelas ?? []).length} contas com os vencimentos do XML.</p> : <label className="text-sm text-stone-600"><span className="mb-1 block text-xs">Vencimento</span><input name="vencimento" type="date" defaultValue={new Date().toISOString().slice(0, 10)} className="rounded-md border border-stone-300 px-3 py-2" /></label>}<button className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700">Confirmar compra</button></div><p className="mt-3 text-xs text-amber-700">Revise a destinação e as conversões. A operação é auditável e não pode ser executada duas vezes.</p></div>}
+      {!processada && isGerente && <div className="mt-4 rounded-xl border border-stone-200 bg-white p-4"><p className="text-sm font-medium text-stone-900">Confirmação do recebimento</p><p className="mt-1 text-xs text-stone-500">Classifique cada item. Somente insumos, embalagens e mercadorias para revenda movimentam estoque; ativos ganham registro patrimonial.</p>{(pedidosEmitidos ?? []).length > 0 && <label className="mt-4 block text-sm text-stone-600"><span className="mb-1 block text-xs">Esta nota atende a qual pedido de compra?</span><select name="pedido_compra_id" defaultValue="" className="w-full max-w-sm rounded-md border border-stone-300 px-3 py-2 sm:w-auto"><option value="">Nenhum (compra avulsa)</option>{(pedidosEmitidos ?? []).map((pedido) => <option key={pedido.id} value={pedido.id}>{pedido.numero_controle}</option>)}</select></label>}<div className="mt-4 flex flex-wrap items-end gap-4"><label className="flex items-center gap-2 text-sm"><input name="gerar_conta" type="checkbox" defaultChecked /> Gerar conta a pagar</label>{(parcelas ?? []).length > 0 ? <p className="rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-800">Serão geradas {(parcelas ?? []).length} contas com os vencimentos do XML.</p> : <label className="text-sm text-stone-600"><span className="mb-1 block text-xs">Vencimento</span><input name="vencimento" type="date" defaultValue={new Date().toISOString().slice(0, 10)} className="rounded-md border border-stone-300 px-3 py-2" /></label>}<button className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700">Confirmar compra</button></div><p className="mt-3 text-xs text-amber-700">Revise a destinação e as conversões. A operação é auditável e não pode ser executada duas vezes.</p></div>}
       {processada && <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">Compra processada. As destinações foram registradas e somente os itens com controle de estoque movimentaram saldo e custo médio.</p>}
       </form>
     </div>

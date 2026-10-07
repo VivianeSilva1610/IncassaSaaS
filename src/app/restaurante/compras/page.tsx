@@ -4,7 +4,9 @@ import { requireRestaurantSubscription } from "@/lib/subscription";
 export default async function ComprasPage() {
   await requireRestaurantSubscription("compras");
   const modulos = [
-    { href: "/restaurante/compras/pedidos", icone: "📝", titulo: "Pedidos de compra", descricao: "Crie rascunhos, autorize e imprima pedidos para fornecedores." },
+    { href: "/restaurante/compras/solicitacoes", icone: "🙋", titulo: "Solicitações", descricao: "Peça a reposição de um material — sem fornecedor, sem preço negociado." },
+    { href: "/restaurante/compras/orcamentos", icone: "📨", titulo: "Orçamentos", descricao: "Consulte fornecedores, compare preços/prazo/condição e aprove o vencedor." },
+    { href: "/restaurante/compras/pedidos", icone: "📝", titulo: "Pedidos de compra", descricao: "Gerados ao aprovar um orçamento — ou crie um direto, como antes." },
     { href: "/restaurante/compras/fornecedor", icone: "🧾", titulo: "Compra de fornecedor", descricao: "Registre uma compra manual e a entrada dos materiais recebidos." },
     { href: "/restaurante/compras/nfe", icone: "📥", titulo: "Compras e fornecedores (NF-e)", descricao: "Importe o XML, confira os itens, fornecedores, parcelas e recebimento." },
   ];
