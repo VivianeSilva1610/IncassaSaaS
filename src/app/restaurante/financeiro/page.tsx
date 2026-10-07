@@ -14,6 +14,18 @@ const MODULOS = [
     descricao: "Fornecedores e outras contas com vencimento, pra saber o que falta pagar.",
     icone: "↗",
   },
+  {
+    href: "/restaurante/financeiro/dre",
+    titulo: "DRE gerencial",
+    descricao: "Receita, estornos, CMV e custos fixos num resultado estimado por período.",
+    icone: "📄",
+  },
+  {
+    href: "/restaurante/financeiro/fluxo-caixa",
+    titulo: "Fluxo de caixa",
+    descricao: "Contas a pagar e a receber em aberto, projetadas mês a mês.",
+    icone: "📅",
+  },
 ];
 
 export default async function FinanceiroPage() {

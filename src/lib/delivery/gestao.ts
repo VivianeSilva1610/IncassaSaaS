@@ -28,6 +28,8 @@ export type VendaPorCanal = { canal: string; receita: number; pedidos: number };
 
 export type MetricasPeriodo = {
   receita: number;
+  estornos: number;
+  receitaLiquida: number;
   cmv: number;
   cmvComDadosParciais: boolean;
   margem: number;
@@ -167,16 +169,29 @@ export async function calcularMetricasPeriodo(
     }))
     .sort((a, b) => b.quantidade - a.quantidade);
 
+  const { data: eventosEstorno } = await supabase
+    .from("del_pagamento_eventos")
+    .select("valor_movimento, ocorrido_em")
+    .eq("owner_id", ownerId)
+    .eq("status", "confirmado")
+    .gt("valor_movimento", 0)
+    .gte("ocorrido_em", fromISO)
+    .lte("ocorrido_em", toISO);
+  const estornos = (eventosEstorno ?? []).reduce((sum, e) => sum + Number(e.valor_movimento), 0);
+  const receitaLiquida = receita - estornos;
+
   const { data: custosFixos } = await supabase.from("del_fixed_costs").select("valor_mensal").eq("owner_id", ownerId);
   const totalCustosFixosMensal = (custosFixos ?? []).reduce((sum, c) => sum + Number(c.valor_mensal), 0);
   const diasNoPeriodo = Math.max(1, Math.round((new Date(toISO).getTime() - new Date(fromISO).getTime()) / (1000 * 60 * 60 * 24)) + 1);
   const custosFixosNoPeriodo = (totalCustosFixosMensal / 30) * diasNoPeriodo;
 
-  const margem = receita - cmvTotal;
+  const margem = receitaLiquida - cmvTotal;
   const lucroEstimado = margem - custosFixosNoPeriodo;
 
   return {
     receita,
+    estornos,
+    receitaLiquida,
     cmv: cmvTotal,
     cmvComDadosParciais,
     margem,
