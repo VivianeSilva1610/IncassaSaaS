@@ -13,6 +13,35 @@ import {
   cancelarNotaFiscal as cancelarNotaFiscalLib,
   confirmarPagamentoEEmitirNota,
 } from "@/lib/fiscal/emitir";
+import { carregarFechamento } from "@/lib/fiscal/fechamento";
+
+export async function fecharCaixaDiario(formData: FormData) {
+  const { user, supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
+  if (!isOwner) throw new Error("Apenas o dono do restaurante pode fechar o caixa.");
+  const data = String(formData.get("data") ?? "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error("Informe uma data válida.");
+
+  const partesHoje = new Intl.DateTimeFormat("en", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const parteHoje = (tipo: Intl.DateTimeFormatPartTypes) => partesHoje.find((parte) => parte.type === tipo)!.value;
+  const hoje = `${parteHoje("year")}-${parteHoje("month")}-${parteHoje("day")}`;
+  if (data > hoje) throw new Error("Não é possível fechar um caixa futuro.");
+
+  const dados = await carregarFechamento(supabase, restaurantOwnerId, `${data}T00:00:00-03:00`, `${data}T23:59:59.999-03:00`, data, data);
+  const { error } = await supabase.from("del_caixa_fechamentos").insert({
+    owner_id: restaurantOwnerId,
+    data,
+    snapshot: dados,
+    observacao: String(formData.get("observacao") ?? "").trim() || null,
+    fechado_por: user.id,
+    fechado_por_email: user.email ?? null,
+  });
+  if (error?.code === "23505") throw new Error("O caixa desta data já foi fechado.");
+  if (error) throw new Error(`Não foi possível fechar o caixa: ${error.message}`);
+
+  revalidatePath("/restaurante/caixa");
+  revalidatePath("/restaurante/fiscal/fechamento-diario");
+  revalidatePath("/restaurante/fiscal/fechamento-mensal");
+}
 
 // Próximo código sequencial do dono (ex: "0001", "0002"...), usado tanto ao
 // cadastrar um ingrediente direto quanto ao informar a compra de um produto
@@ -595,6 +624,82 @@ export async function addCaixaMovimento(formData: FormData) {
 export async function deleteCaixaMovimento(id: string) {
   const { supabase } = await requireRestaurantSubscription();
   await supabase.from("del_caixa_movimentos").delete().eq("id", id);
+  revalidatePath("/restaurante/caixa");
+}
+
+export async function addContaAPagar(formData: FormData) {
+  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription();
+  if (!isGerente) throw new Error("Apenas o dono ou um gerente pode lançar contas a pagar.");
+
+  const fornecedor = String(formData.get("fornecedor") ?? "").trim();
+  const valor = Number(formData.get("valor") ?? 0);
+  const dataVencimento = String(formData.get("data_vencimento") ?? "");
+  if (!fornecedor || valor <= 0 || !dataVencimento) {
+    throw new Error("Preencha fornecedor, valor e vencimento.");
+  }
+
+  const { error } = await supabase.from("del_contas_a_pagar").insert({
+    owner_id: restaurantOwnerId,
+    fornecedor,
+    descricao: String(formData.get("descricao") ?? "").trim() || null,
+    valor,
+    data_vencimento: dataVencimento,
+  });
+  if (error) throw new Error(`Não foi possível lançar a conta: ${error.message}`);
+
+  revalidatePath("/restaurante/contas-a-pagar");
+  revalidatePath("/restaurante/caixa");
+}
+
+export async function updateContaAPagar(id: string, formData: FormData) {
+  const { supabase, isGerente } = await requireRestaurantSubscription();
+  if (!isGerente) throw new Error("Apenas o dono ou um gerente pode editar contas a pagar.");
+
+  const fornecedor = String(formData.get("fornecedor") ?? "").trim();
+  const valor = Number(formData.get("valor") ?? 0);
+  const dataVencimento = String(formData.get("data_vencimento") ?? "");
+  if (!fornecedor || valor <= 0 || !dataVencimento) {
+    throw new Error("Preencha fornecedor, valor e vencimento.");
+  }
+
+  const { error } = await supabase
+    .from("del_contas_a_pagar")
+    .update({
+      fornecedor,
+      descricao: String(formData.get("descricao") ?? "").trim() || null,
+      valor,
+      data_vencimento: dataVencimento,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  if (error) throw new Error(`Não foi possível salvar a conta: ${error.message}`);
+
+  revalidatePath("/restaurante/contas-a-pagar");
+  revalidatePath("/restaurante/caixa");
+}
+
+export async function marcarContaAPagarPaga(id: string) {
+  const { supabase, isGerente } = await requireRestaurantSubscription();
+  if (!isGerente) throw new Error("Apenas o dono ou um gerente pode marcar contas como pagas.");
+
+  const { error } = await supabase
+    .from("del_contas_a_pagar")
+    .update({ status: "paga", pago_em: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(`Não foi possível marcar como paga: ${error.message}`);
+
+  revalidatePath("/restaurante/contas-a-pagar");
+  revalidatePath("/restaurante/caixa");
+}
+
+export async function deleteContaAPagar(id: string) {
+  const { supabase, isGerente } = await requireRestaurantSubscription();
+  if (!isGerente) throw new Error("Apenas o dono ou um gerente pode excluir contas a pagar.");
+
+  const { error } = await supabase.from("del_contas_a_pagar").delete().eq("id", id);
+  if (error) throw new Error(`Não foi possível excluir a conta: ${error.message}`);
+
+  revalidatePath("/restaurante/contas-a-pagar");
   revalidatePath("/restaurante/caixa");
 }
 

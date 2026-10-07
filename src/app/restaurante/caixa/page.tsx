@@ -1,24 +1,28 @@
 import { requireRestaurantSubscription } from "@/lib/subscription";
 import { addCaixaMovimento, deleteCaixaMovimento } from "@/app/restaurante/actions";
+import Link from "next/link";
 
 function formatReal(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
 export default async function CaixaPage() {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
 
   const nowParts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
     year: "numeric",
     month: "2-digit",
+    day: "2-digit",
   }).formatToParts(new Date());
   const year = nowParts.find((part) => part.type === "year")!.value;
   const month = nowParts.find((part) => part.type === "month")!.value;
+  const day = nowParts.find((part) => part.type === "day")!.value;
+  const hoje = `${year}-${month}-${day}`;
   const inicioMes = `${year}-${month}-01`;
   const inicioMesIso = `${inicioMes}T00:00:00-03:00`;
 
-  const [{ data: vendasCompetencia }, { data: recebimentos }, { data: estornos }, { data: valoresAReceber }, { data: movimentos }] = await Promise.all([
+  const [{ data: vendasCompetencia }, { data: recebimentos }, { data: estornos }, { data: valoresAReceber }, { data: movimentos }, { data: fechamentoHoje }, { data: contasAPagarAbertas }] = await Promise.all([
     supabase
       .from("del_orders")
       .select("totale, competencia_em")
@@ -42,6 +46,8 @@ export default async function CaixaPage() {
       .neq("status", "cancelado")
       .neq("status", "aguardando_pagamento"),
     supabase.from("del_caixa_movimentos").select("*").order("data", { ascending: false }).limit(60),
+    supabase.from("del_caixa_fechamentos").select("fechado_em, fechado_por_email").eq("owner_id", restaurantOwnerId).eq("data", hoje).maybeSingle(),
+    supabase.from("del_contas_a_pagar").select("valor").eq("owner_id", restaurantOwnerId).eq("status", "a_pagar"),
   ]);
 
   const vendasDoMes = (vendasCompetencia ?? []).reduce((sum, o) => sum + Number(o.totale), 0);
@@ -55,6 +61,8 @@ export default async function CaixaPage() {
   const entradasManuaisDoMes = movimentosDoMes.filter((m) => m.tipo === "entrada").reduce((sum, m) => sum + Number(m.valor), 0);
   const saidasManuaisDoMes = movimentosDoMes.filter((m) => m.tipo === "saida").reduce((sum, m) => sum + Number(m.valor), 0);
   const saldoDoMes = recebimentosDoMes - estornosDoMes + entradasManuaisDoMes - saidasManuaisDoMes;
+  const totalContasAPagar = (contasAPagarAbertas ?? []).reduce((sum, c) => sum + Number(c.valor), 0);
+  const saldoEstimado = recebimentosDoMes + totalAReceber - totalContasAPagar;
 
   return (
     <div>
@@ -64,7 +72,12 @@ export default async function CaixaPage() {
         estejam nos pedidos, evitando duplicar vendas.
       </p>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className={`mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 ${fechamentoHoje ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+        <div><p className="font-semibold text-stone-900">Caixa de hoje: {fechamentoHoje ? "fechado" : "aberto"}</p><p className="text-xs text-stone-600">{fechamentoHoje ? `Fechado por ${fechamentoHoje.fechado_por_email || "usuário identificado"}.` : "Confira os valores antes de encerrar o movimento do dia."}</p></div>
+        {isOwner && <Link href={`/restaurante/fiscal/fechamento-diario?data=${hoje}`} className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white">{fechamentoHoje ? "Ver fechamento" : "Conferir e fechar caixa"}</Link>}
+      </div>
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-stone-200 bg-white p-4">
           <p className="text-sm text-stone-500">Vendas por competência</p>
           <p className="mt-1 text-xl font-bold text-stone-900">{formatReal(vendasDoMes)}</p>
@@ -93,6 +106,20 @@ export default async function CaixaPage() {
           <p className="mt-1 text-xs text-stone-400">
             Recebimentos − {formatReal(estornosDoMes)} + {formatReal(entradasManuaisDoMes)} − {formatReal(saidasManuaisDoMes)}
           </p>
+        </div>
+        <div className="rounded-xl border border-stone-200 bg-white p-4">
+          <p className="text-sm text-stone-500">Contas a pagar em aberto</p>
+          <p className="mt-1 text-xl font-bold text-red-600">{formatReal(totalContasAPagar)}</p>
+          <Link href="/restaurante/contas-a-pagar" className="mt-1 inline-block text-xs text-amber-700 underline underline-offset-2">
+            Ver contas a pagar
+          </Link>
+        </div>
+        <div className="rounded-xl border border-stone-200 bg-stone-900 p-4">
+          <p className="text-sm text-stone-300">Saldo estimado</p>
+          <p className={`mt-1 text-xl font-bold ${saldoEstimado >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            {formatReal(saldoEstimado)}
+          </p>
+          <p className="mt-1 text-xs text-stone-400">Recebido + a receber − contas a pagar em aberto</p>
         </div>
       </div>
 
