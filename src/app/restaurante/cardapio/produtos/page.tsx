@@ -6,6 +6,7 @@ import {
   updateProduct,
 } from "@/app/restaurante/actions";
 import { requireRestaurantSubscription } from "@/lib/subscription";
+import { EditProductDetails } from "./edit-product-details";
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const CATEGORIAS = [["prato", "Pratos"], ["bebida", "Bebidas"], ["sobremesa", "Sobremesas"]] as const;
@@ -60,8 +61,7 @@ export default async function ProdutosOnlinePage() {
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <details className="relative">
-                      <summary className="cursor-pointer list-none text-xs text-amber-700">Editar</summary>
+                    <EditProductDetails>
                       <form action={updateProduct.bind(null, produto.id)} className="absolute right-0 z-10 mt-2 grid w-72 gap-2 rounded-xl border border-stone-200 bg-white p-3 shadow-lg">
                         <input name="nome" required defaultValue={produto.nome} className="rounded-md border px-2 py-1.5 text-sm" />
                         <input name="preco" type="number" step="0.01" min="0" required defaultValue={produto.preco} className="rounded-md border px-2 py-1.5 text-sm" />
@@ -78,7 +78,7 @@ export default async function ProdutosOnlinePage() {
                         </div></fieldset>
                         <button className="rounded-md bg-stone-900 px-3 py-1.5 text-xs text-white">Salvar</button>
                       </form>
-                    </details>
+                    </EditProductDetails>
                     <form action={toggleProductVisivelSite.bind(null, produto.id, produto.visivel_site !== false)}><button className="text-xs text-amber-700">{produto.visivel_site === false ? "Publicar" : "Ocultar"}</button></form>
                     <form action={toggleProductAtivo.bind(null, produto.id, produto.ativo)}><button className="text-xs text-amber-700">{produto.ativo ? "Desativar" : "Ativar"}</button></form>
                     <form action={deleteProduct.bind(null, produto.id)}><button className="text-xs text-red-600">Excluir</button></form>
