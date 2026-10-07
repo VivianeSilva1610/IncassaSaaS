@@ -6,7 +6,6 @@ import { requireRestaurantSubscription } from "@/lib/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { registerStockMovement } from "@/lib/delivery/stock";
 import { createOrderWithItems } from "@/lib/delivery/orders";
-import { gerarFaturaParaPedido } from "@/lib/delivery/invoice-bridge";
 import { verificarRegistroTxt } from "@/lib/domain-verification";
 import {
   emitirNotaFiscalParaPedido,
@@ -250,7 +249,7 @@ export async function deleteProduct(id: string) {
 }
 
 export async function createOrder(formData: FormData) {
-  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
   const productIds = formData.getAll("product_id").map(String);
   const quantities = formData.getAll("quantidade").map((v) => Number(v));
@@ -266,11 +265,7 @@ export async function createOrder(formData: FormData) {
 
   const clienteNome = String(formData.get("cliente_nome") ?? "") || null;
   const clienteTelefone = String(formData.get("cliente_telefone") ?? "") || null;
-  // "A prazo" só gera fatura no INCASSA quando quem está lançando é o
-  // próprio dono — a conta de um funcionário não tem permissão de escrita
-  // em clients/invoices do INCASSA (são tabelas de outro produto, com RLS
-  // própria por user_id, sem o mecanismo de equipe do restaurante).
-  const aPrazo = isOwner && formData.get("a_prazo") === "on";
+  const aPrazo = formData.get("a_prazo") === "on";
 
   if (aPrazo && !clienteNome) {
     throw new Error("Informe o nome do cliente para lançar um pedido a prazo.");
@@ -288,13 +283,18 @@ export async function createOrder(formData: FormData) {
   });
 
   if (aPrazo && clienteNome) {
-    await gerarFaturaParaPedido(supabase, {
-      userId: restaurantOwnerId,
-      clienteNome,
-      clienteTelefone,
-      importo: totale,
-      orderId,
+    const dataVencimento = new Date();
+    dataVencimento.setDate(dataVencimento.getDate() + 7);
+    const { error: contaError } = await supabase.from("del_contas_a_receber").insert({
+      owner_id: restaurantOwnerId,
+      order_id: orderId,
+      cliente_nome: clienteNome,
+      cliente_telefone: clienteTelefone,
+      valor: totale,
+      data_vencimento: dataVencimento.toISOString().slice(0, 10),
     });
+    if (contaError) throw new Error(`Não foi possível lançar a conta a receber: ${contaError.message}`);
+    revalidatePath("/restaurante/financeiro/contas-a-receber");
   }
 
   revalidatePath("/restaurante/vendas");
@@ -647,7 +647,7 @@ export async function addContaAPagar(formData: FormData) {
   });
   if (error) throw new Error(`Não foi possível lançar a conta: ${error.message}`);
 
-  revalidatePath("/restaurante/contas-a-pagar");
+  revalidatePath("/restaurante/financeiro/contas-a-pagar");
   revalidatePath("/restaurante/caixa");
 }
 
@@ -674,7 +674,7 @@ export async function updateContaAPagar(id: string, formData: FormData) {
     .eq("id", id);
   if (error) throw new Error(`Não foi possível salvar a conta: ${error.message}`);
 
-  revalidatePath("/restaurante/contas-a-pagar");
+  revalidatePath("/restaurante/financeiro/contas-a-pagar");
   revalidatePath("/restaurante/caixa");
 }
 
@@ -688,7 +688,7 @@ export async function marcarContaAPagarPaga(id: string) {
     .eq("id", id);
   if (error) throw new Error(`Não foi possível marcar como paga: ${error.message}`);
 
-  revalidatePath("/restaurante/contas-a-pagar");
+  revalidatePath("/restaurante/financeiro/contas-a-pagar");
   revalidatePath("/restaurante/caixa");
 }
 
@@ -699,7 +699,83 @@ export async function deleteContaAPagar(id: string) {
   const { error } = await supabase.from("del_contas_a_pagar").delete().eq("id", id);
   if (error) throw new Error(`Não foi possível excluir a conta: ${error.message}`);
 
-  revalidatePath("/restaurante/contas-a-pagar");
+  revalidatePath("/restaurante/financeiro/contas-a-pagar");
+  revalidatePath("/restaurante/caixa");
+}
+
+export async function addContaAReceber(formData: FormData) {
+  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription();
+  if (!isGerente) throw new Error("Apenas o dono ou um gerente pode lançar contas a receber.");
+
+  const clienteNome = String(formData.get("cliente_nome") ?? "").trim();
+  const valor = Number(formData.get("valor") ?? 0);
+  const dataVencimento = String(formData.get("data_vencimento") ?? "");
+  if (!clienteNome || valor <= 0 || !dataVencimento) {
+    throw new Error("Preencha cliente, valor e vencimento.");
+  }
+
+  const { error } = await supabase.from("del_contas_a_receber").insert({
+    owner_id: restaurantOwnerId,
+    cliente_nome: clienteNome,
+    cliente_telefone: String(formData.get("cliente_telefone") ?? "").trim() || null,
+    valor,
+    data_vencimento: dataVencimento,
+  });
+  if (error) throw new Error(`Não foi possível lançar a conta: ${error.message}`);
+
+  revalidatePath("/restaurante/financeiro/contas-a-receber");
+  revalidatePath("/restaurante/caixa");
+}
+
+export async function updateContaAReceber(id: string, formData: FormData) {
+  const { supabase, isGerente } = await requireRestaurantSubscription();
+  if (!isGerente) throw new Error("Apenas o dono ou um gerente pode editar contas a receber.");
+
+  const clienteNome = String(formData.get("cliente_nome") ?? "").trim();
+  const valor = Number(formData.get("valor") ?? 0);
+  const dataVencimento = String(formData.get("data_vencimento") ?? "");
+  if (!clienteNome || valor <= 0 || !dataVencimento) {
+    throw new Error("Preencha cliente, valor e vencimento.");
+  }
+
+  const { error } = await supabase
+    .from("del_contas_a_receber")
+    .update({
+      cliente_nome: clienteNome,
+      cliente_telefone: String(formData.get("cliente_telefone") ?? "").trim() || null,
+      valor,
+      data_vencimento: dataVencimento,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  if (error) throw new Error(`Não foi possível salvar a conta: ${error.message}`);
+
+  revalidatePath("/restaurante/financeiro/contas-a-receber");
+  revalidatePath("/restaurante/caixa");
+}
+
+export async function marcarContaAReceberPaga(id: string) {
+  const { supabase, isGerente } = await requireRestaurantSubscription();
+  if (!isGerente) throw new Error("Apenas o dono ou um gerente pode marcar contas como pagas.");
+
+  const { error } = await supabase
+    .from("del_contas_a_receber")
+    .update({ status: "paga", pago_em: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(`Não foi possível marcar como paga: ${error.message}`);
+
+  revalidatePath("/restaurante/financeiro/contas-a-receber");
+  revalidatePath("/restaurante/caixa");
+}
+
+export async function deleteContaAReceber(id: string) {
+  const { supabase, isGerente } = await requireRestaurantSubscription();
+  if (!isGerente) throw new Error("Apenas o dono ou um gerente pode excluir contas a receber.");
+
+  const { error } = await supabase.from("del_contas_a_receber").delete().eq("id", id);
+  if (error) throw new Error(`Não foi possível excluir a conta: ${error.message}`);
+
+  revalidatePath("/restaurante/financeiro/contas-a-receber");
   revalidatePath("/restaurante/caixa");
 }
 

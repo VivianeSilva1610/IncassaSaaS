@@ -149,7 +149,7 @@ export function NewOrderForm({
         {isOwner && (
           <label className="flex items-center gap-2 text-xs text-stone-700 sm:col-span-2">
             <input type="checkbox" name="a_prazo" />
-            Pedido a prazo (fiado) — gera uma fatura no INCASSA com o nome do cliente, pra cobrar depois
+            Pedido a prazo (fiado) — lança em Financeiro → Contas a receber, pra cobrar depois
           </label>
         )}
       </div>

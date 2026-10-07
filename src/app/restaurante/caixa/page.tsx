@@ -110,7 +110,7 @@ export default async function CaixaPage() {
         <div className="rounded-xl border border-stone-200 bg-white p-4">
           <p className="text-sm text-stone-500">Contas a pagar em aberto</p>
           <p className="mt-1 text-xl font-bold text-red-600">{formatReal(totalContasAPagar)}</p>
-          <Link href="/restaurante/contas-a-pagar" className="mt-1 inline-block text-xs text-amber-700 underline underline-offset-2">
+          <Link href="/restaurante/financeiro/contas-a-pagar" className="mt-1 inline-block text-xs text-amber-700 underline underline-offset-2">
             Ver contas a pagar
           </Link>
         </div>
