@@ -47,7 +47,17 @@ export async function requireActiveSubscription() {
   return { user, profile };
 }
 
-export async function requireRestaurantSubscription() {
+export const MODULOS_RESTAURANTE = ["estoque", "vendas", "cardapio", "cozinha", "custos", "caixa", "financeiro"] as const;
+export type ModuloRestaurante = (typeof MODULOS_RESTAURANTE)[number];
+
+/**
+ * `moduloRequerido`, quando informado, bloqueia o acesso de quem não é dono
+ * (nem admin da plataforma) e não tem esse módulo na lista liberada pelo
+ * dono — hierarquia por módulo (ex: responsável pelo caixa só acessa
+ * Caixa+Vendas, chef só acessa Cozinha). Sem esse parâmetro, a checagem de
+ * módulo é pulada (ex: /restaurante, a visão geral, é aberta a todo mundo).
+ */
+export async function requireRestaurantSubscription(moduloRequerido?: ModuloRestaurante) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -60,15 +70,17 @@ export async function requireRestaurantSubscription() {
   // would otherwise point at the staff member's own id.
   const { data: staffRow } = await supabase
     .from("del_staff")
-    .select("owner_id, gerente")
+    .select("owner_id, gerente, modulos")
     .eq("email", user.email)
     .maybeSingle();
 
   const restaurantOwnerId = staffRow?.owner_id ?? user.id;
   const isOwner = !staffRow;
+  const isAdmin = isAdminEmail(user.email);
   // Gerente: dono sempre é, e-mail admin da plataforma também (mesmo
   // critério já usado em hasAccess), ou staff marcado como gerente.
-  const isGerente = isOwner || isAdminEmail(user.email) || !!staffRow?.gerente;
+  const isGerente = isOwner || isAdmin || !!staffRow?.gerente;
+  const modulosPermitidos: ModuloRestaurante[] = (staffRow?.modulos as ModuloRestaurante[] | null) ?? [];
 
   const { data: subscription } = await supabase
     .from("restaurant_subscriptions")
@@ -77,7 +89,7 @@ export async function requireRestaurantSubscription() {
     .maybeSingle();
 
   const hasAccess =
-    isAdminEmail(user.email) ||
+    isAdmin ||
     !!staffRow ||
     (!!subscription && ["trialing", "active"].includes(subscription.subscription_status));
 
@@ -85,5 +97,9 @@ export async function requireRestaurantSubscription() {
     redirect("/");
   }
 
-  return { user, supabase, restaurantOwnerId, isOwner, isGerente, subscription };
+  if (moduloRequerido && !isOwner && !isAdmin && !modulosPermitidos.includes(moduloRequerido)) {
+    redirect("/restaurante");
+  }
+
+  return { user, supabase, restaurantOwnerId, isOwner, isGerente, modulosPermitidos, subscription };
 }

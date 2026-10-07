@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireRestaurantSubscription } from "@/lib/subscription";
 
 const MODULOS = [
   {
@@ -27,7 +28,9 @@ const MODULOS = [
   },
 ];
 
-export default function EstoquePage() {
+export default async function EstoquePage() {
+  await requireRestaurantSubscription("estoque");
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-stone-900">Estoque</h1>

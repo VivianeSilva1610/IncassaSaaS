@@ -6,7 +6,7 @@ function money(value: number) {
 }
 
 export default async function AtivosPage() {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("estoque");
   const { data: ativos } = await supabase
     .from("del_ativos")
     .select("id, nome, valor_aquisicao, adquirido_em, status, nota_entrada_item_id")

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireRestaurantSubscription } from "@/lib/subscription";
 
 const MODULOS = [
   { href: "/restaurante/vendas/novo", titulo: "Novo pedido", descricao: "Registre uma venda de balcão, telefone ou entrega.", icone: "+" },
@@ -6,7 +7,9 @@ const MODULOS = [
   { href: "/restaurante/vendas/mesas", titulo: "Mesas e comandas", descricao: "Administre QR codes, pedidos por mesa e fechamento de comandas.", icone: "⌂" },
 ];
 
-export default function VendasPage() {
+export default async function VendasPage() {
+  await requireRestaurantSubscription("vendas");
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-stone-900">Vendas</h1>

@@ -17,7 +17,7 @@ function formatReal(value: number) {
 }
 
 export default async function CustosPage() {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("custos");
 
   const [{ data: fixedCosts }, { data: pricingConfig }, { data: products }, { data: ingredients }, { data: productIngredients }, { data: zonasEntrega }] =
     await Promise.all([

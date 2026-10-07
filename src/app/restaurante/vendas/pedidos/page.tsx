@@ -12,7 +12,7 @@ function formatHora(iso: string | null) {
 const STATUSES = ["novo", "em preparo", "pronto", "entregue", "cancelado"];
 
 export default async function PedidosPage({ searchParams }: { searchParams: Promise<{ from?: string; to?: string }> }) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("vendas");
   const { from, to } = await searchParams;
   const filtroAtivo = !!(from || to);
   let query = supabase

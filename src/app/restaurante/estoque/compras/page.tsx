@@ -3,7 +3,7 @@ import { requireRestaurantSubscription } from "@/lib/subscription";
 import { registrarCompraFornecedor } from "@/app/restaurante/actions";
 
 export default async function EstoqueComprasPage() {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase } = await requireRestaurantSubscription("estoque");
   const { data: todosIngredientes } = await supabase.from("del_ingredients").select("*").order("nome");
 
   return (

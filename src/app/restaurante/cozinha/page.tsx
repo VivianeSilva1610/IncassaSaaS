@@ -22,7 +22,7 @@ function infoEmbalagem(pedido: { mesa_id: string | null; canal: string }) {
 }
 
 export default async function CozinhaPage() {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase } = await requireRestaurantSubscription("cozinha");
 
   const { data: pedidos } = await supabase
     .from("del_orders")

@@ -8,7 +8,7 @@ function formatReal(value: number) {
 }
 
 export default async function ContasAReceberPage() {
-  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("financeiro");
 
   const { data: contas } = await supabase
     .from("del_contas_a_receber")

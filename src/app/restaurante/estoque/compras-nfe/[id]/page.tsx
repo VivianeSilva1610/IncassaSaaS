@@ -21,7 +21,7 @@ const destinationLabels: Record<string, string> = {
 export default async function CompraDetalhePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ sucesso?: string; erro?: string }> }) {
   const { id } = await params;
   const query = await searchParams;
-  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("estoque");
   const { data: nota } = await supabase
     .from("del_notas_entrada")
     .select("id, numero, serie, chave_acesso, fornecedor_nome, fornecedor_documento, destinatario_documento, valor_total, emitida_em, protocolo_autorizacao, status, importada_em")
@@ -43,6 +43,14 @@ export default async function CompraDetalhePage({ params, searchParams }: { para
     .eq("owner_id", restaurantOwnerId)
     .order("nome");
 
+  const { data: parcelas } = await supabase
+    .from("del_notas_entrada_parcelas")
+    .select("id, numero, vencimento, valor")
+    .eq("nota_entrada_id", id)
+    .eq("owner_id", restaurantOwnerId)
+    .order("vencimento")
+    .order("numero");
+
   const processada = nota.status === "processada";
 
   return (
@@ -61,6 +69,7 @@ export default async function CompraDetalhePage({ params, searchParams }: { para
           <div><dt className="text-stone-500">Emissão</dt><dd>{nota.emitida_em ? new Date(nota.emitida_em).toLocaleString("pt-BR") : "—"}</dd></div>
           <div><dt className="text-stone-500">Destinatário</dt><dd>{nota.destinatario_documento || "Não informado"}</dd></div>
         </dl>
+        {(parcelas ?? []).length > 0 && <div className="mt-5 border-t border-stone-100 pt-4"><p className="text-sm font-medium text-stone-900">Parcelas informadas na NF-e</p><div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{(parcelas ?? []).map((parcela) => <div key={parcela.id} className="rounded-lg bg-stone-50 px-3 py-2 text-sm"><span className="font-medium">Parcela {parcela.numero}</span><span className="block text-stone-600">{new Date(`${parcela.vencimento}T00:00:00`).toLocaleDateString("pt-BR")} · {money(Number(parcela.valor))}</span></div>)}</div></div>}
         {isGerente && !processada && nota.status !== "cancelada" && <div className="mt-5 border-t border-stone-100 pt-4"><DeleteNoteButton notaId={nota.id} /></div>}
       </div>
 
@@ -109,7 +118,7 @@ export default async function CompraDetalhePage({ params, searchParams }: { para
           </tbody>
         </table>
       </div>
-      {!processada && isGerente && <div className="mt-4 rounded-xl border border-stone-200 bg-white p-4"><p className="text-sm font-medium text-stone-900">Confirmação do recebimento</p><p className="mt-1 text-xs text-stone-500">Classifique cada item. Somente insumos, embalagens e mercadorias para revenda movimentam estoque; ativos ganham registro patrimonial.</p><div className="mt-4 flex flex-wrap items-end gap-4"><label className="flex items-center gap-2 text-sm"><input name="gerar_conta" type="checkbox" defaultChecked /> Gerar conta a pagar</label><label className="text-sm text-stone-600"><span className="mb-1 block text-xs">Vencimento</span><input name="vencimento" type="date" defaultValue={new Date().toISOString().slice(0, 10)} className="rounded-md border border-stone-300 px-3 py-2" /></label><button className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700">Confirmar compra</button></div><p className="mt-3 text-xs text-amber-700">Revise a destinação e as conversões. A operação é auditável e não pode ser executada duas vezes.</p></div>}
+      {!processada && isGerente && <div className="mt-4 rounded-xl border border-stone-200 bg-white p-4"><p className="text-sm font-medium text-stone-900">Confirmação do recebimento</p><p className="mt-1 text-xs text-stone-500">Classifique cada item. Somente insumos, embalagens e mercadorias para revenda movimentam estoque; ativos ganham registro patrimonial.</p><div className="mt-4 flex flex-wrap items-end gap-4"><label className="flex items-center gap-2 text-sm"><input name="gerar_conta" type="checkbox" defaultChecked /> Gerar conta a pagar</label>{(parcelas ?? []).length > 0 ? <p className="rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-800">Serão geradas {(parcelas ?? []).length} contas com os vencimentos do XML.</p> : <label className="text-sm text-stone-600"><span className="mb-1 block text-xs">Vencimento</span><input name="vencimento" type="date" defaultValue={new Date().toISOString().slice(0, 10)} className="rounded-md border border-stone-300 px-3 py-2" /></label>}<button className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700">Confirmar compra</button></div><p className="mt-3 text-xs text-amber-700">Revise a destinação e as conversões. A operação é auditável e não pode ser executada duas vezes.</p></div>}
       {processada && <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">Compra processada. As destinações foram registradas e somente os itens com controle de estoque movimentaram saldo e custo médio.</p>}
       </form>
     </div>

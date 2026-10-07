@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { requireRestaurantSubscription } from "@/lib/subscription";
+import { requireRestaurantSubscription, MODULOS_RESTAURANTE, type ModuloRestaurante } from "@/lib/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { registerStockMovement, registrarCustoHistorico } from "@/lib/delivery/stock";
 import { createOrderWithItems } from "@/lib/delivery/orders";
@@ -867,6 +867,28 @@ export async function toggleStaffGerente(id: string, gerente: boolean) {
     .eq("id", id)
     .eq("owner_id", restaurantOwnerId);
   if (error) throw new Error(`Não foi possível atualizar a permissão: ${error.message}`);
+
+  revalidatePath("/restaurante/equipe");
+}
+
+// Mesma regra de acesso do toggleStaffGerente: dono ou gerente existente
+// podem definir quais módulos cada pessoa da equipe enxerga.
+export async function updateStaffModulos(id: string, formData: FormData) {
+  const { restaurantOwnerId, isOwner, isGerente } = await requireRestaurantSubscription();
+  if (!isOwner && !isGerente) {
+    throw new Error("Apenas o dono ou um gerente pode definir os módulos de acesso.");
+  }
+
+  const modulosValidos = new Set(MODULOS_RESTAURANTE);
+  const modulos = formData.getAll("modulos").map(String).filter((m) => modulosValidos.has(m as ModuloRestaurante));
+
+  const admin = getSupabaseAdmin();
+  const { error } = await admin
+    .from("del_staff")
+    .update({ modulos })
+    .eq("id", id)
+    .eq("owner_id", restaurantOwnerId);
+  if (error) throw new Error(`Não foi possível atualizar os módulos: ${error.message}`);
 
   revalidatePath("/restaurante/equipe");
 }

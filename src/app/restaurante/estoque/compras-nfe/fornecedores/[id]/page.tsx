@@ -8,7 +8,7 @@ function money(value: number) {
 
 export default async function FornecedorDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("estoque");
   const { data: supplier } = await supabase
     .from("del_fornecedores")
     .select("id, documento, razao_social, nome_fantasia, created_at")

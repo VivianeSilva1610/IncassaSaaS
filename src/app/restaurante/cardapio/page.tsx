@@ -8,7 +8,7 @@ function formatReal(value: number) {
 const DIAS_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
 export default async function CardapioPage() {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase } = await requireRestaurantSubscription("cardapio");
 
   const [{ data: products }, { data: cardapioSemana }] = await Promise.all([
     supabase.from("del_products").select("*").order("nome"),

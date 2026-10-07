@@ -5,8 +5,45 @@ function formatReal(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
+const LABEL_MODULO: Record<string, string> = {
+  estoque: "Estoque",
+  vendas: "Vendas",
+  cardapio: "Menu do site",
+  cozinha: "Cozinha",
+  custos: "Custos",
+  caixa: "Caixa",
+  financeiro: "Financeiro",
+};
+
 export default async function RestauranteOverviewPage() {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase, isOwner, modulosPermitidos } = await requireRestaurantSubscription();
+
+  // Vendas, recebimentos e os últimos pedidos são informação financeira do
+  // negócio inteiro — só o dono vê essa tela completa. Quem tem acesso
+  // restrito (ex: só Cozinha) cai numa landing simples com atalho só pros
+  // módulos liberados pra ela.
+  if (!isOwner) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold text-stone-900">Seus módulos</h1>
+        <p className="mt-1 text-sm text-stone-600">Atalhos pra onde você tem acesso.</p>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          {modulosPermitidos.map((modulo) => (
+            <Link
+              key={modulo}
+              href={`/restaurante/${modulo === "cardapio" ? "cardapio/produtos" : modulo}`}
+              className="rounded-xl border border-stone-200 bg-white p-4 text-sm font-medium text-stone-900 hover:border-amber-300"
+            >
+              {LABEL_MODULO[modulo] ?? modulo}
+            </Link>
+          ))}
+          {modulosPermitidos.length === 0 && (
+            <p className="text-sm text-stone-500">Nenhum módulo liberado ainda — peça pro dono do restaurante.</p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const nowParts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",

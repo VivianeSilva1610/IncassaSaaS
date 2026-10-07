@@ -3,7 +3,7 @@ import { requireRestaurantSubscription } from "@/lib/subscription";
 import { RelatorioEstoqueForm } from "@/components/delivery/RelatorioEstoqueForm";
 
 export default async function EstoqueRelatorioPage() {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("estoque");
   const { count } = await supabase
     .from("del_ingredients")
     .select("*", { count: "exact", head: true })

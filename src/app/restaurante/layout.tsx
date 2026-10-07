@@ -1,20 +1,20 @@
 import Link from "next/link";
-import { requireRestaurantSubscription } from "@/lib/subscription";
+import { requireRestaurantSubscription, type ModuloRestaurante } from "@/lib/subscription";
 import { signOut } from "@/lib/auth-actions";
 
-const navItems = [
-  { href: "/restaurante", label: "Visão geral" },
-  { href: "/restaurante/estoque", label: "Estoque" },
-  { href: "/restaurante/vendas", label: "Vendas" },
-  { href: "/restaurante/cardapio/produtos", label: "Menu do site" },
-  { href: "/restaurante/cozinha", label: "Cozinha" },
-  { href: "/restaurante/custos", label: "Custos" },
-  { href: "/restaurante/caixa", label: "Caixa" },
-  { href: "/restaurante/financeiro", label: "Financeiro" },
+const navItems: { href: string; label: string; modulo: ModuloRestaurante }[] = [
+  { href: "/restaurante/estoque", label: "Estoque", modulo: "estoque" },
+  { href: "/restaurante/vendas", label: "Vendas", modulo: "vendas" },
+  { href: "/restaurante/cardapio/produtos", label: "Menu do site", modulo: "cardapio" },
+  { href: "/restaurante/cozinha", label: "Cozinha", modulo: "cozinha" },
+  { href: "/restaurante/custos", label: "Custos", modulo: "custos" },
+  { href: "/restaurante/caixa", label: "Caixa", modulo: "caixa" },
+  { href: "/restaurante/financeiro", label: "Financeiro", modulo: "financeiro" },
 ];
 
 export default async function RestauranteLayout({ children }: { children: React.ReactNode }) {
-  const { user, supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
+  const { user, supabase, restaurantOwnerId, isOwner, modulosPermitidos } = await requireRestaurantSubscription();
+  const itensVisiveis = isOwner ? navItems : navItems.filter((item) => modulosPermitidos.includes(item.modulo));
 
   const { data: pricingConfig } = await supabase
     .from("del_pricing_config")
@@ -30,7 +30,10 @@ export default async function RestauranteLayout({ children }: { children: React.
           <div className="flex flex-wrap items-center gap-4">
             <span className="text-sm font-semibold text-stone-900">🍽️ {nomeNegocio}</span>
             <nav className="flex flex-wrap gap-4 text-sm font-medium text-stone-600">
-              {navItems.map((item) => (
+              <Link href="/restaurante" className="hover:text-stone-900">
+                Visão geral
+              </Link>
+              {itensVisiveis.map((item) => (
                 <Link key={item.href} href={item.href} className="hover:text-stone-900">
                   {item.label}
                 </Link>

@@ -12,7 +12,7 @@ function comprasUrl(kind: "sucesso" | "erro", message: string) {
 }
 
 export async function importarNfeFornecedor(formData: FormData) {
-  const { user, supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription();
+  const { user, supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("estoque");
   if (!isGerente) redirect(comprasUrl("erro", "Apenas o dono ou um gerente pode importar compras."));
 
   const file = formData.get("xml");
@@ -109,12 +109,28 @@ export async function importarNfeFornecedor(formData: FormData) {
     redirect(comprasUrl("erro", "A nota foi lida, mas seus itens não puderam ser registrados."));
   }
 
+  if (parsed.parcelas.length > 0) {
+    const { error: parcelasError } = await supabase.from("del_notas_entrada_parcelas").insert(
+      parsed.parcelas.map((parcela) => ({
+        nota_entrada_id: note.id,
+        owner_id: restaurantOwnerId,
+        numero: parcela.numero,
+        vencimento: parcela.vencimento,
+        valor: parcela.valor,
+      })),
+    );
+    if (parcelasError) {
+      await supabase.from("del_notas_entrada").delete().eq("id", note.id);
+      redirect(comprasUrl("erro", "A nota foi lida, mas suas parcelas não puderam ser registradas."));
+    }
+  }
+
   revalidatePath("/restaurante/estoque/compras-nfe");
   redirect(`/restaurante/estoque/compras-nfe/${note.id}?sucesso=${encodeURIComponent("NF-e importada para conferência.")}`);
 }
 
 export async function processarCompra(notaId: string, formData: FormData) {
-  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("estoque");
   if (!isGerente) redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("Apenas o dono ou um gerente pode confirmar a compra.")}`);
 
   const { data: nota } = await supabase
@@ -161,7 +177,14 @@ export async function processarCompra(notaId: string, formData: FormData) {
 
   const gerarConta = formData.get("gerar_conta") === "on";
   const vencimento = String(formData.get("vencimento") ?? "");
-  if (gerarConta && !/^\d{4}-\d{2}-\d{2}$/.test(vencimento)) {
+  const { count: quantidadeParcelas } = gerarConta
+    ? await supabase
+        .from("del_notas_entrada_parcelas")
+        .select("id", { count: "exact", head: true })
+        .eq("nota_entrada_id", notaId)
+        .eq("owner_id", restaurantOwnerId)
+    : { count: 0 };
+  if (gerarConta && !quantidadeParcelas && !/^\d{4}-\d{2}-\d{2}$/.test(vencimento)) {
     redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("Informe o vencimento da conta a pagar.")}`);
   }
 
@@ -169,7 +192,7 @@ export async function processarCompra(notaId: string, formData: FormData) {
     p_nota_id: notaId,
     p_mapeamentos: mapeamentos,
     p_gerar_conta: gerarConta,
-    p_vencimento: gerarConta ? vencimento : null,
+    p_vencimento: gerarConta && !quantidadeParcelas ? vencimento : null,
   });
   if (error) redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent(`Não foi possível processar: ${error.message}`)}`);
 
@@ -181,7 +204,7 @@ export async function processarCompra(notaId: string, formData: FormData) {
 }
 
 export async function excluirNotaEntrada(notaId: string) {
-  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("estoque");
   if (!isGerente) redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("Apenas o dono ou um gerente pode excluir a nota.")}`);
 
   const { data: nota } = await supabase
@@ -209,7 +232,7 @@ export async function excluirNotaEntrada(notaId: string) {
 }
 
 export async function criarItemEstoqueNaCompra(notaId: string, formData: FormData) {
-  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("estoque");
   if (!isGerente) redirect(`/restaurante/estoque/compras-nfe/${notaId}?erro=${encodeURIComponent("Apenas o dono ou um gerente pode cadastrar itens de estoque.")}`);
 
   const { data: nota } = await supabase

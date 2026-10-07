@@ -15,7 +15,7 @@ function formatReal(value: number) {
 }
 
 export default async function ProdutosOnlinePage() {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("cardapio");
   const { data: products } = await supabase
     .from("del_products")
     .select("*")

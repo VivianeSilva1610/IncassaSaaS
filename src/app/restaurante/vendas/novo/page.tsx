@@ -2,7 +2,7 @@ import { requireRestaurantSubscription } from "@/lib/subscription";
 import { NewOrderForm } from "@/components/delivery/NewOrderForm";
 
 export default async function NovoPedidoPage() {
-  const { supabase, isOwner } = await requireRestaurantSubscription();
+  const { supabase, isOwner } = await requireRestaurantSubscription("vendas");
   const [{ data: products }, { data: cardapioSemana }] = await Promise.all([
     supabase.from("del_products").select("*").eq("ativo", true).order("nome"),
     supabase.from("del_cardapio_semana").select("dia_semana, product_id"),

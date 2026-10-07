@@ -13,7 +13,7 @@ function document(value: string) {
 }
 
 export default async function FornecedoresPage({ searchParams }: { searchParams: Promise<{ busca?: string }> }) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("estoque");
   const { busca = "" } = await searchParams;
   const normalizedSearch = busca.trim().toLocaleLowerCase("pt-BR");
 

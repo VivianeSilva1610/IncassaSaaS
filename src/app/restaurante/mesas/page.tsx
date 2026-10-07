@@ -6,7 +6,7 @@ function formatReal(value: number) {
 }
 
 export default async function MesasPage() {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("vendas");
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   const [{ data: mesas }, { data: comandasAbertas }] = await Promise.all([

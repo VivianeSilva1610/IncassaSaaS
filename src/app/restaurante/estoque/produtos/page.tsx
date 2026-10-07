@@ -7,7 +7,7 @@ export default async function EstoqueProdutosPage({
 }: {
   searchParams: Promise<{ busca?: string }>;
 }) {
-  const { supabase, isGerente } = await requireRestaurantSubscription();
+  const { supabase, isGerente } = await requireRestaurantSubscription("estoque");
   const { busca } = await searchParams;
   const termo = (busca ?? "").trim();
   const termoSeguro = termo.replace(/[,%()]/g, " ").trim();

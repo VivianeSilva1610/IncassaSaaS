@@ -11,7 +11,7 @@ export default async function ComprasPage({
 }: {
   searchParams: Promise<{ sucesso?: string; erro?: string }>;
 }) {
-  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("estoque");
   const params = await searchParams;
   const { data: notas } = await supabase
     .from("del_notas_entrada")

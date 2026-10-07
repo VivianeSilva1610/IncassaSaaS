@@ -7,7 +7,7 @@ function formatReal(value: number) {
 }
 
 export default async function CaixaPage() {
-  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription("caixa");
 
   const nowParts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
