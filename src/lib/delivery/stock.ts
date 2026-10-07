@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-type MovementType = "entrada" | "saida" | "ajuste";
+type MovementType = "entrada" | "saida" | "ajuste" | "perda";
 
 // Registra que esse custo passou a valer a partir de agora — usado pro
 // relatório de inventário por período poder saber o custo vigente em
@@ -40,7 +40,7 @@ export async function registerStockMovement(
     throw new Error("Ingrediente não encontrado.");
   }
 
-  const delta = params.tipo === "saida" ? -params.quantidade : params.quantidade;
+  const delta = params.tipo === "saida" || params.tipo === "perda" ? -params.quantidade : params.quantidade;
   const nuovaQuantita = Number(ingredient.quantidade_atual) + delta;
 
   const { error: insertError } = await supabase.from("del_stock_movements").insert({

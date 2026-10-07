@@ -6,6 +6,7 @@ function formatReal(value: number) {
 }
 
 const LABEL_MODULO: Record<string, string> = {
+  compras: "Compras",
   estoque: "Estoque",
   vendas: "Vendas",
   cardapio: "Menu do site",

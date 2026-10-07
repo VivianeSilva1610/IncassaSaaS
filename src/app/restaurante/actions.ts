@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireRestaurantSubscription, MODULOS_RESTAURANTE, type ModuloRestaurante } from "@/lib/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -190,7 +191,7 @@ export async function addStockMovement(formData: FormData) {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
 
   const ingredientId = String(formData.get("ingredient_id") ?? "");
-  const tipo = String(formData.get("tipo") ?? "entrada") as "entrada" | "saida" | "ajuste";
+  const tipo = String(formData.get("tipo") ?? "entrada") as "entrada" | "saida" | "ajuste" | "perda";
   const quantidade = Number(formData.get("quantidade") ?? 0);
   const motivo = String(formData.get("motivo") ?? "") || null;
 
@@ -200,6 +201,68 @@ export async function addStockMovement(formData: FormData) {
 
   await registerStockMovement(supabase, { ownerId: restaurantOwnerId, ingredientId, tipo, quantidade, motivo });
   revalidatePath("/restaurante/estoque/produtos");
+}
+
+// Contagem física: compara o que o sistema acha que tem com o que foi
+// contado e lança o ajuste pra cada ingrediente com diferença — falta
+// vira "perda" (alimenta o relatório de Desperdício em Gestão), sobra
+// vira "ajuste" comum. Registra a rodada inteira em del_inventarios pra
+// auditoria, mesmo pros ingredientes sem diferença.
+export async function realizarInventario(formData: FormData) {
+  const { user, supabase, restaurantOwnerId } = await requireRestaurantSubscription("estoque");
+
+  const { data: ingredientes, error: ingredientesError } = await supabase
+    .from("del_ingredients")
+    .select("id, quantidade_atual")
+    .eq("owner_id", restaurantOwnerId);
+  if (ingredientesError) throw new Error(`Não foi possível carregar o estoque: ${ingredientesError.message}`);
+
+  const observacao = String(formData.get("observacao") ?? "").trim() || null;
+
+  const { data: inventario, error: inventarioError } = await supabase
+    .from("del_inventarios")
+    .insert({ owner_id: restaurantOwnerId, realizado_por: user.id, realizado_por_email: user.email, observacao })
+    .select("id")
+    .single();
+  if (inventarioError) throw new Error(`Não foi possível iniciar o inventário: ${inventarioError.message}`);
+
+  let itensComDiferenca = 0;
+
+  for (const ingrediente of ingredientes ?? []) {
+    const bruto = formData.get(`contagem_${ingrediente.id}`);
+    if (bruto == null || String(bruto).trim() === "") continue;
+
+    const quantidadeContada = Number(bruto);
+    if (Number.isNaN(quantidadeContada) || quantidadeContada < 0) continue;
+
+    const quantidadeSistema = Number(ingrediente.quantidade_atual);
+    const diferenca = quantidadeContada - quantidadeSistema;
+
+    const { error: itemError } = await supabase.from("del_inventario_itens").insert({
+      inventario_id: inventario.id,
+      owner_id: restaurantOwnerId,
+      ingredient_id: ingrediente.id,
+      quantidade_sistema: quantidadeSistema,
+      quantidade_contada: quantidadeContada,
+      diferenca,
+    });
+    if (itemError) throw new Error(`Não foi possível registrar a contagem: ${itemError.message}`);
+
+    if (Math.abs(diferenca) > 0.0001) {
+      itensComDiferenca++;
+      await registerStockMovement(supabase, {
+        ownerId: restaurantOwnerId,
+        ingredientId: ingrediente.id,
+        tipo: diferenca < 0 ? "perda" : "ajuste",
+        quantidade: Math.abs(diferenca),
+        motivo: `Inventário ${new Date().toLocaleDateString("pt-BR")}`,
+      });
+    }
+  }
+
+  revalidatePath("/restaurante/estoque/produtos");
+  revalidatePath("/restaurante/estoque/inventario");
+  redirect(`/restaurante/estoque/inventario/${inventario.id}?itens=${itensComDiferenca}`);
 }
 
 const VALID_CATEGORIAS = ["prato", "bebida", "tamanho", "principal", "acompanhamento", "extra"];

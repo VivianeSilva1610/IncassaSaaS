@@ -3,6 +3,7 @@ import { requireRestaurantSubscription, type ModuloRestaurante } from "@/lib/sub
 import { signOut } from "@/lib/auth-actions";
 
 const navItems: { href: string; label: string; modulo: ModuloRestaurante }[] = [
+  { href: "/restaurante/compras", label: "Compras", modulo: "compras" },
   { href: "/restaurante/estoque", label: "Estoque", modulo: "estoque" },
   { href: "/restaurante/vendas", label: "Vendas", modulo: "vendas" },
   { href: "/restaurante/cardapio/produtos", label: "Menu do site", modulo: "cardapio" },

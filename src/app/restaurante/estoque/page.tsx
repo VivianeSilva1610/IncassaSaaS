@@ -21,6 +21,12 @@ const MODULOS = [
     icone: "📥",
   },
   {
+    href: "/restaurante/estoque/inventario",
+    titulo: "Inventário",
+    descricao: "Conte o estoque físico e deixe o sistema ajustar as diferenças (perda ou sobra) sozinho.",
+    icone: "📋",
+  },
+  {
     href: "/restaurante/estoque/relatorio",
     titulo: "Relatório",
     descricao: "Quantidade final por período (mensal ou anual), com entradas/saídas — CSV ou Excel.",

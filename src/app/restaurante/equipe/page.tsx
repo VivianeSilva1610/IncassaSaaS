@@ -3,6 +3,7 @@ import { requireRestaurantSubscription, MODULOS_RESTAURANTE, type ModuloRestaura
 import { addStaff, removeStaff, toggleStaffGerente, updateStaffModulos } from "@/app/restaurante/actions";
 
 const LABEL_MODULO: Record<ModuloRestaurante, string> = {
+  compras: "Compras",
   estoque: "Estoque",
   vendas: "Vendas",
   cardapio: "Menu do site",

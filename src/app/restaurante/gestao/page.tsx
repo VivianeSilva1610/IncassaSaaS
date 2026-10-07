@@ -20,6 +20,12 @@ const MODULOS = [
     descricao: "Receita, CMV, margem e lucro estimado lado a lado, mês a mês.",
     icone: "📊",
   },
+  {
+    href: "/restaurante/gestao/desperdicio",
+    titulo: "Desperdício",
+    descricao: "Perdas registradas no estoque (manual ou por inventário), valorizadas pelo custo da época.",
+    icone: "🗑️",
+  },
 ];
 
 export default async function GestaoPage() {

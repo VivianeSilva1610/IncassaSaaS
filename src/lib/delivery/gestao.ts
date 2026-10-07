@@ -203,3 +203,83 @@ export async function calcularMetricasPeriodo(
     produtos,
   };
 }
+
+export type ItemDesperdicio = {
+  ingredientId: string;
+  codigo: string;
+  nome: string;
+  unidade: string;
+  quantidade: number;
+  valorEstimado: number | null;
+};
+
+export type Desperdicio = {
+  quantidadeDeMovimentos: number;
+  valorTotalEstimado: number;
+  valorComDadosParciais: boolean;
+  porIngrediente: ItemDesperdicio[];
+};
+
+/** Perdas/desperdício (tipo='perda' em del_stock_movements) no período, valorizadas pelo custo vigente na data de cada perda. */
+export async function calcularDesperdicio(
+  supabase: SupabaseClient,
+  ownerId: string,
+  fromISO: string,
+  toISO: string,
+): Promise<Desperdicio> {
+  const { data: movimentos } = await supabase
+    .from("del_stock_movements")
+    .select("ingredient_id, quantidade, created_at, motivo, del_ingredients(codigo, nome, unidade)")
+    .eq("owner_id", ownerId)
+    .eq("tipo", "perda")
+    .gte("created_at", fromISO)
+    .lte("created_at", toISO);
+
+  const lista = movimentos ?? [];
+  const ingredientIds = [...new Set(lista.map((m) => m.ingredient_id))];
+  const { data: custosHistoricos } = ingredientIds.length
+    ? await supabase.from("del_ingredient_custos").select("ingredient_id, custo_unitario, vigente_desde").eq("owner_id", ownerId).in("ingredient_id", ingredientIds)
+    : { data: [] };
+
+  const custosPorIngrediente = new Map<string, { custo_unitario: number | string; vigente_desde: string }[]>();
+  for (const c of custosHistoricos ?? []) {
+    const l = custosPorIngrediente.get(c.ingredient_id) ?? [];
+    l.push(c);
+    custosPorIngrediente.set(c.ingredient_id, l);
+  }
+  for (const l of custosPorIngrediente.values()) {
+    l.sort((a, b) => new Date(b.vigente_desde).getTime() - new Date(a.vigente_desde).getTime());
+  }
+
+  const porIngrediente = new Map<string, ItemDesperdicio>();
+  let valorComDadosParciais = false;
+
+  for (const m of lista) {
+    const info = Array.isArray(m.del_ingredients) ? m.del_ingredients[0] : m.del_ingredients;
+    const quantidade = Number(m.quantidade);
+    const custo = custoVigenteEm(custosPorIngrediente.get(m.ingredient_id) ?? [], new Date(m.created_at).getTime());
+    if (custo == null) valorComDadosParciais = true;
+
+    const atual = porIngrediente.get(m.ingredient_id) ?? {
+      ingredientId: m.ingredient_id,
+      codigo: info?.codigo ?? "",
+      nome: info?.nome ?? "Produto removido",
+      unidade: info?.unidade ?? "",
+      quantidade: 0,
+      valorEstimado: 0,
+    };
+    atual.quantidade += quantidade;
+    atual.valorEstimado = custo == null ? atual.valorEstimado : (atual.valorEstimado ?? 0) + quantidade * custo;
+    porIngrediente.set(m.ingredient_id, atual);
+  }
+
+  const itens = [...porIngrediente.values()].sort((a, b) => (b.valorEstimado ?? -1) - (a.valorEstimado ?? -1));
+  const valorTotalEstimado = itens.reduce((sum, i) => sum + (i.valorEstimado ?? 0), 0);
+
+  return {
+    quantidadeDeMovimentos: lista.length,
+    valorTotalEstimado,
+    valorComDadosParciais,
+    porIngrediente: itens,
+  };
+}

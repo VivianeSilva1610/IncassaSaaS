@@ -164,6 +164,7 @@ export default async function EstoqueProdutosPage({
                   <option value="entrada">Entrada</option>
                   <option value="saida">Saída</option>
                   <option value="ajuste">Ajuste</option>
+                  <option value="perda">Perda/desperdício</option>
                 </select>
                 <input
                   name="quantidade"
