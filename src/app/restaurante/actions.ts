@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireRestaurantSubscription } from "@/lib/subscription";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { registerStockMovement } from "@/lib/delivery/stock";
 import { createOrderWithItems } from "@/lib/delivery/orders";
 import { gerarFaturaParaPedido } from "@/lib/delivery/invoice-bridge";
@@ -47,8 +48,27 @@ export async function addIngredient(formData: FormData) {
   revalidatePath("/restaurante/estoque");
 }
 
+export async function updateIngredient(id: string, formData: FormData) {
+  const { supabase, isGerente } = await requireRestaurantSubscription();
+  if (!isGerente) throw new Error("Apenas o dono ou um gerente pode editar o estoque.");
+
+  const { error } = await supabase
+    .from("del_ingredients")
+    .update({
+      nome: String(formData.get("nome") ?? ""),
+      unidade: String(formData.get("unidade") ?? "un"),
+      estoque_minimo: formData.get("estoque_minimo") ? Number(formData.get("estoque_minimo")) : null,
+      custo_unitario: formData.get("custo_unitario") ? Number(formData.get("custo_unitario")) : null,
+    })
+    .eq("id", id);
+  if (error) throw new Error(`Não foi possível atualizar o ingrediente: ${error.message}`);
+
+  revalidatePath("/restaurante/estoque");
+}
+
 export async function deleteIngredient(id: string) {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase, isGerente } = await requireRestaurantSubscription();
+  if (!isGerente) throw new Error("Apenas o dono ou um gerente pode excluir do estoque.");
   await supabase.from("del_ingredients").delete().eq("id", id);
   revalidatePath("/restaurante/estoque");
 }
@@ -545,6 +565,27 @@ export async function removeStaff(id: string) {
   }
 
   await supabase.from("del_staff").delete().eq("id", id);
+  revalidatePath("/restaurante/equipe");
+}
+
+// Só o dono ou um gerente já existente pode promover/rebaixar outro
+// membro da equipe a gerente — quem não é gerente não pode conceder essa
+// permissão pra ninguém. Usa o client admin porque a RLS de del_staff
+// hoje só permite escrita do dono; a checagem de verdade é aqui.
+export async function toggleStaffGerente(id: string, gerente: boolean) {
+  const { restaurantOwnerId, isOwner, isGerente } = await requireRestaurantSubscription();
+  if (!isOwner && !isGerente) {
+    throw new Error("Apenas o dono ou um gerente pode conceder essa permissão.");
+  }
+
+  const admin = getSupabaseAdmin();
+  const { error } = await admin
+    .from("del_staff")
+    .update({ gerente: !gerente })
+    .eq("id", id)
+    .eq("owner_id", restaurantOwnerId);
+  if (error) throw new Error(`Não foi possível atualizar a permissão: ${error.message}`);
+
   revalidatePath("/restaurante/equipe");
 }
 

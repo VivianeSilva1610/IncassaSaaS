@@ -60,12 +60,15 @@ export async function requireRestaurantSubscription() {
   // would otherwise point at the staff member's own id.
   const { data: staffRow } = await supabase
     .from("del_staff")
-    .select("owner_id")
+    .select("owner_id, gerente")
     .eq("email", user.email)
     .maybeSingle();
 
   const restaurantOwnerId = staffRow?.owner_id ?? user.id;
   const isOwner = !staffRow;
+  // Gerente: dono sempre é, e-mail admin da plataforma também (mesmo
+  // critério já usado em hasAccess), ou staff marcado como gerente.
+  const isGerente = isOwner || isAdminEmail(user.email) || !!staffRow?.gerente;
 
   const { data: subscription } = await supabase
     .from("restaurant_subscriptions")
@@ -82,5 +85,5 @@ export async function requireRestaurantSubscription() {
     redirect("/");
   }
 
-  return { user, supabase, restaurantOwnerId, isOwner, subscription };
+  return { user, supabase, restaurantOwnerId, isOwner, isGerente, subscription };
 }

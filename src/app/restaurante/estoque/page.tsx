@@ -1,13 +1,31 @@
 import { requireRestaurantSubscription } from "@/lib/subscription";
-import { addIngredient, deleteIngredient, addStockMovement, registrarCompraFornecedor } from "@/app/restaurante/actions";
+import {
+  addIngredient,
+  updateIngredient,
+  deleteIngredient,
+  addStockMovement,
+  registrarCompraFornecedor,
+} from "@/app/restaurante/actions";
 
-export default async function EstoquePage() {
-  const { supabase } = await requireRestaurantSubscription();
+export default async function EstoquePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ busca?: string }>;
+}) {
+  const { supabase, isGerente } = await requireRestaurantSubscription();
+  const { busca } = await searchParams;
+  const termo = (busca ?? "").trim();
 
-  const { data: ingredients } = await supabase
-    .from("del_ingredients")
-    .select("*")
-    .order("nome");
+  const [{ data: todosIngredientes }, { data: ingredientesFiltrados }] = await Promise.all([
+    supabase.from("del_ingredients").select("*").order("nome"),
+    termo
+      ? supabase
+          .from("del_ingredients")
+          .select("*")
+          .or(`nome.ilike.%${termo}%,codigo.ilike.%${termo}%`)
+          .order("nome")
+      : supabase.from("del_ingredients").select("*").order("nome"),
+  ]);
 
   return (
     <div>
@@ -25,7 +43,7 @@ export default async function EstoquePage() {
         <form action={registrarCompraFornecedor} className="mt-3 grid gap-2 sm:grid-cols-2">
           <select name="ingredient_id" className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2">
             <option value="">➕ Produto novo (gera código automático)</option>
-            {(ingredients ?? []).map((i) => (
+            {(todosIngredientes ?? []).map((i) => (
               <option key={i.id} value={i.id}>
                 {i.codigo} — {i.nome} ({Number(i.quantidade_atual)} {i.unidade} em estoque)
               </option>
@@ -107,8 +125,25 @@ export default async function EstoquePage() {
         </button>
       </form>
 
-      <div className="mt-6 space-y-2">
-        {(ingredients ?? []).map((i) => {
+      <form method="get" className="mt-6 flex flex-wrap items-center gap-2">
+        <input
+          name="busca"
+          defaultValue={termo}
+          placeholder="Buscar por nome ou código…"
+          className="min-w-56 flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm"
+        />
+        <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white">
+          Buscar
+        </button>
+        {termo && (
+          <a href="/restaurante/estoque" className="text-xs text-stone-500 hover:underline">
+            Limpar busca
+          </a>
+        )}
+      </form>
+
+      <div className="mt-3 space-y-2">
+        {(ingredientesFiltrados ?? []).map((i) => {
           const emFalta = i.estoque_minimo != null && Number(i.quantidade_atual) <= Number(i.estoque_minimo);
           return (
             <div key={i.id} className="rounded-lg border border-stone-200 bg-white p-4">
@@ -124,11 +159,50 @@ export default async function EstoquePage() {
                     {i.custo_unitario != null && ` · R$${Number(i.custo_unitario).toFixed(2)}/${i.unidade}`}
                   </p>
                 </div>
-                <form action={deleteIngredient.bind(null, i.id)}>
-                  <button type="submit" className="text-xs text-red-600 hover:underline">
-                    Excluir
-                  </button>
-                </form>
+                {isGerente && (
+                  <div className="flex shrink-0 items-center gap-3">
+                    <details className="relative">
+                      <summary className="cursor-pointer list-none text-xs text-amber-700 hover:underline">Editar</summary>
+                      <form
+                        action={updateIngredient.bind(null, i.id)}
+                        className="absolute right-0 z-10 mt-2 grid w-60 gap-2 rounded-lg border border-stone-200 bg-white p-3 shadow-lg"
+                      >
+                        <input name="nome" required defaultValue={i.nome} className="rounded-md border border-stone-300 px-2 py-1.5 text-sm" />
+                        <select name="unidade" defaultValue={i.unidade} className="rounded-md border border-stone-300 px-2 py-1.5 text-sm">
+                          <option value="kg">kg</option>
+                          <option value="l">l</option>
+                          <option value="un">unidade</option>
+                        </select>
+                        <input
+                          name="estoque_minimo"
+                          type="number"
+                          step="0.001"
+                          min="0"
+                          defaultValue={i.estoque_minimo ?? ""}
+                          placeholder="Estoque mínimo"
+                          className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
+                        />
+                        <input
+                          name="custo_unitario"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          defaultValue={i.custo_unitario ?? ""}
+                          placeholder="Custo por unidade (R$)"
+                          className="rounded-md border border-stone-300 px-2 py-1.5 text-sm"
+                        />
+                        <button type="submit" className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-700">
+                          Salvar
+                        </button>
+                      </form>
+                    </details>
+                    <form action={deleteIngredient.bind(null, i.id)}>
+                      <button type="submit" className="text-xs text-red-600 hover:underline">
+                        Excluir
+                      </button>
+                    </form>
+                  </div>
+                )}
               </div>
 
               <form action={addStockMovement} className="mt-3 flex flex-wrap items-end gap-2 border-t border-stone-100 pt-3">
@@ -162,7 +236,11 @@ export default async function EstoquePage() {
             </div>
           );
         })}
-        {(ingredients ?? []).length === 0 && <p className="text-sm text-stone-500">Nenhum ingrediente ainda.</p>}
+        {(ingredientesFiltrados ?? []).length === 0 && (
+          <p className="text-sm text-stone-500">
+            {termo ? `Nenhum ingrediente encontrado para "${termo}".` : "Nenhum ingrediente ainda."}
+          </p>
+        )}
       </div>
     </div>
   );
