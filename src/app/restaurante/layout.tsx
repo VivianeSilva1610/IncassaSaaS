@@ -45,6 +45,11 @@ export default async function RestauranteLayout({ children }: { children: React.
                   Fiscal
                 </Link>
               )}
+              {isOwner && (
+                <Link href="/restaurante/dominio" className="hover:text-stone-900">
+                  Domínio
+                </Link>
+              )}
             </nav>
           </div>
           <div className="flex items-center gap-3 text-sm text-stone-500">

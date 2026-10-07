@@ -6,6 +6,7 @@ import { requireRestaurantSubscription } from "@/lib/subscription";
 import { registerStockMovement } from "@/lib/delivery/stock";
 import { createOrderWithItems } from "@/lib/delivery/orders";
 import { gerarFaturaParaPedido } from "@/lib/delivery/invoice-bridge";
+import { verificarRegistroTxt } from "@/lib/domain-verification";
 import {
   emitirNotaFiscalParaPedido,
   cancelarNotaFiscal as cancelarNotaFiscalLib,
@@ -603,4 +604,71 @@ export async function fecharComanda(id: string, formData: FormData) {
   if (error) throw new Error(`Não foi possível fechar a comanda: ${error.message}`);
 
   revalidatePath("/restaurante/mesas");
+}
+
+async function getRestauranteIdDoOwner(supabase: SupabaseClient, ownerId: string): Promise<string> {
+  const { data, error } = await supabase.from("restaurants").select("id").eq("owner_user_id", ownerId).single();
+  if (error || !data) throw new Error("Restaurante não encontrado para esse usuário.");
+  return data.id;
+}
+
+export async function addRestaurantDomain(formData: FormData) {
+  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
+  if (!isOwner) throw new Error("Apenas o dono do restaurante pode cadastrar domínio.");
+
+  const hostname = String(formData.get("hostname") ?? "").trim().toLowerCase();
+  if (!hostname) throw new Error("Informe o domínio.");
+
+  const restaurantId = await getRestauranteIdDoOwner(supabase, restaurantOwnerId);
+
+  const { count } = await supabase
+    .from("restaurant_domains")
+    .select("*", { count: "exact", head: true })
+    .eq("restaurant_id", restaurantId);
+
+  const { error } = await supabase.from("restaurant_domains").insert({
+    restaurant_id: restaurantId,
+    hostname,
+    is_primary: (count ?? 0) === 0,
+  });
+  if (error) throw new Error(`Não foi possível cadastrar o domínio: ${error.message}`);
+
+  revalidatePath("/restaurante/dominio");
+}
+
+export async function verifyRestaurantDomain(id: string) {
+  const { supabase, isOwner } = await requireRestaurantSubscription();
+  if (!isOwner) throw new Error("Apenas o dono do restaurante pode verificar domínio.");
+
+  const { data: dominio } = await supabase
+    .from("restaurant_domains")
+    .select("id, hostname, verification_token")
+    .eq("id", id)
+    .single();
+  if (!dominio) throw new Error("Domínio não encontrado.");
+
+  const verificado = await verificarRegistroTxt(dominio.hostname, dominio.verification_token);
+
+  await supabase
+    .from("restaurant_domains")
+    .update({
+      verification_status: verificado ? "verified" : "pending",
+      verified_at: verificado ? new Date().toISOString() : null,
+    })
+    .eq("id", id);
+
+  revalidatePath("/restaurante/dominio");
+
+  if (!verificado) {
+    throw new Error(
+      `Ainda não encontrei o registro TXT em _incassa-challenge.${dominio.hostname} com o valor esperado. Confirme o DNS e tente de novo — propagação pode levar algumas horas.`,
+    );
+  }
+}
+
+export async function deleteRestaurantDomain(id: string) {
+  const { supabase, isOwner } = await requireRestaurantSubscription();
+  if (!isOwner) throw new Error("Apenas o dono do restaurante pode remover domínio.");
+  await supabase.from("restaurant_domains").delete().eq("id", id);
+  revalidatePath("/restaurante/dominio");
 }
