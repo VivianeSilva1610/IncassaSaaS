@@ -65,7 +65,7 @@ export default async function EstoqueComprasPage() {
 
       <p className="mt-4 text-xs text-stone-500">
         Pra importar uma NF-e real de fornecedor (XML), use{" "}
-        <Link href="/restaurante/compras" className="text-amber-700 underline underline-offset-2">
+        <Link href="/restaurante/estoque/compras-nfe" className="text-amber-700 underline underline-offset-2">
           Compras e fornecedores
         </Link>
         .

@@ -5,7 +5,6 @@ import { signOut } from "@/lib/auth-actions";
 const navItems = [
   { href: "/restaurante", label: "Visão geral" },
   { href: "/restaurante/estoque", label: "Estoque" },
-  { href: "/restaurante/compras", label: "Compras" },
   { href: "/restaurante/vendas", label: "Vendas" },
   { href: "/restaurante/cardapio/produtos", label: "Menu do site" },
   { href: "/restaurante/cozinha", label: "Cozinha" },
