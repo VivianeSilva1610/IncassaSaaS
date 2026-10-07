@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireRestaurantSubscription } from "@/lib/subscription";
 import { updatePricingConfig, addProductIngredient, deleteProductIngredient } from "@/app/restaurante/actions";
 import { calculateProductCost } from "@/lib/delivery/pricing";
+import { IngredientePicker } from "./ingrediente-picker";
 
 function formatReal(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -86,8 +87,13 @@ export default async function CustosPrecificacaoPage() {
             const margemAtual = precoAtual > 0 ? (precoAtual - custoTotal) / precoAtual : 0;
 
             return (
-              <div key={p.id} className="rounded-xl border border-stone-200 bg-white p-4">
-                <h3 className="font-semibold text-stone-900">{p.nome}</h3>
+              <div key={p.id} className={`rounded-xl border bg-white p-4 ${itensDoProduto.length === 0 ? "border-amber-300" : "border-stone-200"}`}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="font-semibold text-stone-900">{p.nome}</h3>
+                  {itensDoProduto.length === 0 && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">⚠ Sem ficha técnica</span>
+                  )}
+                </div>
 
                 <div className="mt-2 space-y-1">
                   {itensDoProduto.map((pi) => (
@@ -103,17 +109,12 @@ export default async function CustosPrecificacaoPage() {
                       </form>
                     </div>
                   ))}
-                  {itensDoProduto.length === 0 && <p className="text-sm text-stone-500">Nenhum ingrediente na ficha técnica ainda.</p>}
+                  {itensDoProduto.length === 0 && <p className="text-sm text-amber-700">Nenhum ingrediente cadastrado — o custo variável abaixo está zerado e o preço sugerido não reflete o custo real deste item.</p>}
                 </div>
 
                 <form action={addProductIngredient} className="mt-3 flex flex-wrap items-end gap-2 border-t border-stone-100 pt-3">
                   <input type="hidden" name="product_id" value={p.id} />
-                  <select name="ingredient_id" required className="rounded-md border border-stone-300 px-2 py-1.5 text-xs">
-                    <option value="">Ingrediente…</option>
-                    {(ingredients ?? []).map((i) => (
-                      <option key={i.id} value={i.id}>{i.nome}</option>
-                    ))}
-                  </select>
+                  <IngredientePicker ingredients={(ingredients ?? []).map(({ id, nome }) => ({ id, nome }))} name="ingredient_id" />
                   <input
                     name="quantidade_necessaria"
                     type="number"
