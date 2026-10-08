@@ -1,8 +1,11 @@
 import Link from "next/link";
-import { requireRestaurantSubscription } from "@/lib/subscription";
+import { requireRestaurantSubscription, type RestauranteLocale } from "@/lib/subscription";
 import { criarSolicitacoes, cancelarSolicitacao } from "./actions";
 
-const statusLabels: Record<string, string> = { aberta: "Aberta", em_orcamento: "Em orçamento", atendida: "Atendida", cancelada: "Cancelada" };
+const STATUS_LABELS: Record<RestauranteLocale, Record<string, string>> = {
+  "pt-BR": { aberta: "Aberta", em_orcamento: "Em orçamento", atendida: "Atendida", cancelada: "Cancelada" },
+  it: { aberta: "Aperta", em_orcamento: "In richiesta preventivo", atendida: "Evasa", cancelada: "Annullata" },
+};
 const statusClasses: Record<string, string> = {
   aberta: "bg-amber-100 text-amber-700",
   em_orcamento: "bg-sky-100 text-sky-700",
@@ -10,12 +13,43 @@ const statusClasses: Record<string, string> = {
   cancelada: "bg-stone-200 text-stone-500 line-through",
 };
 
+const CONTEUDO: Record<RestauranteLocale, {
+  voltar: string; titulo: string; descricao: string; nova: string; observacaoPlaceholder: string;
+  colPedir: string; colProduto: string; colSaldoMinimo: string; colQuantidade: string; estoqueBaixo: string;
+  nenhumProduto: string; registrar: string; solicitacoesTitulo: string; referenciaInterna: string;
+  cancelar: string; nenhumaSolicitacao: string; dicaRodape: (link: React.ReactNode) => React.ReactNode;
+}> = {
+  "pt-BR": {
+    voltar: "← Compras", titulo: "Solicitações de compra",
+    descricao: "Só produto e quantidade — sem fornecedor, sem preço negociado. O custo mostrado é só uma referência interna; quando a solicitação virar orçamento, esse valor não é enviado ao fornecedor.",
+    nova: "Nova solicitação", observacaoPlaceholder: "Observação (opcional)",
+    colPedir: "Pedir", colProduto: "Produto", colSaldoMinimo: "Saldo / mínimo", colQuantidade: "Quantidade",
+    estoqueBaixo: "estoque baixo", nenhumProduto: "Nenhum produto cadastrado ainda.", registrar: "Registrar solicitação",
+    solicitacoesTitulo: "Solicitações", referenciaInterna: "referência interna",
+    cancelar: "Cancelar", nenhumaSolicitacao: "Nenhuma solicitação registrada ainda.",
+    dicaRodape: (link) => <>Pra pedir orçamento a fornecedores a partir de solicitações em aberto, use {link}.</>,
+  },
+  it: {
+    voltar: "← Acquisti", titulo: "Richieste di acquisto",
+    descricao: "Solo prodotto e quantità — senza fornitore, senza prezzo negoziato. Il costo mostrato è solo un riferimento interno; quando la richiesta diventa un preventivo, questo valore non viene inviato al fornitore.",
+    nova: "Nuova richiesta", observacaoPlaceholder: "Nota (opzionale)",
+    colPedir: "Richiedi", colProduto: "Prodotto", colSaldoMinimo: "Saldo / minimo", colQuantidade: "Quantità",
+    estoqueBaixo: "scorta bassa", nenhumProduto: "Nessun prodotto registrato ancora.", registrar: "Registra richiesta",
+    solicitacoesTitulo: "Richieste", referenciaInterna: "riferimento interno",
+    cancelar: "Annulla", nenhumaSolicitacao: "Nessuna richiesta registrata ancora.",
+    dicaRodape: (link) => <>Per chiedere un preventivo ai fornitori a partire dalle richieste aperte, usa {link}.</>,
+  },
+};
+
 export default async function SolicitacoesPage({
   searchParams,
 }: {
   searchParams: Promise<{ sucesso?: string; erro?: string }>;
 }) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("compras");
+  const { supabase, restaurantOwnerId, locale } = await requireRestaurantSubscription("compras");
+  const t = CONTEUDO[locale];
+  const statusLabels = STATUS_LABELS[locale];
+  const moeda = locale === "it" ? "€" : "R$";
   const params = await searchParams;
 
   const [{ data: ingredientes }, { data: solicitacoes }] = await Promise.all([
@@ -26,29 +60,26 @@ export default async function SolicitacoesPage({
   return (
     <div>
       <Link href="/restaurante/compras" className="text-sm text-amber-700 underline underline-offset-2">
-        ← Compras
+        {t.voltar}
       </Link>
-      <h1 className="mt-2 text-2xl font-bold text-stone-900">Solicitações de compra</h1>
-      <p className="mt-1 text-sm text-stone-600">
-        Só produto e quantidade — sem fornecedor, sem preço negociado. O custo mostrado é só uma referência
-        interna; quando a solicitação virar orçamento, esse valor não é enviado ao fornecedor.
-      </p>
+      <h1 className="mt-2 text-2xl font-bold text-stone-900">{t.titulo}</h1>
+      <p className="mt-1 text-sm text-stone-600">{t.descricao}</p>
 
       {params.sucesso && <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{params.sucesso}</p>}
       {params.erro && <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{params.erro}</p>}
 
       <form action={criarSolicitacoes} className="mt-6 rounded-xl border border-stone-200 bg-white p-5">
-        <h2 className="font-semibold text-stone-900">Nova solicitação</h2>
-        <input name="observacao" placeholder="Observação (opcional)" maxLength={1000} className="mt-3 w-full rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        <h2 className="font-semibold text-stone-900">{t.nova}</h2>
+        <input name="observacao" placeholder={t.observacaoPlaceholder} maxLength={1000} className="mt-3 w-full rounded-md border border-stone-300 px-3 py-2 text-sm" />
 
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[520px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-stone-200 text-left text-xs text-stone-500">
-                <th className="py-2 pr-3">Pedir</th>
-                <th className="py-2 pr-3">Produto</th>
-                <th className="py-2 pr-3">Saldo / mínimo</th>
-                <th className="py-2 pr-3">Quantidade</th>
+                <th className="py-2 pr-3">{t.colPedir}</th>
+                <th className="py-2 pr-3">{t.colProduto}</th>
+                <th className="py-2 pr-3">{t.colSaldoMinimo}</th>
+                <th className="py-2 pr-3">{t.colQuantidade}</th>
               </tr>
             </thead>
             <tbody>
@@ -62,7 +93,7 @@ export default async function SolicitacoesPage({
                     </td>
                     <td className="py-2 pr-3">
                       {i.nome}
-                      {baixo && <span className="ml-2 text-xs text-amber-700">estoque baixo</span>}
+                      {baixo && <span className="ml-2 text-xs text-amber-700">{t.estoqueBaixo}</span>}
                     </td>
                     <td className="py-2 pr-3 text-stone-600">
                       {Number(i.quantidade_atual)} / {i.estoque_minimo == null ? "—" : Number(i.estoque_minimo)} {i.unidade}
@@ -77,7 +108,7 @@ export default async function SolicitacoesPage({
               {(ingredientes ?? []).length === 0 && (
                 <tr>
                   <td colSpan={4} className="py-4 text-center text-stone-500">
-                    Nenhum produto cadastrado ainda.
+                    {t.nenhumProduto}
                   </td>
                 </tr>
               )}
@@ -86,12 +117,12 @@ export default async function SolicitacoesPage({
         </div>
 
         <button type="submit" className="mt-4 rounded-md bg-stone-900 px-4 py-2.5 text-sm font-medium text-white transition-transform hover:bg-stone-700 active:scale-[0.98]">
-          Registrar solicitação
+          {t.registrar}
         </button>
       </form>
 
       <div className="mt-7 space-y-2">
-        <h2 className="font-semibold text-stone-900">Solicitações</h2>
+        <h2 className="font-semibold text-stone-900">{t.solicitacoesTitulo}</h2>
         {(solicitacoes ?? []).map((s) => (
           <div key={s.id} className="rounded-lg border border-stone-200 bg-white p-3 text-sm">
             <div className="flex items-center justify-between">
@@ -102,27 +133,27 @@ export default async function SolicitacoesPage({
             </div>
             <p className="mt-0.5 text-xs text-stone-500">
               {Number(s.quantidade)} {s.unidade_snapshot} · {s.solicitado_por_email}
-              {s.custo_referencia != null && ` · referência interna R$${Number(s.custo_referencia).toFixed(2)}`}
+              {s.custo_referencia != null && ` · ${t.referenciaInterna} ${moeda}${Number(s.custo_referencia).toFixed(2)}`}
             </p>
             {s.observacao && <p className="mt-0.5 text-xs text-stone-500">{s.observacao}</p>}
             {s.status === "aberta" && (
               <form action={cancelarSolicitacao.bind(null, s.id)} className="mt-2">
                 <button type="submit" className="text-xs text-red-600 hover:underline">
-                  Cancelar
+                  {t.cancelar}
                 </button>
               </form>
             )}
           </div>
         ))}
-        {(solicitacoes ?? []).length === 0 && <p className="text-sm text-stone-500">Nenhuma solicitação registrada ainda.</p>}
+        {(solicitacoes ?? []).length === 0 && <p className="text-sm text-stone-500">{t.nenhumaSolicitacao}</p>}
       </div>
 
       <p className="mt-6 text-xs text-stone-500">
-        Pra pedir orçamento a fornecedores a partir de solicitações em aberto, use{" "}
-        <Link href="/restaurante/compras/orcamentos" className="text-amber-700 underline underline-offset-2">
-          Orçamentos
-        </Link>
-        .
+        {t.dicaRodape(
+          <Link href="/restaurante/compras/orcamentos" className="text-amber-700 underline underline-offset-2">
+            {locale === "it" ? "Preventivi" : "Orçamentos"}
+          </Link>,
+        )}
       </p>
     </div>
   );

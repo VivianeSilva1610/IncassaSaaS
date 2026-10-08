@@ -11,7 +11,20 @@ export default async function ComprasPage({
 }: {
   searchParams: Promise<{ sucesso?: string; erro?: string }>;
 }) {
-  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("compras");
+  const { supabase, restaurantOwnerId, isGerente, locale } = await requireRestaurantSubscription("compras");
+  if (locale === "it") {
+    return (
+      <div>
+        <Link href="/restaurante/compras" className="text-sm text-amber-700 underline underline-offset-2">← Acquisti</Link>
+        <h1 className="mt-2 text-2xl font-bold text-stone-900">Compras e fornecedores (NF-e)</h1>
+        <p className="mt-4 rounded-lg border border-stone-200 bg-stone-50 p-4 text-sm text-stone-600">
+          L&apos;importazione di NF-e (XML) è un flusso fiscale brasiliano e non si applica a questo ristorante.
+          Per registrare un acquisto da un fornitore italiano, usa{" "}
+          <Link href="/restaurante/compras/fornecedor" className="text-amber-700 underline underline-offset-2">Acquisto da fornitore</Link>.
+        </p>
+      </div>
+    );
+  }
   const params = await searchParams;
   const { data: notas } = await supabase
     .from("del_notas_entrada")
