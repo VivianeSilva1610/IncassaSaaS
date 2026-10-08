@@ -13,7 +13,7 @@ import {
   cancelarNotaFiscal as cancelarNotaFiscalLib,
   confirmarPagamentoEEmitirNota,
 } from "@/lib/fiscal/emitir";
-import { carregarFechamento } from "@/lib/fiscal/fechamento";
+import { carregarFechamento, offsetParaData } from "@/lib/fiscal/fechamento";
 import { refundAsaasPayment } from "@/lib/asaas";
 import { emitirDocumentoFiscaleParaPedido, cancelarDocumentoFiscale } from "@/lib/fiscal/emitirIt";
 import { getAsaasApiKeyForRestaurant } from "@/lib/delivery/providers";
@@ -24,12 +24,25 @@ export async function fecharCaixaDiario(formData: FormData) {
   const data = String(formData.get("data") ?? "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error("Informe uma data válida.");
 
-  const partesHoje = new Intl.DateTimeFormat("en", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const { data: restaurant } = await supabase
+    .from("restaurants")
+    .select("id, country_code, timezone")
+    .eq("owner_user_id", restaurantOwnerId)
+    .maybeSingle();
+  const timezone = restaurant?.timezone || "America/Sao_Paulo";
+  const country: "BR" | "IT" = restaurant?.country_code === "IT" ? "IT" : "BR";
+
+  const partesHoje = new Intl.DateTimeFormat("en", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
   const parteHoje = (tipo: Intl.DateTimeFormatPartTypes) => partesHoje.find((parte) => parte.type === tipo)!.value;
   const hoje = `${parteHoje("year")}-${parteHoje("month")}-${parteHoje("day")}`;
   if (data > hoje) throw new Error("Não é possível fechar um caixa futuro.");
 
-  const dados = await carregarFechamento(supabase, restaurantOwnerId, `${data}T00:00:00-03:00`, `${data}T23:59:59.999-03:00`, data, data);
+  const offset = offsetParaData(timezone, data);
+  const dados = await carregarFechamento(
+    supabase, restaurantOwnerId,
+    `${data}T00:00:00${offset}`, `${data}T23:59:59.999${offset}`, data, data,
+    restaurant?.id ? { restaurantId: restaurant.id, country } : null,
+  );
   const { error } = await supabase.from("del_caixa_fechamentos").insert({
     owner_id: restaurantOwnerId,
     data,

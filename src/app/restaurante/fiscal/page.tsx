@@ -28,7 +28,7 @@ const CONTEUDO: Record<
     modulos: [
       { href: "/restaurante/fiscal/emissoes", titulo: "Emissioni fiscali", descricao: "Vendite pagate senza documento, emissioni pendenti e tentativi da rifare.", icone: "!" },
       { href: "/restaurante/fiscal/fechamento-diario", titulo: "Chiusura giornaliera", descricao: "Riconcilia vendite, incassi, storni e l'elenco dei documenti fiscali del giorno.", icone: "D" },
-      { href: "/restaurante/fiscal/fechamento-mensal", titulo: "Chiusura mensile", descricao: "Consolida competenza, cassa, documenti fiscali e pendenze del mese.", icone: "M" },
+      { href: "/restaurante/fiscal/fechamento-mensal", titulo: "Chiusura mensile", descricao: "Consolida competenza, cassa e documenti fiscali del mese come base per la liquidazione IVA.", icone: "M" },
       { href: "/restaurante/fiscal/exportacao", titulo: "Esporta per il commercialista", descricao: "Report per competenza o cassa, con pagamenti, storni e documenti fiscali.", icone: "↗" },
       { href: "/restaurante/fiscal/estabelecimento", titulo: "Dati fiscali", descricao: "Partita IVA, regime fiscale, provider e ambiente di emissione.", icone: "⌂" },
       { href: "/restaurante/fiscal/classificacao", titulo: "Classificazione fiscale", descricao: "NCM, CFOP, CEST e origine dei prodotti — classificazioni specifiche del Brasile.", icone: "≡" },
