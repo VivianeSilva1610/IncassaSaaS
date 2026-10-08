@@ -740,7 +740,7 @@ export async function deleteOrder(id: string) {
 }
 
 export async function updateFiscalConfig(formData: FormData) {
-  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription("fiscal");
   if (!isOwner) throw new Error("Apenas o dono do restaurante pode editar os dados fiscais.");
 
   const ambiente = String(formData.get("ambiente") ?? "homologacao");
@@ -778,7 +778,7 @@ export async function updateFiscalConfig(formData: FormData) {
 }
 
 export async function updateFiscalConfigIt(formData: FormData) {
-  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription("fiscal");
   if (!isOwner) throw new Error("Apenas o dono do restaurante pode editar os dados fiscais.");
 
   const ambiente = String(formData.get("ambiente") ?? "homologacao");
@@ -820,7 +820,7 @@ export async function updateFiscalConfigIt(formData: FormData) {
 // corrigir manualmente (ex: se digitou CPF por engano). Evita precisar de
 // um seletor de país no cadastro: o primeiro dado fiscal real já decide.
 export async function confirmarPaisRestaurante(formData: FormData) {
-  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription("fiscal");
   if (!isOwner) throw new Error("Apenas o dono do restaurante pode confirmar o país.");
 
   const countryCode = String(formData.get("country_code") ?? "");
@@ -861,7 +861,8 @@ export async function confirmarPaisRestaurante(formData: FormData) {
 }
 
 export async function updateProductFiscal(id: string, formData: FormData) {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase, isGerente } = await requireRestaurantSubscription("fiscal");
+  if (!isGerente) throw new Error("Apenas o dono ou um gerente pode editar a classificação fiscal.");
 
   const { error } = await supabase
     .from("del_products")
@@ -879,7 +880,8 @@ export async function updateProductFiscal(id: string, formData: FormData) {
 }
 
 export async function emitirNotaFiscal(orderId: string) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("fiscal");
+  if (!isGerente) throw new Error("Apenas o dono ou um gerente pode emitir documentos fiscais.");
   await emitirNotaFiscalParaPedido(supabase, { ownerId: restaurantOwnerId, orderId });
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/vendas/pedidos");
@@ -910,7 +912,8 @@ export async function marcarPedidoPago(orderId: string, formData: FormData) {
 }
 
 export async function cancelarNotaFiscal(notaId: string, formData: FormData) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("fiscal");
+  if (!isGerente) throw new Error("Apenas o dono ou um gerente pode cancelar documentos fiscais.");
   const justificativa = String(formData.get("justificativa") ?? "").trim();
   if (justificativa.length < 15) {
     throw new Error("A justificativa do cancelamento precisa ter pelo menos 15 caracteres (exigência da SEFAZ).");
@@ -925,7 +928,8 @@ export async function cancelarNotaFiscal(notaId: string, formData: FormData) {
 }
 
 export async function emitirDocumentoFiscaleIt(orderId: string) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("fiscal");
+  if (!isGerente) throw new Error("Apenas o dono ou um gerente pode emitir documentos fiscais.");
   const restaurantId = await getRestauranteIdDoOwner(supabase, restaurantOwnerId);
   await emitirDocumentoFiscaleParaPedido(supabase, { ownerId: restaurantOwnerId, restaurantId, orderId });
   revalidatePath("/restaurante/vendas");
@@ -936,7 +940,8 @@ export async function emitirDocumentoFiscaleIt(orderId: string) {
 }
 
 export async function cancelarDocumentoFiscaleIt(documentoId: string, formData: FormData) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("fiscal");
+  if (!isGerente) throw new Error("Apenas o dono ou um gerente pode cancelar documentos fiscais.");
   const justificativa = String(formData.get("justificativa") ?? "").trim();
   if (justificativa.length < 15) {
     throw new Error("Il motivo dell'annullamento deve avere almeno 15 caratteri.");

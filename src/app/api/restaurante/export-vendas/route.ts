@@ -54,8 +54,7 @@ type DocumentoFiscalIt = {
 };
 
 export async function GET(req: Request) {
-  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
-  if (!isOwner) return NextResponse.json({ error: "Apenas o dono pode exportar os dados fiscais." }, { status: 403 });
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("fiscal");
 
   const { data: restaurant } = await supabase
     .from("restaurants")

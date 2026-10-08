@@ -51,7 +51,7 @@ export default async function NotasFiscaisPage({
 }: {
   searchParams: Promise<{ busca?: string; from?: string; to?: string }>;
 }) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("fiscal");
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select("id, country_code")

@@ -3,7 +3,7 @@ import { requireRestaurantSubscription } from "@/lib/subscription";
 import { DetectarPaisForm } from "./detectar-pais-form";
 
 export default async function EstabelecimentoFiscalPage() {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("fiscal");
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select("id, country_code, country_confirmed")

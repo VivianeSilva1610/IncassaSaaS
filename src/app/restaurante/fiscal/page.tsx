@@ -38,7 +38,7 @@ const CONTEUDO: Record<
 };
 
 export default async function FiscalPage() {
-  const { locale } = await requireRestaurantSubscription();
+  const { locale } = await requireRestaurantSubscription("fiscal");
   const t = CONTEUDO[locale];
 
   return (

@@ -7,7 +7,7 @@ function euro(value: number) { return new Intl.NumberFormat("it-IT", { style: "c
 function dataHora(value: string | null) { return value ? new Date(value).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—"; }
 
 export default async function EmissoesFiscaisPage() {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("fiscal");
 
   const { data: restaurant } = await supabase
     .from("restaurants")

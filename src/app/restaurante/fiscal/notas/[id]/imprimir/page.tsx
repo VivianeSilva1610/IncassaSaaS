@@ -18,7 +18,7 @@ function formatEuro(value: number) {
 
 export default async function ImprimirNotaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("fiscal");
 
   const { data: restaurant } = await supabase
     .from("restaurants")

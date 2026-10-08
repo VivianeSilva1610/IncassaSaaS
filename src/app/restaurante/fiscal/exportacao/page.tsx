@@ -48,7 +48,7 @@ const CONTEUDO: Record<
 };
 
 export default async function ExportacaoFiscalPage() {
-  const { supabase, restaurantOwnerId, locale } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, locale } = await requireRestaurantSubscription("fiscal");
   const t = CONTEUDO[locale];
 
   let avisoRegime: string | null = null;

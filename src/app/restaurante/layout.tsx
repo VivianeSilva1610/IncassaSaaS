@@ -61,15 +61,50 @@ export default async function RestauranteLayout({ children }: { children: React.
     { href: "/restaurante/caixa", key: "caixa", modulo: "caixa" },
     { href: "/restaurante/financeiro", key: "financeiro", modulo: "financeiro" },
     { href: "/restaurante/gestao", key: "gestao", modulo: "gestao" },
+    { href: "/restaurante/fiscal", key: "fiscal", modulo: "fiscal" },
   ];
   const itensVisiveis = isOwner ? navItems : navItems.filter((item) => modulosPermitidos.includes(item.modulo));
 
-  const { data: pricingConfig } = await supabase
-    .from("del_pricing_config")
-    .select("nome_negocio")
-    .eq("owner_id", restaurantOwnerId)
-    .maybeSingle();
-  const nomeNegocio = pricingConfig?.nome_negocio || t.nome_negocio_padrao;
+  const [{ data: pricingConfig }, { data: restaurant }] = await Promise.all([
+    supabase
+      .from("del_pricing_config")
+      .select("nome_negocio")
+      .eq("owner_id", restaurantOwnerId)
+      .maybeSingle(),
+    supabase
+      .from("restaurants")
+      .select("id, name, country_code")
+      .eq("owner_user_id", restaurantOwnerId)
+      .maybeSingle(),
+  ]);
+
+  let nomeEstabelecimento = restaurant?.name || pricingConfig?.nome_negocio || t.nome_negocio_padrao;
+  let documentoEstabelecimento: string | null = null;
+  let rotuloDocumento: "CNPJ" | "Partita IVA" | null = null;
+
+  if (restaurant?.country_code === "IT") {
+    const { data: fiscalIt } = await supabase
+      .from("restaurant_fiscal_it")
+      .select("ragione_sociale, partita_iva")
+      .eq("restaurant_id", restaurant.id)
+      .maybeSingle();
+
+    nomeEstabelecimento = fiscalIt?.ragione_sociale || nomeEstabelecimento;
+    documentoEstabelecimento = fiscalIt?.partita_iva || null;
+    rotuloDocumento = "Partita IVA";
+  } else {
+    const { data: fiscalBr } = await supabase
+      .from("del_fiscal_config")
+      .select("nome_fantasia, razao_social, cnpj")
+      .eq("owner_id", restaurantOwnerId)
+      .maybeSingle();
+
+    nomeEstabelecimento = fiscalBr?.nome_fantasia || fiscalBr?.razao_social || nomeEstabelecimento;
+    documentoEstabelecimento = fiscalBr?.cnpj || null;
+    rotuloDocumento = "CNPJ";
+  }
+
+  const nomeNegocio = pricingConfig?.nome_negocio || nomeEstabelecimento;
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -92,11 +127,6 @@ export default async function RestauranteLayout({ children }: { children: React.
                 </Link>
               )}
               {isOwner && (
-                <Link href="/restaurante/fiscal" className="hover:text-stone-900">
-                  {t.fiscal}
-                </Link>
-              )}
-              {isOwner && (
                 <Link href="/restaurante/dominio" className="hover:text-stone-900">
                   {t.dominio}
                 </Link>
@@ -108,7 +138,15 @@ export default async function RestauranteLayout({ children }: { children: React.
               )}
             </nav>
           </div>
-          <div className="flex items-center gap-3 text-sm text-stone-500">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-stone-500">
+            <div className="border-r border-stone-200 pr-3 text-right leading-tight">
+              <p className="font-medium text-stone-800">{nomeEstabelecimento}</p>
+              {documentoEstabelecimento && rotuloDocumento && (
+                <p className="mt-0.5 text-xs text-stone-500">
+                  {rotuloDocumento}: {documentoEstabelecimento}
+                </p>
+              )}
+            </div>
             <span>{user.email}</span>
             <form action={signOut}>
               <button type="submit" className="hover:text-stone-900">

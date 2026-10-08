@@ -36,7 +36,7 @@ const CONTEUDO: Record<RestauranteLocale, {
 };
 
 export default async function FechamentoDiarioPage({ searchParams }: { searchParams: Promise<{ data?: string }> }) {
-  const { supabase, restaurantOwnerId, isGerente, locale } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isGerente, locale } = await requireRestaurantSubscription("fiscal");
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select("id, country_code, timezone")

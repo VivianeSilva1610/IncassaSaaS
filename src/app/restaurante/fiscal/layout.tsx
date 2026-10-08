@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { requireRestaurantSubscription, type RestauranteLocale } from "@/lib/subscription";
 
 const LINKS: Record<RestauranteLocale, { href: string; label: string }[]> = {
@@ -26,8 +25,7 @@ const LINKS: Record<RestauranteLocale, { href: string; label: string }[]> = {
 };
 
 export default async function FiscalLayout({ children }: { children: React.ReactNode }) {
-  const { isOwner, locale } = await requireRestaurantSubscription();
-  if (!isOwner) redirect("/restaurante");
+  const { locale } = await requireRestaurantSubscription("fiscal");
   const links = LINKS[locale];
 
   return (

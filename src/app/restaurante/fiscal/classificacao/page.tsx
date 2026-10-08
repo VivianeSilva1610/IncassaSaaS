@@ -2,7 +2,7 @@ import { updateProductFiscal } from "@/app/restaurante/actions";
 import { requireRestaurantSubscription } from "@/lib/subscription";
 
 export default async function ClassificacaoFiscalPage() {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("fiscal");
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select("country_code")
