@@ -1,5 +1,5 @@
 import { requireRestaurantSubscription } from "@/lib/subscription";
-import { deleteOrder, marcarPedidoPago, updateOrderStatus, removerItemPedido } from "@/app/restaurante/actions";
+import { deleteOrder, marcarPedidoPago, updateOrderStatus, removerItemPedido, estornarPedido } from "@/app/restaurante/actions";
 
 function formatReal(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -60,6 +60,7 @@ export default async function PedidosPage({ searchParams }: { searchParams: Prom
                     {o.cliente_telefone && !o.del_mesas?.numero ? <span className="font-normal text-stone-500"> · {o.cliente_telefone}</span> : null}
                     {o.a_prazo && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">A prazo</span>}
                     {o.pago ? <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">Pago {formatHora(o.pago_em)}</span> : <span className="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-500">Pendente</span>}
+                    {o.estorno_status === "em_processamento" && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">Estorno em andamento</span>}
                     {Number(o.valor_estornado ?? 0) > 0 && <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700">{o.estorno_status === "total" ? "Estorno total" : `Estornado ${formatReal(Number(o.valor_estornado))}`}</span>}
                   </p>
                   <ul className="mt-1 space-y-0.5 text-sm text-stone-500">
@@ -115,6 +116,23 @@ export default async function PedidosPage({ searchParams }: { searchParams: Prom
                   {!o.pago && !nota && <form action={deleteOrder.bind(null, o.id)}><button type="submit" className="text-xs text-red-600 hover:underline">Excluir</button></form>}
                 </div>
               </div>
+              {o.pago && o.estorno_status !== "total" && (
+                <form action={estornarPedido.bind(null, o.id)} className="mt-3 flex flex-wrap items-center gap-2 border-t border-stone-100 pt-3">
+                  <input
+                    name="valor"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max={Math.max(0, Number(o.valor_pago ?? o.totale) - Number(o.valor_estornado ?? 0))}
+                    placeholder={`Valor a estornar (até ${formatReal(Math.max(0, Number(o.valor_pago ?? o.totale) - Number(o.valor_estornado ?? 0)))})`}
+                    className="w-56 rounded-md border border-stone-300 px-2 py-1 text-xs"
+                  />
+                  <input name="motivo" placeholder="Motivo (opcional)" className="flex-1 rounded-md border border-stone-300 px-2 py-1 text-xs" />
+                  <button type="submit" className="text-xs text-red-600 hover:underline">
+                    {o.asaas_payment_id ? "Solicitar estorno (Pix)" : "Registrar estorno"}
+                  </button>
+                </form>
+              )}
             </div>
           );
         })}

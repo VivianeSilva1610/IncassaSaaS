@@ -14,6 +14,7 @@ import {
   confirmarPagamentoEEmitirNota,
 } from "@/lib/fiscal/emitir";
 import { carregarFechamento } from "@/lib/fiscal/fechamento";
+import { refundAsaasPayment } from "@/lib/asaas";
 
 export async function fecharCaixaDiario(formData: FormData) {
   const { user, supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
@@ -571,6 +572,89 @@ export async function removerItemPedido(orderId: string, orderItemId: string) {
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/vendas/pedidos");
   revalidatePath("/restaurante/cozinha");
+}
+
+// Estorna um pedido já pago — total (padrão) ou parcial, se um valor menor
+// for informado. Pago pela Asaas (Pix do site): dispara o pedido de estorno
+// à API; a confirmação de verdade e a baixa real chegam depois pelo webhook
+// (del_registrar_estorno_asaas), igual já funciona pra estornos feitos
+// direto no painel da Asaas. Pago manualmente (dinheiro/cartão/pix na mão):
+// não existe API pra chamar — grava o evento e o estorno direto, e devolve
+// o estoque se o estorno zerar o valor pago (a venda deixou de acontecer).
+export async function estornarPedido(orderId: string, formData: FormData) {
+  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription();
+  if (!isGerente) throw new Error("Apenas o dono ou um gerente pode estornar um pedido.");
+
+  const { data: pedido } = await supabase
+    .from("del_orders")
+    .select("id, pago, valor_pago, totale, valor_estornado, estorno_status, asaas_payment_id")
+    .eq("id", orderId)
+    .eq("owner_id", restaurantOwnerId)
+    .maybeSingle();
+  if (!pedido) throw new Error("Pedido não encontrado.");
+  if (!pedido.pago) throw new Error("Esse pedido ainda não foi pago — cancele o pedido em vez de estornar.");
+  if (pedido.estorno_status === "total") throw new Error("Esse pedido já foi estornado integralmente.");
+
+  const valorPago = Number(pedido.valor_pago ?? pedido.totale);
+  const jaEstornado = Number(pedido.valor_estornado ?? 0);
+  const restante = Math.max(0, valorPago - jaEstornado);
+  if (restante <= 0) throw new Error("Não há mais valor a estornar nesse pedido.");
+
+  const valorInformado = formData.get("valor") ? Number(formData.get("valor")) : null;
+  const valorEstorno = valorInformado != null && valorInformado > 0 ? Math.min(valorInformado, restante) : restante;
+  const motivo = String(formData.get("motivo") ?? "").trim() || null;
+
+  if (pedido.asaas_payment_id) {
+    await refundAsaasPayment({ paymentId: pedido.asaas_payment_id, value: valorEstorno, description: motivo ?? undefined });
+    await supabase.from("del_orders").update({ estorno_status: "em_processamento" }).eq("id", orderId).eq("owner_id", restaurantOwnerId);
+  } else {
+    const admin = getSupabaseAdmin();
+    const novoTotalEstornado = jaEstornado + valorEstorno;
+    const estornoTotal = novoTotalEstornado >= valorPago;
+    const agora = new Date().toISOString();
+
+    const { error: eventoError } = await admin.from("del_pagamento_eventos").insert({
+      owner_id: restaurantOwnerId,
+      order_id: orderId,
+      provedor: "manual",
+      provedor_evento_id: `manual-${orderId}-${Date.now()}`,
+      tipo: "refund",
+      status: "confirmado",
+      valor_acumulado: novoTotalEstornado,
+      valor_movimento: valorEstorno,
+      ocorrido_em: agora,
+    });
+    if (eventoError) throw new Error(`Não foi possível registrar o estorno: ${eventoError.message}`);
+
+    const atualizacao: Record<string, string | number> = {
+      valor_estornado: novoTotalEstornado,
+      estorno_status: estornoTotal ? "total" : "parcial",
+      estornado_em: agora,
+    };
+    if (estornoTotal) atualizacao.status = "cancelado";
+    const { error: updateError } = await supabase.from("del_orders").update(atualizacao).eq("id", orderId).eq("owner_id", restaurantOwnerId);
+    if (updateError) throw new Error(`Não foi possível atualizar o pedido: ${updateError.message}`);
+
+    if (estornoTotal) {
+      const { data: itens } = await supabase.from("del_order_items").select("product_id, quantidade").eq("order_id", orderId);
+      const itensValidos = (itens ?? [])
+        .filter((item): item is { product_id: string; quantidade: number } => !!item.product_id)
+        .map((item) => ({ productId: item.product_id, quantidade: Number(item.quantidade) }));
+      if (itensValidos.length > 0) {
+        await restaurarEstoquePorCancelamento(supabase, {
+          ownerId: restaurantOwnerId,
+          orderId,
+          motivo: "Estorno total do pedido",
+          items: itensValidos,
+        });
+      }
+    }
+  }
+
+  revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/vendas/pedidos");
+  revalidatePath("/restaurante/caixa");
+  revalidatePath("/restaurante/financeiro");
 }
 
 export async function deleteOrder(id: string) {

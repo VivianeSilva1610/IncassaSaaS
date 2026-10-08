@@ -72,3 +72,20 @@ export async function getAsaasPixQrCode(paymentId: string): Promise<{
 }> {
   return asaasRequest(`/payments/${paymentId}/pixQrCode`);
 }
+
+// Solicita o estorno à Asaas. A confirmação de verdade (dinheiro realmente
+// devolvido) chega depois via webhook (PAYMENT_REFUNDED/PARTIALLY_REFUNDED),
+// que é quem atualiza del_orders — esta chamada só dispara o pedido.
+export async function refundAsaasPayment(params: {
+  paymentId: string;
+  value?: number;
+  description?: string;
+}): Promise<{ id: string; status: string }> {
+  return asaasRequest(`/payments/${params.paymentId}/refund`, {
+    method: "POST",
+    body: JSON.stringify({
+      value: params.value,
+      description: params.description,
+    }),
+  });
+}

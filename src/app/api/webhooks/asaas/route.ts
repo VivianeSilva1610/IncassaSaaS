@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { deduzirEstoquePorVenda } from "@/lib/delivery/stock";
+import { deduzirEstoquePorVenda, restaurarEstoquePorCancelamento } from "@/lib/delivery/stock";
 import { confirmarPagamentoEEmitirNota } from "@/lib/fiscal/emitir";
 
 const CONFIRMING_EVENTS = ["PAYMENT_RECEIVED", "PAYMENT_CONFIRMED"];
@@ -47,6 +47,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ received: true });
     }
 
+    const { data: pedidoAntes } = await admin
+      .from("del_orders")
+      .select("id, owner_id, valor_pago, totale, valor_estornado")
+      .eq("asaas_payment_id", paymentId)
+      .maybeSingle();
+
     const { error } = await admin.rpc("del_registrar_estorno_asaas", {
       p_evento_id: eventId,
       p_pagamento_id: paymentId,
@@ -56,6 +62,33 @@ export async function POST(req: Request) {
       p_ocorrido_em: asaasEventDate(body.dateCreated),
     });
     if (error) return NextResponse.json({ error: "Falha ao registrar estorno." }, { status: 500 });
+
+    // Estorno total vira cancelamento (mesma regra da RPC) — devolve ao
+    // estoque os ingredientes que a venda tinha consumido, já que o dinheiro
+    // voltou inteiro pro cliente. Idempotente: se o webhook repetir, não
+    // devolve de novo (restaurarEstoquePorCancelamento resume de onde parou).
+    if (refundStatus === "confirmado" && pedidoAntes) {
+      const valorPago = Number(pedidoAntes.valor_pago ?? pedidoAntes.totale);
+      const novoTotalEstornado = Math.max(Number(pedidoAntes.valor_estornado ?? 0), totalRefunded);
+      if (novoTotalEstornado >= valorPago) {
+        const { data: itens } = await admin
+          .from("del_order_items")
+          .select("product_id, quantidade")
+          .eq("order_id", pedidoAntes.id);
+        const itensValidos = (itens ?? [])
+          .filter((item): item is { product_id: string; quantidade: number } => !!item.product_id)
+          .map((item) => ({ productId: item.product_id, quantidade: Number(item.quantidade) }));
+        if (itensValidos.length > 0) {
+          await restaurarEstoquePorCancelamento(admin, {
+            ownerId: pedidoAntes.owner_id,
+            orderId: pedidoAntes.id,
+            motivo: "Estorno total do pedido",
+            items: itensValidos,
+          });
+        }
+      }
+    }
+
     return NextResponse.json({ received: true });
   }
 
