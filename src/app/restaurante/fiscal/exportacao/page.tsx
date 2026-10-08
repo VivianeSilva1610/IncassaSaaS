@@ -6,6 +6,7 @@ const CONTEUDO: Record<
     titulo: string; subtitulo: string; criterio: string; competencia: string; caixa: string;
     dataInicial: string; dataFinal: string; baixarResumo: string; baixarItens: string;
     resumoLabel: string; resumoDesc: string; itensLabel: string; itensDesc: string; camposAusentes: string;
+    regimeForfettario: string; regimeOrdinario: string; regimeAusente: string;
   }
 > = {
   "pt-BR": {
@@ -23,6 +24,7 @@ const CONTEUDO: Record<
     itensLabel: "Itens vendidos:",
     itensDesc: "uma linha por produto, incluindo quantidade, valores, NCM, CFOP, CEST, origem e vínculo com a NFC-e.",
     camposAusentes: "Campos fiscais ausentes são marcados como classificação incompleta para revisão do contador.",
+    regimeForfettario: "", regimeOrdinario: "", regimeAusente: "",
   },
   it: {
     titulo: "Esporta per il commercialista",
@@ -39,17 +41,30 @@ const CONTEUDO: Record<
     itensLabel: "Articoli venduti:",
     itensDesc: "una riga per prodotto, con quantità e valori.",
     camposAusentes: "I campi fiscali brasiliani (NCM/CFOP/CEST) non si applicano qui e restano vuoti.",
+    regimeForfettario: "Regime forfettario: le vendite non applicano IVA. Questa esportazione serve come base per l'imposta sostitutiva e gli altri adempimenti — l'importo finale va sempre confermato con il commercialista.",
+    regimeOrdinario: "Regime ordinario: questa esportazione riporta le vendite riconciliate del periodo. Per la liquidazione IVA mancano ancora i dati IVA sugli acquisti (non tracciati in questo sistema) — il commercialista dovrà integrarli, e l'aliquota applicabile va confermata con lui.",
+    regimeAusente: "Regime fiscale non ancora confermato. Completa i dati fiscali per sapere quale adempimento si applica.",
   },
 };
 
 export default async function ExportacaoFiscalPage() {
-  const { locale } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, locale } = await requireRestaurantSubscription();
   const t = CONTEUDO[locale];
+
+  let avisoRegime: string | null = null;
+  if (locale === "it") {
+    const { data: restaurant } = await supabase.from("restaurants").select("id").eq("owner_user_id", restaurantOwnerId).maybeSingle();
+    const { data: configIt } = restaurant
+      ? await supabase.from("restaurant_fiscal_it").select("regime_fiscale").eq("restaurant_id", restaurant.id).maybeSingle()
+      : { data: null };
+    avisoRegime = configIt?.regime_fiscale === "RF19" ? t.regimeForfettario : configIt?.regime_fiscale === "RF01" ? t.regimeOrdinario : t.regimeAusente;
+  }
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-stone-900">{t.titulo}</h1>
       <p className="mt-1 text-sm text-stone-600">{t.subtitulo}</p>
+      {avisoRegime && <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">{avisoRegime}</p>}
 
       <form action="/api/restaurante/export-vendas" method="get" className="mt-6 grid gap-4 rounded-xl border border-stone-200 bg-white p-5 sm:grid-cols-2">
         <div className="sm:col-span-2">
