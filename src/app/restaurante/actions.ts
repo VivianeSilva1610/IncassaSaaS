@@ -16,6 +16,7 @@ import {
 import { carregarFechamento } from "@/lib/fiscal/fechamento";
 import { refundAsaasPayment } from "@/lib/asaas";
 import { emitirDocumentoFiscaleParaPedido, cancelarDocumentoFiscale } from "@/lib/fiscal/emitirIt";
+import { getAsaasApiKeyForRestaurant } from "@/lib/delivery/providers";
 
 export async function fecharCaixaDiario(formData: FormData) {
   const { user, supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
@@ -652,7 +653,10 @@ export async function estornarPedido(orderId: string, formData: FormData) {
   const motivo = String(formData.get("motivo") ?? "").trim() || null;
 
   if (pedido.asaas_payment_id) {
-    await refundAsaasPayment({ paymentId: pedido.asaas_payment_id, value: valorEstorno, description: motivo ?? undefined });
+    const restaurantId = await getRestauranteIdDoOwner(supabase, restaurantOwnerId);
+    const asaasApiKey = await getAsaasApiKeyForRestaurant(supabase, restaurantId);
+    if (!asaasApiKey) throw new Error("Não foi possível estornar: configuração de pagamento do restaurante não encontrada.");
+    await refundAsaasPayment({ apiKey: asaasApiKey, paymentId: pedido.asaas_payment_id, value: valorEstorno, description: motivo ?? undefined });
     await supabase.from("del_orders").update({ estorno_status: "em_processamento" }).eq("id", orderId).eq("owner_id", restaurantOwnerId);
   } else {
     const admin = getSupabaseAdmin();
@@ -1443,4 +1447,81 @@ export async function deleteRestaurantDomain(id: string) {
   if (!isOwner) throw new Error("Apenas o dono do restaurante pode remover domínio.");
   await supabase.from("restaurant_domains").delete().eq("id", id);
   revalidatePath("/restaurante/dominio");
+}
+
+// Chave própria de cada restaurante — nunca uma conta compartilhada. Campo
+// de chave em branco preserva a já salva (padrão "cole só se for trocar").
+export async function updatePaymentProvider(formData: FormData) {
+  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
+  if (!isOwner) throw new Error("Apenas o dono do restaurante pode configurar o pagamento.");
+
+  const restaurantId = await getRestauranteIdDoOwner(supabase, restaurantOwnerId);
+  const novaChave = String(formData.get("asaas_api_key") ?? "").trim();
+  const ativo = formData.get("ativo") === "on";
+
+  const { data: existente } = await supabase
+    .from("restaurant_payment_providers")
+    .select("asaas_api_key")
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+
+  const chaveFinal = novaChave || existente?.asaas_api_key || null;
+  if (ativo && !chaveFinal) {
+    throw new Error("Informe a chave de API da Asaas para ativar o recebimento de pagamentos.");
+  }
+
+  const { error } = await supabase.from("restaurant_payment_providers").upsert(
+    {
+      restaurant_id: restaurantId,
+      provedor: "asaas",
+      asaas_api_key: chaveFinal,
+      ativo,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "restaurant_id" },
+  );
+  if (error) throw new Error(`Não foi possível salvar a configuração de pagamento: ${error.message}`);
+
+  revalidatePath("/restaurante/integracoes");
+}
+
+export async function updateEmailProvider(formData: FormData) {
+  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
+  if (!isOwner) throw new Error("Apenas o dono do restaurante pode configurar o e-mail.");
+
+  const restaurantId = await getRestauranteIdDoOwner(supabase, restaurantOwnerId);
+  const novaChave = String(formData.get("resend_api_key") ?? "").trim();
+  const fromEmail = String(formData.get("from_email") ?? "").trim() || null;
+  const fromName = String(formData.get("from_name") ?? "").trim() || null;
+  const ativo = formData.get("ativo") === "on";
+
+  const { data: existente } = await supabase
+    .from("restaurant_email_providers")
+    .select("resend_api_key")
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+
+  const chaveFinal = novaChave || existente?.resend_api_key || null;
+  if (ativo && !chaveFinal) {
+    throw new Error("Informe a chave de API do Resend para ativar o envio de e-mails.");
+  }
+  if (ativo && !fromEmail) {
+    throw new Error("Informe o e-mail de remetente.");
+  }
+
+  const { error } = await supabase.from("restaurant_email_providers").upsert(
+    {
+      restaurant_id: restaurantId,
+      provedor: "resend",
+      resend_api_key: chaveFinal,
+      from_email: fromEmail,
+      from_name: fromName,
+      ativo,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "restaurant_id" },
+  );
+  if (error) throw new Error(`Não foi possível salvar a configuração de e-mail: ${error.message}`);
+
+  revalidatePath("/restaurante/integracoes");
 }

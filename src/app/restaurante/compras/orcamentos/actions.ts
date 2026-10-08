@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Resend } from "resend";
 import { requireRestaurantSubscription } from "@/lib/subscription";
+import { getResendConfigForRestaurant } from "@/lib/delivery/providers";
 
 const baseUrl = "/restaurante/compras/orcamentos";
 
@@ -94,10 +95,11 @@ export async function enviarOrcamentoEmail(orcamentoId: string, orcamentoFornece
     supabase.from("del_orcamentos_compra").select("id, numero_controle, observacao").eq("id", orcamentoId).eq("owner_id", restaurantOwnerId).maybeSingle(),
     supabase.from("del_orcamento_fornecedores").select("id, fornecedor_id").eq("id", orcamentoFornecedorId).eq("orcamento_id", orcamentoId).eq("owner_id", restaurantOwnerId).maybeSingle(),
     supabase.from("del_orcamento_itens").select("descricao_snapshot, unidade_snapshot, quantidade").eq("orcamento_id", orcamentoId).eq("owner_id", restaurantOwnerId),
-    supabase.from("restaurants").select("name").eq("owner_user_id", restaurantOwnerId).maybeSingle(),
+    supabase.from("restaurants").select("id, name").eq("owner_user_id", restaurantOwnerId).maybeSingle(),
   ]);
   if (!orcamento || !convite) go("erro", "Orçamento ou fornecedor não encontrado.", retorno);
-  if (!process.env.RESEND_API_KEY) go("erro", "O serviço de e-mail ainda não está configurado.", retorno);
+  const emailConfig = identidade ? await getResendConfigForRestaurant(supabase, identidade.id) : null;
+  if (!emailConfig) go("erro", "Configure o envio de e-mail em Integrações antes de enviar orçamentos a fornecedores.", retorno);
 
   const { data: fornecedor } = await supabase.from("del_fornecedores").select("razao_social, nome_fantasia").eq("id", convite.fornecedor_id).eq("owner_id", restaurantOwnerId).maybeSingle();
 
@@ -107,8 +109,8 @@ export async function enviarOrcamentoEmail(orcamentoId: string, orcamentoFornece
     .join("");
   const restaurante = identidade?.name || "Restaurante";
 
-  const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
-    from: process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev",
+  const { error } = await new Resend(emailConfig.apiKey).emails.send({
+    from: emailConfig.fromName ? `${emailConfig.fromName} <${emailConfig.fromEmail}>` : emailConfig.fromEmail,
     to: destinatario,
     subject: `Solicitação de orçamento ${orcamento.numero_controle} — ${restaurante}`,
     html: `<div style="font-family:Arial,sans-serif;color:#222"><h1>Solicitação de orçamento ${orcamento.numero_controle}</h1><p><strong>${escapeHtml(restaurante)}</strong></p><p>Olá, ${escapeHtml(fornecedor?.nome_fantasia || fornecedor?.razao_social || "")}! Pedimos a gentileza de nos enviar preço, prazo de entrega e condição de pagamento para os itens abaixo.</p><table style="width:100%;border-collapse:collapse"><thead><tr><th style="padding:8px;text-align:left">Material</th><th style="padding:8px;text-align:right">Quantidade</th></tr></thead><tbody>${linhas}</tbody></table>${orcamento.observacao ? `<p><strong>Observações:</strong> ${escapeHtml(orcamento.observacao)}</p>` : ""}<p>Por favor, responda a este e-mail com sua proposta.</p></div>`,

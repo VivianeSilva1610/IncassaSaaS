@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { findOrCreateAsaasCustomer, createAsaasPixPayment, getAsaasPixQrCode } from "@/lib/asaas";
 import { getRestaurantBySlug } from "@/lib/restaurant";
+import { getAsaasApiKeyForRestaurant } from "@/lib/delivery/providers";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -27,6 +28,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Loja não encontrada." }, { status: 404 });
   }
   const ownerId = restaurant.ownerUserId;
+
+  const asaasApiKey = await getAsaasApiKeyForRestaurant(admin, restaurant.id);
+  if (!asaasApiKey) {
+    return NextResponse.json({ error: "Este restaurante ainda não configurou o recebimento de pagamentos." }, { status: 503 });
+  }
 
   // Taxa de entrega sempre buscada no banco pelo id do bairro, nunca
   // confiada no valor que o cliente mandou.
@@ -112,12 +118,14 @@ export async function POST(req: Request) {
 
   try {
     const customerId = await findOrCreateAsaasCustomer({
+      apiKey: asaasApiKey,
       name: clienteNome,
       cpfCnpj,
       phone: clienteTelefone,
     });
 
     const payment = await createAsaasPixPayment({
+      apiKey: asaasApiKey,
       customerId,
       value: totale,
       description: `Pedido ${restaurant.name} — ${items.map((i) => `${i.quantidade}x ${i.nome}`).join(", ")}`,
@@ -126,7 +134,7 @@ export async function POST(req: Request) {
 
     await admin.from("del_orders").update({ asaas_payment_id: payment.id }).eq("id", order.id);
 
-    const qrCode = await getAsaasPixQrCode(payment.id);
+    const qrCode = await getAsaasPixQrCode(asaasApiKey, payment.id);
 
     return NextResponse.json({
       orderId: order.id,

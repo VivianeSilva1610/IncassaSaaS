@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Resend } from "resend";
 import { requireRestaurantSubscription } from "@/lib/subscription";
+import { getResendConfigForRestaurant } from "@/lib/delivery/providers";
 
 const baseUrl = "/restaurante/compras/pedidos";
 
@@ -98,9 +99,10 @@ export async function enviarPedidoCompraEmail(pedidoId: string, formData: FormDa
   const [{ data: fornecedor }, { data: itens }, { data: identidade }] = await Promise.all([
     supabase.from("del_fornecedores").select("razao_social, nome_fantasia").eq("id", pedido.fornecedor_id).eq("owner_id", restaurantOwnerId).maybeSingle(),
     supabase.from("del_pedidos_compra_itens").select("descricao_snapshot, unidade_snapshot, quantidade, custo_unitario_estimado").eq("pedido_compra_id", pedido.id).eq("owner_id", restaurantOwnerId),
-    supabase.from("restaurants").select("name").eq("owner_user_id", restaurantOwnerId).maybeSingle(),
+    supabase.from("restaurants").select("id, name").eq("owner_user_id", restaurantOwnerId).maybeSingle(),
   ]);
-  if (!process.env.RESEND_API_KEY) redirect(`${retorno}?erro=${encodeURIComponent("O serviço de e-mail ainda não está configurado.")}`);
+  const emailConfig = identidade ? await getResendConfigForRestaurant(supabase, identidade.id) : null;
+  if (!emailConfig) redirect(`${retorno}?erro=${encodeURIComponent("Configure o envio de e-mail em Integrações antes de enviar pedidos a fornecedores.")}`);
 
   const linhas = (itens ?? []).map((item) => {
     const quantidade = Number(item.quantidade);
@@ -108,8 +110,8 @@ export async function enviarPedidoCompraEmail(pedidoId: string, formData: FormDa
     return `<tr><td style="padding:8px;border-bottom:1px solid #ddd">${escapeHtml(item.descricao_snapshot)}</td><td style="padding:8px;border-bottom:1px solid #ddd;text-align:right">${quantidade} ${escapeHtml(item.unidade_snapshot)}</td><td style="padding:8px;border-bottom:1px solid #ddd;text-align:right">${custo == null ? 'A cotar' : custo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td></tr>`;
   }).join('');
   const restaurante = identidade?.name || "Restaurante";
-  const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
-    from: process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev",
+  const { error } = await new Resend(emailConfig.apiKey).emails.send({
+    from: emailConfig.fromName ? `${emailConfig.fromName} <${emailConfig.fromEmail}>` : emailConfig.fromEmail,
     to: destinatario,
     subject: `Pedido de compra ${pedido.numero_controle || `#${pedido.numero}`} — ${restaurante}`,
     html: `<div style="font-family:Arial,sans-serif;color:#222"><h1>Pedido de compra ${pedido.numero_controle || `#${pedido.numero}`}</h1><p><strong>${escapeHtml(restaurante)}</strong></p><p>Fornecedor: ${escapeHtml(fornecedor?.nome_fantasia || fornecedor?.razao_social || 'Fornecedor')}</p><table style="width:100%;border-collapse:collapse"><thead><tr><th style="padding:8px;text-align:left">Material</th><th style="padding:8px;text-align:right">Quantidade</th><th style="padding:8px;text-align:right">Custo estimado</th></tr></thead><tbody>${linhas}</tbody></table>${pedido.observacao ? `<p><strong>Observações:</strong> ${escapeHtml(pedido.observacao)}</p>` : ''}<p>Por favor, confirme disponibilidade, valores e prazo de entrega respondendo a este e-mail.</p></div>`,
