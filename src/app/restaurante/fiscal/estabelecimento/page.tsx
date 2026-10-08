@@ -13,9 +13,11 @@ export default async function EstabelecimentoFiscalPage() {
   if (restaurant && !restaurant.country_confirmed) {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-stone-900">Dados do estabelecimento</h1>
+        <h1 className="text-2xl font-bold text-stone-900">Dados do estabelecimento / Dati fiscali</h1>
         <p className="mt-1 text-sm text-stone-600">
           Primeiro passo: identificar o país do restaurante, pra te mostrar o módulo fiscal certo.
+          <br />
+          Primo passo: identificare il paese del ristorante, per mostrarti il modulo fiscale giusto.
         </p>
         <div className="mt-6">
           <DetectarPaisForm />
@@ -34,13 +36,13 @@ export default async function EstabelecimentoFiscalPage() {
 
     return (
       <div>
-        <h1 className="text-2xl font-bold text-stone-900">Dados do estabelecimento</h1>
-        <p className="mt-1 text-sm text-stone-600">Cadastre o emitente, Partita IVA, regime e provedor de fattura elettronica.</p>
+        <h1 className="text-2xl font-bold text-stone-900">Dati fiscali</h1>
+        <p className="mt-1 text-sm text-stone-600">Inserisci l&apos;emittente, la Partita IVA, il regime e il provider di fattura elettronica.</p>
 
         <div className={`mt-4 rounded-lg border p-3 text-sm ${completoIt ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-amber-300 bg-amber-50 text-amber-800"}`}>
           {completoIt
-            ? "Cadastro básico preenchido. A produção continua bloqueada até a homologação e validação com o commercialista."
-            : "Complete Ragione Sociale, Partita IVA e Codice Fiscale para preparar a validação com o commercialista."}
+            ? "Anagrafica di base completata. La produzione resta bloccata finché omologazione e validazione con il commercialista non sono completate."
+            : "Completa Ragione Sociale, Partita IVA e Codice Fiscale per preparare la validazione con il commercialista."}
         </div>
 
         <form action={updateFiscalConfigIt} className="mt-6 grid gap-3 rounded-xl border border-stone-200 bg-white p-5 sm:grid-cols-2">
@@ -48,7 +50,7 @@ export default async function EstabelecimentoFiscalPage() {
           <input name="partita_iva" defaultValue={configIt?.partita_iva ?? ""} placeholder="Partita IVA" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
           <input name="codice_fiscale" defaultValue={configIt?.codice_fiscale ?? ""} placeholder="Codice Fiscale" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
           <select name="regime_fiscale" defaultValue={configIt?.regime_fiscale ?? ""} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
-            <option value="">Regime fiscale — confirmar com commercialista</option>
+            <option value="">Regime fiscale — da confermare con il commercialista</option>
             <option value="RF01">RF01 — Ordinario</option>
             <option value="RF19">RF19 — Forfettario</option>
           </select>
@@ -59,10 +61,10 @@ export default async function EstabelecimentoFiscalPage() {
             <option value="simulado">🧪 Simulazione</option>
           </select>
           <select name="ambiente" defaultValue="homologacao" className="rounded-md border border-stone-300 px-3 py-2 text-sm">
-            <option value="homologacao">Homologação (teste)</option>
-            <option value="producao" disabled>Produção (bloqueada)</option>
+            <option value="homologacao">Omologazione (test)</option>
+            <option value="producao" disabled>Produzione (bloccata)</option>
           </select>
-          <button type="submit" className="rounded-md bg-stone-900 px-4 py-2.5 text-sm font-medium text-white sm:col-span-2">Salvar dados fiscais</button>
+          <button type="submit" className="rounded-md bg-stone-900 px-4 py-2.5 text-sm font-medium text-white sm:col-span-2">Salva dati fiscali</button>
         </form>
       </div>
     );

@@ -11,7 +11,7 @@ function detectarPais(digits: string): Pais | null {
   return null;
 }
 
-const NOME_PAIS: Record<Pais, string> = { BR: "🇧🇷 Brasil", IT: "🇮🇹 Itália" };
+const NOME_PAIS: Record<Pais, string> = { BR: "🇧🇷 Brasil / Brasile", IT: "🇮🇹 Itália / Italia" };
 
 export function DetectarPaisForm() {
   const [documento, setDocumento] = useState("");
@@ -22,10 +22,15 @@ export function DetectarPaisForm() {
 
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-      <h2 className="font-semibold text-stone-900">Antes de continuar: qual o documento fiscal do seu restaurante?</h2>
+      <h2 className="font-semibold text-stone-900">
+        Antes de continuar: qual o documento fiscal do seu restaurante?
+        <br />
+        Prima di continuare: qual è il documento fiscale del tuo ristorante?
+      </h2>
       <p className="mt-1 text-sm text-stone-600">
-        CNPJ (Brasil) ou Partita IVA (Itália) — documento da empresa, não CPF pessoal. Isso só define qual módulo
-        fiscal (brasileiro ou italiano) vamos mostrar pra você.
+        CNPJ (Brasil) ou Partita IVA (Itália) — documento da empresa, não CPF pessoal.
+        <br />
+        CNPJ (Brasile) o Partita IVA (Italia) — documento dell&apos;azienda, non codice fiscale personale.
       </p>
       <input
         value={documento}
@@ -40,12 +45,12 @@ export function DetectarPaisForm() {
         <p className="mt-2 text-sm">
           {detectado ? (
             <>
-              Detectamos: <strong>{NOME_PAIS[detectado]}</strong> ({digits.length} dígitos). Está correto?
+              Detectamos / Abbiamo rilevato: <strong>{NOME_PAIS[detectado]}</strong> ({digits.length} dígitos / cifre). Está correto? / È corretto?
             </>
           ) : (
             <span className="text-amber-700">
-              Esse número tem {digits.length} dígitos — CNPJ tem 14, Partita IVA tem 11. Confira, ou escolha
-              manualmente abaixo.
+              Esse número tem {digits.length} dígitos — CNPJ tem 14, Partita IVA tem 11. Confira, ou escolha abaixo. /
+              Questo numero ha {digits.length} cifre — il CNPJ ne ha 14, la Partita IVA 11. Verifica, o scegli qui sotto.
             </span>
           )}
         </p>
@@ -63,7 +68,7 @@ export function DetectarPaisForm() {
           onClick={() => setPaisEscolhido("IT")}
           className={`rounded-md border px-3 py-1.5 text-xs font-medium ${paisFinal === "IT" ? "border-stone-900 bg-stone-900 text-white" : "border-stone-300 text-stone-600"}`}
         >
-          🇮🇹 Itália
+          🇮🇹 Itália / Italia
         </button>
       </div>
       <form action={confirmarPaisRestaurante} className="mt-3">
@@ -74,7 +79,7 @@ export function DetectarPaisForm() {
           disabled={!paisFinal}
           className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
-          Confirmar e continuar
+          Confirmar e continuar / Conferma e continua
         </button>
       </form>
     </div>
