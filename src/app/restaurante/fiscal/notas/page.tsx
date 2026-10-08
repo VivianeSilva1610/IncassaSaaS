@@ -1,5 +1,22 @@
-import { cancelarNotaFiscal } from "@/app/restaurante/actions";
+import { cancelarNotaFiscal, cancelarDocumentoFiscaleIt } from "@/app/restaurante/actions";
 import { requireRestaurantSubscription } from "@/lib/subscription";
+
+function euro(value: number) {
+  return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(value);
+}
+
+const STATUS_LABEL_IT: Record<string, string> = {
+  pendente: "Pendente",
+  emitido: "Emesso / valido",
+  erro: "Errore",
+  cancelado: "Annullato",
+};
+const STATUS_CLASSE_IT: Record<string, string> = {
+  pendente: "bg-stone-100 text-stone-600",
+  emitido: "bg-emerald-100 text-emerald-700",
+  erro: "bg-red-100 text-red-700",
+  cancelado: "bg-stone-200 text-stone-500 line-through",
+};
 
 function formatHora(iso: string | null) {
   if (!iso) return null;
@@ -37,18 +54,57 @@ export default async function NotasFiscaisPage({
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("country_code")
+    .select("id, country_code")
     .eq("owner_user_id", restaurantOwnerId)
     .maybeSingle();
 
   if (restaurant?.country_code === "IT") {
+    const { data: documentos } = await supabase
+      .from("fiscal_documents")
+      .select("id, status, totale, created_at, updated_at, order_id, del_orders(cliente_nome), fiscal_documents_it(protocollo_sdi, esito, motivo_scarto)")
+      .eq("restaurant_id", restaurant.id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
     return (
       <div>
-        <h1 className="text-2xl font-bold text-stone-900">Notas fiscais</h1>
-        <p className="mt-4 rounded-lg border border-stone-200 bg-stone-50 p-4 text-sm text-stone-600">
-          A emissão de fattura elettronica para restaurantes na Itália ainda não está disponível
-          — esta área lista apenas notas fiscais brasileiras (NFC-e).
-        </p>
+        <h1 className="text-2xl font-bold text-stone-900">Documenti fiscali</h1>
+        <p className="mt-1 text-sm text-stone-600">Consulta emissioni, errori e annullamenti collegati agli ordini.</p>
+
+        <div className="mt-4 space-y-2">
+          {(documentos ?? []).map((d) => {
+            const pedido = Array.isArray(d.del_orders) ? d.del_orders[0] : d.del_orders;
+            const detalhesIt = Array.isArray(d.fiscal_documents_it) ? d.fiscal_documents_it[0] : d.fiscal_documents_it;
+            return (
+              <div key={d.id} className="rounded-xl border border-stone-200 bg-white p-4 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-medium text-stone-900">{pedido?.cliente_nome || "Cliente senza nome"}</p>
+                  <span className="shrink-0 text-xs text-stone-400">{formatHora(d.created_at)}</span>
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_CLASSE_IT[d.status] ?? "bg-stone-100 text-stone-600"}`}>
+                    {STATUS_LABEL_IT[d.status] ?? d.status}
+                  </span>
+                  <span className="text-xs text-stone-500">{euro(Number(d.totale))}</span>
+                </div>
+                {detalhesIt?.protocollo_sdi && <p className="mt-1 break-all text-xs text-stone-500">Protocollo SdI: {detalhesIt.protocollo_sdi}</p>}
+                {detalhesIt?.motivo_scarto && <p className="mt-1 text-xs text-red-600">{detalhesIt.motivo_scarto}</p>}
+                {(d.status === "emitido" || d.status === "cancelado") && (
+                  <a href={`/restaurante/fiscal/notas/${d.id}/imprimir`} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-xs font-medium text-amber-700 hover:underline">
+                    Visualizza / stampa
+                  </a>
+                )}
+                {d.status === "emitido" && (
+                  <form action={cancelarDocumentoFiscaleIt.bind(null, d.id)} className="mt-3 flex flex-wrap items-center gap-2 border-t border-stone-100 pt-3">
+                    <input name="justificativa" required minLength={15} placeholder="Motivo dell'annullamento (min. 15 caratteri)" className="min-w-[240px] flex-1 rounded-md border border-stone-300 px-2 py-1.5 text-xs" />
+                    <button type="submit" className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">Annulla documento</button>
+                  </form>
+                )}
+              </div>
+            );
+          })}
+          {(documentos ?? []).length === 0 && <p className="text-sm text-stone-500">Nessun documento trovato.</p>}
+        </div>
       </div>
     );
   }

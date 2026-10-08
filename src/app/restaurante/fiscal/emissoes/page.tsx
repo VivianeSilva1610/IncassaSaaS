@@ -1,12 +1,94 @@
 import Link from "next/link";
-import { emitirNotaFiscal } from "@/app/restaurante/actions";
+import { emitirNotaFiscal, emitirDocumentoFiscaleIt } from "@/app/restaurante/actions";
 import { requireRestaurantSubscription } from "@/lib/subscription";
 
 function real(value: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value); }
+function euro(value: number) { return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(value); }
 function dataHora(value: string | null) { return value ? new Date(value).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—"; }
 
 export default async function EmissoesFiscaisPage() {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+
+  const { data: restaurant } = await supabase
+    .from("restaurants")
+    .select("id, country_code")
+    .eq("owner_user_id", restaurantOwnerId)
+    .maybeSingle();
+
+  if (restaurant?.country_code === "IT") {
+    const { data: pedidosIt } = await supabase
+      .from("del_orders")
+      .select("id, cliente_nome, totale, canal, pago_em, status")
+      .eq("owner_id", restaurantOwnerId)
+      .eq("pago", true)
+      .neq("status", "cancelado")
+      .order("pago_em", { ascending: false })
+      .limit(200);
+
+    type DocumentoFiscalIt = {
+      id: string;
+      order_id: string;
+      status: string;
+      created_at: string;
+      fiscal_documents_it: { motivo_scarto: string | null } | { motivo_scarto: string | null }[] | null;
+    };
+
+    const orderIds = (pedidosIt ?? []).map((p) => p.id);
+    const { data: documentos } = await supabase
+      .from("fiscal_documents")
+      .select("id, order_id, status, created_at, fiscal_documents_it(motivo_scarto)")
+      .eq("restaurant_id", restaurant.id)
+      .in("order_id", orderIds.length ? orderIds : ["00000000-0000-0000-0000-000000000000"]);
+    const documentosTipados = (documentos ?? []) as unknown as DocumentoFiscalIt[];
+
+    const filaIt = (pedidosIt ?? [])
+      .map((pedido) => {
+        const docsDoPedido = documentosTipados.filter((d) => d.order_id === pedido.id).sort((a, b) => b.created_at.localeCompare(a.created_at));
+        return { pedido, documento: docsDoPedido[0] ?? null };
+      })
+      .filter(({ documento }) => !documento || documento.status === "erro" || documento.status === "pendente");
+
+    return (
+      <div>
+        <h1 className="text-2xl font-bold text-stone-900">Emissioni fiscali</h1>
+        <p className="mt-1 text-sm text-stone-600">Coda di vendite pagate senza documento, pendenti o con errore di emissione.</p>
+        <div className="mt-6 space-y-3">
+          {filaIt.map(({ pedido, documento }) => {
+            const erro = Array.isArray(documento?.fiscal_documents_it) ? documento?.fiscal_documents_it[0]?.motivo_scarto : documento?.fiscal_documents_it?.motivo_scarto;
+            return (
+              <article key={pedido.id} className="rounded-xl border border-stone-200 bg-white p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium">{pedido.cliente_nome || "Consumatore non identificato"}</p>
+                    <p className="text-xs text-stone-500">{pedido.canal} · Pagato il {dataHora(pedido.pago_em)}</p>
+                    {erro && <p className="mt-2 text-xs text-red-600">{erro}</p>}
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold">{euro(Number(pedido.totale))}</p>
+                    <span className={`text-xs ${documento?.status === "erro" ? "text-red-600" : documento?.status === "pendente" ? "text-amber-700" : "text-stone-500"}`}>
+                      {documento?.status === "erro" ? "Errore di emissione" : documento?.status === "pendente" ? "Emissione pendente" : "Nessun documento fiscale"}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 flex gap-3 border-t pt-3">
+                  {documento?.status !== "pendente" && (
+                    <form action={emitirDocumentoFiscaleIt.bind(null, pedido.id)}>
+                      <button className="text-xs font-medium text-amber-700 hover:underline">
+                        {documento?.status === "erro" ? "Riprova" : "Emetti documento"}
+                      </button>
+                    </form>
+                  )}
+                  <Link href="/restaurante/vendas/pedidos" className="text-xs text-stone-500 hover:underline">Vedi l&apos;ordine</Link>
+                </div>
+              </article>
+            );
+          })}
+          {filaIt.length === 0 && <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">Nessuna pendenza fiscale tra le ultime 200 vendite pagate.</p>}
+        </div>
+      </div>
+    );
+  }
+
   const { data: pedidos } = await supabase
     .from("del_orders")
     .select("id, cliente_nome, totale, canal, pago_em, status, del_notas_fiscais(id, status, erro_mensagem, created_at)")

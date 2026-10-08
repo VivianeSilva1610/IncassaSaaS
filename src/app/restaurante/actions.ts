@@ -15,6 +15,7 @@ import {
 } from "@/lib/fiscal/emitir";
 import { carregarFechamento } from "@/lib/fiscal/fechamento";
 import { refundAsaasPayment } from "@/lib/asaas";
+import { emitirDocumentoFiscaleParaPedido, cancelarDocumentoFiscale } from "@/lib/fiscal/emitirIt";
 
 export async function fecharCaixaDiario(formData: FormData) {
   const { user, supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
@@ -855,6 +856,33 @@ export async function cancelarNotaFiscal(notaId: string, formData: FormData) {
   const resultado = await cancelarNotaFiscalLib(supabase, { ownerId: restaurantOwnerId, notaId, justificativa });
   if (resultado.status === "erro") {
     throw new Error(resultado.mensagemErro ?? "Não foi possível cancelar a nota.");
+  }
+  revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/fiscal");
+  revalidatePath("/restaurante/fiscal/notas");
+}
+
+export async function emitirDocumentoFiscaleIt(orderId: string) {
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const restaurantId = await getRestauranteIdDoOwner(supabase, restaurantOwnerId);
+  await emitirDocumentoFiscaleParaPedido(supabase, { ownerId: restaurantOwnerId, restaurantId, orderId });
+  revalidatePath("/restaurante/vendas");
+  revalidatePath("/restaurante/vendas/pedidos");
+  revalidatePath("/restaurante/fiscal");
+  revalidatePath("/restaurante/fiscal/emissoes");
+  revalidatePath("/restaurante/fiscal/notas");
+}
+
+export async function cancelarDocumentoFiscaleIt(documentoId: string, formData: FormData) {
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const justificativa = String(formData.get("justificativa") ?? "").trim();
+  if (justificativa.length < 15) {
+    throw new Error("Il motivo dell'annullamento deve avere almeno 15 caratteri.");
+  }
+  const restaurantId = await getRestauranteIdDoOwner(supabase, restaurantOwnerId);
+  const resultado = await cancelarDocumentoFiscale(supabase, { restaurantId, documentoId, justificativa });
+  if (resultado.status === "erro") {
+    throw new Error(resultado.mensagemErro ?? "Non è stato possibile annullare il documento.");
   }
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/fiscal");
