@@ -1,9 +1,21 @@
 import Link from "next/link";
-import { requireRestaurantSubscription } from "@/lib/subscription";
+import { requireRestaurantSubscription, type RestauranteLocale } from "@/lib/subscription";
 import { PranzoCustoCalculator } from "./pranzo-calculator";
 
+const CONTEUDO: Record<RestauranteLocale, { voltar: string; titulo: string; descricao: string }> = {
+  "pt-BR": {
+    voltar: "← Precificação", titulo: "Custo do Pranzo completo",
+    descricao: "Monte uma combinação de tamanho + principal + acompanhamentos (do jeito que o cliente monta no site) e veja o custo e o preço sugerido do prato inteiro — não só de um ingrediente ou produto isolado.",
+  },
+  it: {
+    voltar: "← Definizione prezzo", titulo: "Costo del Pranzo completo",
+    descricao: "Componi una combinazione di formato + principale + contorni (come il cliente compone sul sito) e vedi il costo e il prezzo suggerito del piatto intero — non solo di un ingrediente o prodotto isolato.",
+  },
+};
+
 export default async function CustoPranzoCompletoPage() {
-  const { supabase } = await requireRestaurantSubscription("custos");
+  const { supabase, locale } = await requireRestaurantSubscription("custos");
+  const t = CONTEUDO[locale];
 
   const [{ data: fixedCosts }, { data: pricingConfig }, { data: products }, { data: productIngredients }] =
     await Promise.all([
@@ -40,12 +52,11 @@ export default async function CustoPranzoCompletoPage() {
   return (
     <div>
       <Link href="/restaurante/custos/precificacao" className="text-sm text-amber-700 underline underline-offset-2">
-        ← Precificação
+        {t.voltar}
       </Link>
-      <h1 className="mt-2 text-2xl font-bold text-stone-900">Custo do Pranzo completo</h1>
+      <h1 className="mt-2 text-2xl font-bold text-stone-900">{t.titulo}</h1>
       <p className="mt-1 text-sm text-stone-600">
-        Monte uma combinação de tamanho + principal + acompanhamentos (do jeito que o cliente monta no site) e veja o
-        custo e o preço sugerido do prato inteiro — não só de um ingrediente ou produto isolado.
+        {t.descricao}
       </p>
 
       <PranzoCustoCalculator
@@ -56,6 +67,7 @@ export default async function CustoPranzoCompletoPage() {
         totalCustosFixos={totalCustosFixos}
         volumeMensalEstimado={volumeMensalEstimado}
         margemDesejada={margemDesejada}
+        locale={locale}
       />
     </div>
   );
