@@ -18,6 +18,34 @@ export async function registrarCustoHistorico(
   if (error) throw error;
 }
 
+// Registro informativo de lote/validade pra uma entrada de estoque — não
+// deduz por lote nas saídas, só alerta antes de vencer (Estoque > Validades).
+export async function registrarLoteEstoque(
+  supabase: SupabaseClient,
+  params: {
+    ownerId: string;
+    ingredientId: string;
+    quantidade: number;
+    numeroLote?: string | null;
+    validade?: string | null;
+    origem?: string | null;
+    notaEntradaItemId?: string | null;
+    stockMovementId?: string | null;
+  },
+) {
+  const { error } = await supabase.from("del_lotes_estoque").insert({
+    owner_id: params.ownerId,
+    ingredient_id: params.ingredientId,
+    quantidade: params.quantidade,
+    numero_lote: params.numeroLote ?? null,
+    validade: params.validade ?? null,
+    origem: params.origem ?? null,
+    nota_entrada_item_id: params.notaEntradaItemId ?? null,
+    stock_movement_id: params.stockMovementId ?? null,
+  });
+  if (error) throw error;
+}
+
 export async function registerStockMovement(
   supabase: SupabaseClient,
   params: {
@@ -43,14 +71,18 @@ export async function registerStockMovement(
   const delta = params.tipo === "saida" || params.tipo === "perda" ? -params.quantidade : params.quantidade;
   const nuovaQuantita = Number(ingredient.quantidade_atual) + delta;
 
-  const { error: insertError } = await supabase.from("del_stock_movements").insert({
-    owner_id: params.ownerId,
-    ingredient_id: params.ingredientId,
-    tipo: params.tipo,
-    quantidade: params.quantidade,
-    motivo: params.motivo ?? null,
-    order_id: params.orderId ?? null,
-  });
+  const { data: movimento, error: insertError } = await supabase
+    .from("del_stock_movements")
+    .insert({
+      owner_id: params.ownerId,
+      ingredient_id: params.ingredientId,
+      tipo: params.tipo,
+      quantidade: params.quantidade,
+      motivo: params.motivo ?? null,
+      order_id: params.orderId ?? null,
+    })
+    .select("id")
+    .single();
   if (insertError) throw insertError;
 
   const { error: updateError } = await supabase
@@ -59,6 +91,8 @@ export async function registerStockMovement(
     .eq("id", params.ingredientId)
     .eq("owner_id", params.ownerId);
   if (updateError) throw updateError;
+
+  return { movementId: movimento.id as string };
 }
 
 // Desconta do estoque, automaticamente, os ingredientes de cada item vendido

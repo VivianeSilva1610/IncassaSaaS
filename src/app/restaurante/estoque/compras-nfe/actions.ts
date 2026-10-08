@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRestaurantSubscription } from "@/lib/subscription";
 import { parseNfeEntrada } from "@/lib/fiscal/nfe-entrada";
+import { registrarLoteEstoque } from "@/lib/delivery/stock";
 
 const MAX_XML_BYTES = 5 * 1024 * 1024;
 
@@ -166,6 +167,8 @@ export async function processarCompra(notaId: string, formData: FormData) {
       destinacao,
       ingrediente_id: String(formData.get(`ingrediente_${item.id}`) ?? ""),
       quantidade_estoque: Number(formData.get(`quantidade_${item.id}`) ?? 0),
+      numero_lote: String(formData.get(`lote_${item.id}`) ?? "").trim() || null,
+      validade: String(formData.get(`validade_${item.id}`) ?? "").trim() || null,
     };
   });
   if (mapeamentos.some((item) => !destinosPermitidos.has(item.destinacao))) {
@@ -200,6 +203,20 @@ export async function processarCompra(notaId: string, formData: FormData) {
     p_vencimento: gerarConta ? (primeiraParcela?.vencimento ?? vencimento) : null,
   });
   if (error) redirect(`/restaurante/compras/nfe/${notaId}?erro=${encodeURIComponent(`Não foi possível processar: ${error.message}`)}`);
+
+  for (const mapeamento of mapeamentos) {
+    if (!destinosComEstoque.has(mapeamento.destinacao)) continue;
+    if (!mapeamento.numero_lote && !mapeamento.validade) continue;
+    await registrarLoteEstoque(supabase, {
+      ownerId: restaurantOwnerId,
+      ingredientId: mapeamento.ingrediente_id,
+      quantidade: mapeamento.quantidade_estoque,
+      numeroLote: mapeamento.numero_lote,
+      validade: mapeamento.validade,
+      origem: "nfe",
+      notaEntradaItemId: mapeamento.item_id,
+    });
+  }
 
   const pedidoCompraId = String(formData.get("pedido_compra_id") ?? "");
   if (/^[0-9a-f-]{36}$/i.test(pedidoCompraId)) {
@@ -246,6 +263,7 @@ export async function processarCompra(notaId: string, formData: FormData) {
   revalidatePath("/restaurante/compras/nfe");
   revalidatePath(`/restaurante/compras/nfe/${notaId}`);
   revalidatePath("/restaurante/estoque");
+  revalidatePath("/restaurante/estoque/validades");
   revalidatePath("/restaurante/financeiro/contas-a-pagar");
   redirect(`/restaurante/compras/nfe/${notaId}?sucesso=${encodeURIComponent("Compra classificada e processada com sucesso.")}`);
 }

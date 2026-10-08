@@ -61,6 +61,11 @@ export default async function EstoqueComprasPage() {
           placeholder="Fornecedor (opcional)"
           className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2"
         />
+        <input name="numero_lote" placeholder="Lote (opcional)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        <label className="text-sm text-stone-600">
+          <span className="mb-1 block text-xs text-stone-500">Validade (opcional)</span>
+          <input name="validade" type="date" className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        </label>
         <button
           type="submit"
           className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-transform hover:bg-amber-700 active:scale-[0.98] sm:col-span-2"

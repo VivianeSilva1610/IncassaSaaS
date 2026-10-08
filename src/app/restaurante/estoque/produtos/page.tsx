@@ -200,6 +200,17 @@ export default async function EstoqueProdutosPage({
                   placeholder="Motivo (opcional)"
                   className="rounded-md border border-stone-300 px-2 py-1.5 text-xs"
                 />
+                <input
+                  name="numero_lote"
+                  placeholder="Lote (só entrada, opcional)"
+                  className="w-32 rounded-md border border-stone-300 px-2 py-1.5 text-xs"
+                />
+                <input
+                  name="validade"
+                  type="date"
+                  title="Validade (só entrada, opcional)"
+                  className="rounded-md border border-stone-300 px-2 py-1.5 text-xs"
+                />
                 <button
                   type="submit"
                   className="rounded-md bg-stone-100 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-200"

@@ -102,6 +102,26 @@ export function ItemClassification({
           <p className="rounded-md bg-amber-50 px-2 py-2 text-xs text-amber-900">
             A quantidade fiscal permanece {invoiceQuantity} {invoiceUnit || "un."}. Este campo registra apenas a conversão para a unidade usada no estoque.
           </p>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="text-xs font-medium text-stone-600">
+              Lote (opcional)
+              <input
+                name={`lote_${itemId}`}
+                disabled={disabled}
+                placeholder="Nº do lote"
+                className="mt-1 w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm text-stone-900"
+              />
+            </label>
+            <label className="text-xs font-medium text-stone-600">
+              Validade (opcional)
+              <input
+                name={`validade_${itemId}`}
+                type="date"
+                disabled={disabled}
+                className="mt-1 w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm text-stone-900"
+              />
+            </label>
+          </div>
           {suggestedIngredientId && <p className="text-xs text-emerald-700">Sugestão recuperada da última compra deste produto. Confira antes de confirmar.</p>}
           {!suggestedIngredientId && selectedIngredient?.fatorConversaoCompra != null && invoiceUnit && selectedIngredient.unidade.toLowerCase() !== invoiceUnit.toLowerCase() && (
             <p className="text-xs text-emerald-700">

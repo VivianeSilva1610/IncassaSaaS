@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireRestaurantSubscription, MODULOS_RESTAURANTE, type ModuloRestaurante } from "@/lib/subscription";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { registerStockMovement, registrarCustoHistorico, restaurarEstoquePorCancelamento } from "@/lib/delivery/stock";
+import { registerStockMovement, registrarCustoHistorico, restaurarEstoquePorCancelamento, registrarLoteEstoque } from "@/lib/delivery/stock";
 import { createOrderWithItems } from "@/lib/delivery/orders";
 import { verificarRegistroTxt } from "@/lib/domain-verification";
 import {
@@ -164,6 +164,8 @@ export async function registrarCompraFornecedor(formData: FormData) {
   const unidadeInformada = String(formData.get("unidade_informada") ?? "estoque");
   const fornecedor = String(formData.get("fornecedor") ?? "").trim() || null;
   const custoInformado = formData.get("custo_unitario") ? Number(formData.get("custo_unitario")) : null;
+  const numeroLote = String(formData.get("numero_lote") ?? "").trim() || null;
+  const validade = String(formData.get("validade") ?? "").trim() || null;
 
   if (quantidadeInformada <= 0) {
     throw new Error("Informe a quantidade comprada.");
@@ -187,7 +189,7 @@ export async function registrarCompraFornecedor(formData: FormData) {
       if (custoInformado != null) custoUnitario = custoInformado / fator;
     }
 
-    await registerStockMovement(supabase, {
+    const { movementId } = await registerStockMovement(supabase, {
       ownerId: restaurantOwnerId,
       ingredientId,
       tipo: "entrada",
@@ -197,6 +199,17 @@ export async function registrarCompraFornecedor(formData: FormData) {
     if (custoUnitario != null) {
       await supabase.from("del_ingredients").update({ custo_unitario: custoUnitario }).eq("id", ingredientId);
       await registrarCustoHistorico(supabase, { ownerId: restaurantOwnerId, ingredientId, custoUnitario });
+    }
+    if (numeroLote || validade) {
+      await registrarLoteEstoque(supabase, {
+        ownerId: restaurantOwnerId,
+        ingredientId,
+        quantidade,
+        numeroLote,
+        validade,
+        origem: "compra_fornecedor",
+        stockMovementId: movementId,
+      });
     }
   } else {
     const quantidade = quantidadeInformada;
@@ -223,10 +236,21 @@ export async function registrarCompraFornecedor(formData: FormData) {
     if (custoUnitario != null) {
       await registrarCustoHistorico(supabase, { ownerId: restaurantOwnerId, ingredientId: novoIngrediente.id, custoUnitario });
     }
+    if (numeroLote || validade) {
+      await registrarLoteEstoque(supabase, {
+        ownerId: restaurantOwnerId,
+        ingredientId: novoIngrediente.id,
+        quantidade,
+        numeroLote,
+        validade,
+        origem: "compra_fornecedor",
+      });
+    }
   }
 
   revalidatePath("/restaurante/compras/fornecedor");
   revalidatePath("/restaurante/estoque/produtos");
+  revalidatePath("/restaurante/estoque/validades");
 }
 
 export async function addStockMovement(formData: FormData) {
@@ -236,13 +260,35 @@ export async function addStockMovement(formData: FormData) {
   const tipo = String(formData.get("tipo") ?? "entrada") as "entrada" | "saida" | "ajuste" | "perda";
   const quantidade = Number(formData.get("quantidade") ?? 0);
   const motivo = String(formData.get("motivo") ?? "") || null;
+  const numeroLote = String(formData.get("numero_lote") ?? "").trim() || null;
+  const validade = String(formData.get("validade") ?? "").trim() || null;
 
   if (!ingredientId || quantidade <= 0) {
     throw new Error("Dados inválidos.");
   }
 
-  await registerStockMovement(supabase, { ownerId: restaurantOwnerId, ingredientId, tipo, quantidade, motivo });
+  const { movementId } = await registerStockMovement(supabase, { ownerId: restaurantOwnerId, ingredientId, tipo, quantidade, motivo });
+
+  if (tipo === "entrada" && (numeroLote || validade)) {
+    await registrarLoteEstoque(supabase, {
+      ownerId: restaurantOwnerId,
+      ingredientId,
+      quantidade,
+      numeroLote,
+      validade,
+      origem: "movimento_manual",
+      stockMovementId: movementId,
+    });
+  }
+
   revalidatePath("/restaurante/estoque/produtos");
+  revalidatePath("/restaurante/estoque/validades");
+}
+
+export async function excluirLote(id: string) {
+  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  await supabase.from("del_lotes_estoque").delete().eq("id", id).eq("owner_id", restaurantOwnerId);
+  revalidatePath("/restaurante/estoque/validades");
 }
 
 // Contagem física: compara o que o sistema acha que tem com o que foi

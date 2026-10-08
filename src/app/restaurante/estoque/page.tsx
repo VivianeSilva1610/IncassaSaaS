@@ -20,10 +20,24 @@ const MODULOS = [
     descricao: "Quantidade final por período (mensal ou anual), com entradas/saídas — CSV ou Excel.",
     icone: "📊",
   },
+  {
+    href: "/restaurante/estoque/validades",
+    titulo: "Lotes e validade",
+    descricao: "Registre lote/validade nas entradas e veja o que está perto de vencer.",
+    icone: "⏳",
+  },
 ];
 
 export default async function EstoquePage() {
-  await requireRestaurantSubscription("estoque");
+  const { supabase } = await requireRestaurantSubscription("estoque");
+
+  const emSeteDias = new Date();
+  emSeteDias.setDate(emSeteDias.getDate() + 7);
+  const { count: vencendoCount } = await supabase
+    .from("del_lotes_estoque")
+    .select("id", { count: "exact", head: true })
+    .not("validade", "is", null)
+    .lte("validade", emSeteDias.toISOString().slice(0, 10));
 
   return (
     <div>
@@ -44,7 +58,12 @@ export default async function EstoquePage() {
                 {modulo.icone}
               </span>
               <div>
-                <h2 className="font-semibold text-stone-900 group-hover:text-amber-800">{modulo.titulo}</h2>
+                <h2 className="font-semibold text-stone-900 group-hover:text-amber-800">
+                  {modulo.titulo}
+                  {modulo.href === "/restaurante/estoque/validades" && !!vencendoCount && (
+                    <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">{vencendoCount} vencendo</span>
+                  )}
+                </h2>
                 <p className="mt-1 text-sm leading-5 text-stone-500">{modulo.descricao}</p>
                 <span className="mt-3 inline-block text-xs font-medium text-amber-700">Abrir módulo →</span>
               </div>
