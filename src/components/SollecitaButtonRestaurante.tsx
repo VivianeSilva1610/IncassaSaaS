@@ -3,14 +3,29 @@
 import { useState } from "react";
 import type { Tone } from "@/content/kit-incassa";
 import { toneEmoji } from "@/lib/tone-styles";
+import type { RestauranteLocale } from "@/lib/subscription";
 
 const tones: Tone[] = ["Gentile", "Cordiale", "Diretto", "Formale"];
 
-const toneLabelPt: Record<Tone, string> = {
-  Gentile: "Amigável",
-  Cordiale: "Cordial",
-  Diretto: "Direto",
-  Formale: "Formal",
+const toneLabel: Record<RestauranteLocale, Record<Tone, string>> = {
+  "pt-BR": { Gentile: "Amigável", Cordiale: "Cordial", Diretto: "Direto", Formale: "Formal" },
+  it: { Gentile: "Amichevole", Cordiale: "Cordiale", Diretto: "Diretto", Formale: "Formale" },
+};
+
+const CONTEUDO: Record<RestauranteLocale, {
+  cobrar: string; escolhaTom: string; gerando: string; erroGenerico: string; iaIndisponivel: string;
+  copiado: string; copiar: string; fechar: string;
+}> = {
+  "pt-BR": {
+    cobrar: "Cobrar", escolhaTom: "Escolha o tom:", gerando: "Gerando a mensagem…",
+    erroGenerico: "Algo deu errado. Tente de novo.", iaIndisponivel: "A IA não estava disponível: mensagem pronta no lugar.",
+    copiado: "Copiado!", copiar: "Copiar", fechar: "Fechar",
+  },
+  it: {
+    cobrar: "Sollecita", escolhaTom: "Scegli il tono:", gerando: "Generazione del messaggio…",
+    erroGenerico: "Qualcosa è andato storto. Riprova.", iaIndisponivel: "L'IA non era disponibile: messaggio predefinito al suo posto.",
+    copiado: "Copiato!", copiar: "Copia", fechar: "Chiudi",
+  },
 };
 
 interface SollecitaResult {
@@ -19,7 +34,9 @@ interface SollecitaResult {
   phone: string | null;
 }
 
-export function SollecitaButtonRestaurante({ contaId }: { contaId: string }) {
+export function SollecitaButtonRestaurante({ contaId, locale = "pt-BR" }: { contaId: string; locale?: RestauranteLocale }) {
+  const t = CONTEUDO[locale];
+  const labels = toneLabel[locale];
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SollecitaResult | null>(null);
@@ -38,12 +55,12 @@ export function SollecitaButtonRestaurante({ contaId }: { contaId: string }) {
       });
       const data = await res.json();
       if (!res.ok || !data.message) {
-        setError(data.error ?? "Algo deu errado. Tente de novo.");
+        setError(data.error ?? t.erroGenerico);
       } else {
         setResult(data);
       }
     } catch {
-      setError("Algo deu errado. Tente de novo.");
+      setError(t.erroGenerico);
     } finally {
       setLoading(false);
     }
@@ -72,14 +89,14 @@ export function SollecitaButtonRestaurante({ contaId }: { contaId: string }) {
         onClick={() => (open ? handleClose() : setOpen(true))}
         className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white transition-transform hover:bg-stone-700 active:scale-95"
       >
-        Cobrar
+        {t.cobrar}
       </button>
 
       {open && (
         <div className="absolute right-0 z-10 mt-2 w-80 rounded-lg border border-stone-200 bg-white p-4 shadow-lg">
           {!result && !loading && (
             <>
-              <p className="mb-3 text-xs font-medium text-stone-500">Escolha o tom:</p>
+              <p className="mb-3 text-xs font-medium text-stone-500">{t.escolhaTom}</p>
               <div className="grid grid-cols-2 gap-2">
                 {tones.map((tn) => (
                   <button
@@ -87,21 +104,21 @@ export function SollecitaButtonRestaurante({ contaId }: { contaId: string }) {
                     onClick={() => handleTone(tn)}
                     className="rounded-md border border-stone-200 px-2 py-1.5 text-sm hover:bg-stone-50"
                   >
-                    {toneEmoji[tn]} {toneLabelPt[tn]}
+                    {toneEmoji[tn]} {labels[tn]}
                   </button>
                 ))}
               </div>
             </>
           )}
 
-          {loading && <p className="text-sm text-stone-500">Gerando a mensagem…</p>}
+          {loading && <p className="text-sm text-stone-500">{t.gerando}</p>}
 
           {error && !loading && <p className="text-sm text-red-600">{error}</p>}
 
           {result && (
             <div>
               {result.fallback && (
-                <p className="mb-2 text-xs text-amber-700">A IA não estava disponível: mensagem pronta no lugar.</p>
+                <p className="mb-2 text-xs text-amber-700">{t.iaIndisponivel}</p>
               )}
               <p className="whitespace-pre-wrap text-sm text-stone-800">{result.message}</p>
               <div className="mt-3 flex flex-wrap gap-2">
@@ -119,14 +136,14 @@ export function SollecitaButtonRestaurante({ contaId }: { contaId: string }) {
                   onClick={handleCopy}
                   className="rounded-md bg-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-300"
                 >
-                  {copied ? "Copiado!" : "Copiar"}
+                  {copied ? t.copiado : t.copiar}
                 </button>
               </div>
             </div>
           )}
 
           <button onClick={handleClose} className="mt-3 text-xs text-stone-400 hover:text-stone-600">
-            Fechar
+            {t.fechar}
           </button>
         </div>
       )}
