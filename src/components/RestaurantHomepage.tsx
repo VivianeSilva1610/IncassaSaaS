@@ -162,27 +162,30 @@ export function RestaurantHomepage({
   useGSAP(
     () => {
       if (typeof window === "undefined") return;
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-      // Hero entrance animations
-      gsap.fromTo(".hero-badge", { opacity: 0, y: -16, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: "back.out(1.4)" });
-      gsap.fromTo(".hero-title", { opacity: 0, y: 32 }, { opacity: 1, y: 0, duration: 0.9, ease: "power3.out", delay: 0.15 });
-      gsap.fromTo(".hero-text", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out", delay: 0.3 });
-      gsap.fromTo(".hero-cta", { opacity: 0, y: 20, scale: 0.95 }, { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: "back.out(1.3)", delay: 0.5 });
-      gsap.fromTo(".hero-stat", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out", delay: 0.7, stagger: 0.1 });
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (reducedMotion) return;
+
+      // Hero entrance animations (gsap.from ensures elements are visible if animations don't run)
+      gsap.from(".hero-badge", { opacity: 0, y: -16, scale: 0.9, duration: 0.7, ease: "back.out(1.4)" });
+      gsap.from(".hero-title", { opacity: 0, y: 32, duration: 0.9, ease: "power3.out", delay: 0.15 });
+      gsap.from(".hero-text", { opacity: 0, y: 24, duration: 0.8, ease: "power2.out", delay: 0.3 });
+      gsap.from(".hero-cta", { opacity: 0, y: 20, scale: 0.95, duration: 0.7, ease: "back.out(1.3)", delay: 0.5 });
+      gsap.from(".hero-stat", { opacity: 0, y: 16, duration: 0.6, ease: "power2.out", delay: 0.7, stagger: 0.1 });
 
       // Scroll-triggered sections
       gsap.utils.toArray<HTMLElement>(".reveal-section").forEach((el) => {
-        gsap.fromTo(el, { opacity: 0, y: 40 }, {
-          opacity: 1, y: 0, duration: 0.7, ease: "power2.out",
+        gsap.from(el, {
+          opacity: 0, y: 30, duration: 0.7, ease: "power2.out",
           scrollTrigger: { trigger: el, start: "top 88%", once: true },
         });
       });
 
       gsap.utils.toArray<HTMLElement>(".reveal-card").forEach((el, i) => {
-        gsap.fromTo(el, { opacity: 0, y: 30, scale: 0.97 }, {
-          opacity: 1, y: 0, scale: 1, duration: 0.55, ease: "power2.out",
-          delay: (i % 4) * 0.07,
+        gsap.from(el, {
+          opacity: 0, y: 24, scale: 0.98, duration: 0.55, ease: "power2.out",
+          delay: (i % 4) * 0.05,
           scrollTrigger: { trigger: el, start: "top 90%", once: true },
         });
       });
@@ -201,7 +204,7 @@ export function RestaurantHomepage({
   );
 
   return (
-    <div ref={pageRef} style={{ background: "var(--background)", minHeight: "100vh" }}>
+    <div ref={pageRef} className="dark-landing" style={{ minHeight: "100vh" }}>
 
       {/* ── NAV ──────────────────────────────────────────────────────── */}
       <nav style={{
@@ -255,7 +258,7 @@ export function RestaurantHomepage({
         }} />
 
         <div className="mx-auto max-w-3xl" style={{ position: "relative" }}>
-          <div className="hero-badge" style={{ opacity: 0 }}>
+          <div className="hero-badge">
             <span style={{
               display: "inline-flex", alignItems: "center", gap: 7,
               padding: "5px 14px", borderRadius: 100,
@@ -268,7 +271,6 @@ export function RestaurantHomepage({
           </div>
 
           <h1 className="hero-title" style={{
-            opacity: 0,
             fontSize: "clamp(2.2rem, 5vw, 3.8rem)", fontWeight: 800,
             lineHeight: 1.1, letterSpacing: "-0.03em", margin: "0 0 20px",
             background: "linear-gradient(135deg, #f0ede8 0%, #fbbf24 45%, #f0ede8 100%)",
@@ -278,14 +280,13 @@ export function RestaurantHomepage({
           </h1>
 
           <p className="hero-text" style={{
-            opacity: 0,
             fontSize: "clamp(1rem, 2vw, 1.2rem)", color: "var(--text-secondary)",
             lineHeight: 1.75, maxWidth: 600, margin: "0 auto 40px",
           }}>
             {content.heroText}
           </p>
 
-          <div className="hero-cta" style={{ opacity: 0 }}>
+          <div className="hero-cta">
             <a href={contactHref} style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               padding: "14px 32px", borderRadius: 12,
@@ -305,7 +306,7 @@ export function RestaurantHomepage({
 
           <div style={{ display: "flex", justifyContent: "center", gap: 36, marginTop: 56, flexWrap: "wrap" }}>
             {[{ label: "Senza installazione", icon: "🌐" }, { label: "Dati sempre tuoi", icon: "🔒" }, { label: "Supporto diretto", icon: "💬" }].map((s) => (
-              <div key={s.label} className="hero-stat" style={{ opacity: 0, display: "flex", alignItems: "center", gap: 8, color: "var(--text-muted)", fontSize: 13 }}>
+              <div key={s.label} className="hero-stat" style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text-muted)", fontSize: 13 }}>
                 <span style={{ fontSize: 15 }}>{s.icon}</span>
                 <span>{s.label}</span>
               </div>
@@ -316,7 +317,7 @@ export function RestaurantHomepage({
 
       {/* ── PROBLEMS ─────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-6xl px-6 py-20">
-        <div className="reveal-section" style={{ opacity: 0, textAlign: "center", marginBottom: 48 }}>
+        <div className="reveal-section" style={{ textAlign: "center", marginBottom: 48 }}>
           <h2 style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 700, letterSpacing: "-0.02em", color: "var(--foreground)" }}>
             {content.problemsTitle}
           </h2>
@@ -325,7 +326,7 @@ export function RestaurantHomepage({
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20 }}>
           {content.problems.map((p, i) => (
             <div key={p.title} className="reveal-card" style={{
-              opacity: 0, padding: "28px", borderRadius: 16,
+              padding: "28px", borderRadius: 16,
               border: "1px solid rgba(245,158,11,0.15)",
               background: "linear-gradient(135deg, var(--surface-1) 0%, var(--surface-2) 100%)",
               transition: "border-color 0.2s, transform 0.2s",
@@ -348,7 +349,7 @@ export function RestaurantHomepage({
       {/* ── FEATURES ─────────────────────────────────────────────────── */}
       <section style={{ background: "var(--surface-1)", padding: "80px 24px" }}>
         <div className="mx-auto max-w-6xl">
-          <div className="reveal-section" style={{ opacity: 0, textAlign: "center", marginBottom: 52 }}>
+          <div className="reveal-section" style={{ textAlign: "center", marginBottom: 52 }}>
             <h2 style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 700, letterSpacing: "-0.02em", color: "var(--foreground)" }}>
               {content.featuresTitle}
             </h2>
@@ -356,7 +357,7 @@ export function RestaurantHomepage({
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(270px, 1fr))", gap: 16 }}>
             {content.features.map((f, i) => (
               <div key={f.title} className="reveal-card" style={{
-                opacity: 0, padding: "24px", borderRadius: 14,
+                padding: "24px", borderRadius: 14,
                 border: "1px solid var(--border)", background: "var(--surface-2)",
                 display: "flex", flexDirection: "column", gap: 12,
                 transition: "border-color 0.2s, background 0.2s, transform 0.2s",
@@ -381,14 +382,14 @@ export function RestaurantHomepage({
 
       {/* ── HOW IT WORKS ──────────────────────────────────────────────── */}
       <section className="mx-auto max-w-5xl px-6 py-20">
-        <div className="reveal-section" style={{ opacity: 0, textAlign: "center", marginBottom: 52 }}>
+        <div className="reveal-section" style={{ textAlign: "center", marginBottom: 52 }}>
           <h2 style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 700, letterSpacing: "-0.02em", color: "var(--foreground)" }}>
             {content.stepsTitle}
           </h2>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 40 }}>
           {content.steps.map((s) => (
-            <div key={s.step} className="reveal-card" style={{ opacity: 0, textAlign: "center" }}>
+            <div key={s.step} className="reveal-card" style={{ textAlign: "center" }}>
               <div style={{
                 width: 52, height: 52, borderRadius: "50%",
                 background: "linear-gradient(135deg, #f59e0b, #ea580c)",
@@ -407,7 +408,7 @@ export function RestaurantHomepage({
       {/* ── PRICING / CTA ─────────────────────────────────────────────── */}
       <section className="px-6 pb-6">
         <div className="reveal-section mx-auto max-w-3xl" style={{
-          opacity: 0, borderRadius: 24,
+          borderRadius: 24,
           border: "1px solid rgba(245,158,11,0.2)",
           background: "linear-gradient(135deg, var(--surface-1) 0%, rgba(245,158,11,0.04) 100%)",
           padding: "clamp(36px, 5vw, 64px)", textAlign: "center",
@@ -459,7 +460,7 @@ export function RestaurantHomepage({
 
       {/* ── FAQ ──────────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-3xl px-6 py-20">
-        <div className="reveal-section" style={{ opacity: 0, textAlign: "center", marginBottom: 44 }}>
+        <div className="reveal-section" style={{ textAlign: "center", marginBottom: 44 }}>
           <h2 style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 700, letterSpacing: "-0.02em", color: "var(--foreground)" }}>
             {content.faqTitle}
           </h2>
@@ -467,7 +468,7 @@ export function RestaurantHomepage({
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {content.faqs.map((f) => (
             <details key={f.q} className="reveal-card" style={{
-              opacity: 0, borderRadius: 14,
+              borderRadius: 14,
               border: "1px solid var(--border)", background: "var(--surface-1)", overflow: "hidden",
               transition: "border-color 0.2s",
             }}
@@ -492,7 +493,7 @@ export function RestaurantHomepage({
 
       {/* ── FINAL CTA ────────────────────────────────────────────────── */}
       <section style={{ padding: "20px 24px 100px", textAlign: "center" }}>
-        <div className="reveal-section" style={{ opacity: 0 }}>
+        <div className="reveal-section">
           <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>Pronto a semplificare il tuo locale?</p>
           <a href={contactHref} style={{
             display: "inline-flex", alignItems: "center", gap: 8,
