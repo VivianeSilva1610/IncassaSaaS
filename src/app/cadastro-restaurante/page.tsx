@@ -21,6 +21,7 @@ export default function CadastroRestaurantePage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [aceitaTermos, setAceitaTermos] = useState(false);
+  const [aceitaClausulasEspecificas, setAceitaClausulasEspecificas] = useState(false);
   const [disponibilidade, setDisponibilidade] = useState<"checando" | "disponivel" | "indisponivel" | null>(null);
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -55,7 +56,7 @@ export default function CadastroRestaurantePage() {
     return () => clearTimeout(timer);
   }, [slug]);
 
-  const podeEnviar = aceitaTermos && disponibilidade === "disponivel" && nome.trim() && email && password.length >= 6;
+  const podeEnviar = aceitaTermos && aceitaClausulasEspecificas && disponibilidade === "disponivel" && nome.trim() && email && password.length >= 6;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,6 +76,7 @@ export default function CadastroRestaurantePage() {
           restaurant_name: nome.trim(),
           restaurant_slug: slug,
           termini_accettati: true,
+          clausole_specifiche_accettate: true,
           consenso_registrato_il: new Date().toISOString(),
         },
       },
@@ -156,6 +158,28 @@ export default function CadastroRestaurantePage() {
               e a{" "}
               <Link href="/pt/privacidade" target="_blank" className="text-amber-700 underline underline-offset-2">
                 Política de Privacidade
+              </Link>
+              .
+            </span>
+          </label>
+
+          <label className="flex items-start gap-2 text-xs text-stone-700">
+            <input
+              type="checkbox"
+              required
+              checked={aceitaClausulasEspecificas}
+              onChange={(e) => setAceitaClausulasEspecificas(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              Nos termos do art. 1341 e 1342 do Código Civil italiano (lei aplicável), declaro ter
+              lido e aprovar especificamente as cláusulas: art. 9 (duração, renovação e
+              cancelamento), art. 11 (módulo fiscal), art. 12 (dados inseridos), art. 14
+              (disponibilidade do Serviço), art. 15 (alterações do Serviço), art. 19 (suspensão da
+              Conta), art. 20 (limitações de responsabilidade), art. 21 (indenização), art. 23
+              (alterações dos Termos) e art. 24 (lei aplicável e foro competente) dos{" "}
+              <Link href="/pt/termos" target="_blank" className="text-amber-700 underline underline-offset-2">
+                Termos de Serviço
               </Link>
               .
             </span>
