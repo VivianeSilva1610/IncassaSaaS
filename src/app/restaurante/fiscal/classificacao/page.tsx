@@ -12,10 +12,10 @@ export default async function ClassificacaoFiscalPage() {
   if (restaurant?.country_code === "IT") {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-stone-900">Classificação fiscal</h1>
+        <h1 className="text-2xl font-bold text-stone-900">Classificazione fiscale</h1>
         <p className="mt-4 rounded-lg border border-stone-200 bg-stone-50 p-4 text-sm text-stone-600">
-          NCM, CFOP e CEST são classificações fiscais brasileiras e não se aplicam a este
-          restaurante. Essa área ainda não tem um equivalente para a Itália.
+          NCM, CFOP e CEST sono classificazioni fiscali brasiliane e non si applicano a questo
+          ristorante. Quest&apos;area non ha ancora un equivalente per l&apos;Italia.
         </p>
       </div>
     );

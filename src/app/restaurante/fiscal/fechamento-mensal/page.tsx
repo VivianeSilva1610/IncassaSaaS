@@ -16,7 +16,20 @@ export default async function FechamentoMensalPage({ searchParams }: { searchPar
   const ultimoDia = new Date(Date.UTC(ano, numeroMes, 0)).getUTCDate();
   const inicio = `${mes}-01`;
   const fim = `${mes}-${String(ultimoDia).padStart(2, "0")}`;
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, locale } = await requireRestaurantSubscription();
+
+  if (locale === "it") {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold text-stone-900">Chiusura mensile</h1>
+        <p className="mt-4 rounded-lg border border-stone-200 bg-stone-50 p-4 text-sm text-stone-600">
+          La chiusura mensile è un concetto fiscale brasiliano (legato alla NFC-e) e non si applica a questo
+          ristorante. Quest&apos;area non ha ancora un equivalente per l&apos;Italia.
+        </p>
+      </div>
+    );
+  }
+
   const dados = await carregarFechamento(supabase, restaurantOwnerId, `${inicio}T00:00:00-03:00`, `${fim}T23:59:59.999-03:00`, inicio, fim);
   const [{ data: atividades }, { data: movimentos }, { data: caixasFechados }] = await Promise.all([
     supabase.from("del_orders").select("pago_em, competencia_em").eq("owner_id", restaurantOwnerId).or(`and(pago_em.gte.${inicio}T00:00:00-03:00,pago_em.lte.${fim}T23:59:59.999-03:00),and(competencia_em.gte.${inicio}T00:00:00-03:00,competencia_em.lte.${fim}T23:59:59.999-03:00)`),
