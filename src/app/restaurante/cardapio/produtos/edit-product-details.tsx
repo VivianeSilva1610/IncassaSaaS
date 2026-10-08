@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-export function EditProductDetails({ children }: { children: ReactNode }) {
+export function EditProductDetails({ children, label = "Editar" }: { children: ReactNode; label?: string }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDetailsElement>(null);
 
@@ -24,7 +24,7 @@ export function EditProductDetails({ children }: { children: ReactNode }) {
 
   return (
     <details ref={containerRef} open={open} onToggle={(event) => setOpen(event.currentTarget.open)} className="relative">
-      <summary className="cursor-pointer list-none text-xs text-amber-700">Editar</summary>
+      <summary className="cursor-pointer list-none text-xs text-amber-700">{label}</summary>
       <div onSubmit={() => setOpen(false)}>{children}</div>
     </details>
   );
