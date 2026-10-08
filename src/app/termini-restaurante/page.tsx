@@ -2,12 +2,12 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Termini e Condizioni — Ristorante (bozza) — INCASSA",
+  title: "Termini e Condizioni — Ristorante — INCASSA",
 };
 
 const SUPPORT_EMAIL = "viverevivi37@gmail.com";
 const PEC_EMAIL = "supporto@pec.incassa.eu";
-const LAST_UPDATED = "7 ottobre 2026 (bozza)";
+const LAST_UPDATED = "7 ottobre 2026";
 
 export default function TerminiRestaurantePage() {
   return (
@@ -15,12 +15,6 @@ export default function TerminiRestaurantePage() {
       <Link href="/" className="text-sm text-amber-700 underline underline-offset-2">
         ← Torna alla home
       </Link>
-
-      <div className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-        <strong>Bozza in attesa di revisione legale.</strong> Questo testo non è ancora stato
-        validato da un avvocato e non deve essere considerato definitivo né vincolante fino a
-        nuova indicazione.
-      </div>
 
       <h1 className="mt-6 text-2xl font-bold text-stone-900">
         Termini e Condizioni di Servizio — Piattaforma per Ristoranti
@@ -186,7 +180,9 @@ export default function TerminiRestaurantePage() {
           </h2>
           <p className="mt-2">
             Ove il Ristorante attivi il Negozio Online, gli ordini dei Clienti Finali possono
-            essere pagati tramite Pix attraverso il fornitore esterno Asaas. INCASSA non è parte del
+            essere pagati tramite uno o più fornitori esterni di servizi di pagamento abilitati
+            dalla Piattaforma (ad esempio Pix tramite Asaas in Brasile, o altri metodi disponibili
+            secondo il paese e le impostazioni scelte dal Ristorante). INCASSA non è parte del
             contratto di vendita tra il Ristorante e il Cliente Finale, non interviene nella
             custodia dei fondi relativi a tali pagamenti e non garantisce l&apos;esito, la ricezione
             o l&apos;accredito del pagamento. Il Ristorante è l&apos;unico responsabile verso i
@@ -299,8 +295,9 @@ export default function TerminiRestaurantePage() {
           <p className="mt-2">
             INCASSA adotta misure ragionevoli per garantire continuità e sicurezza del Servizio.
             Tuttavia, possono verificarsi interruzioni dovute a manutenzione, aggiornamenti,
-            problemi tecnici, servizi di terzi (inclusi Stripe, Asaas, provider DNS/hosting), eventi
-            di forza maggiore o esigenze di sicurezza.
+            problemi tecnici, servizi di terzi (inclusi Stripe, i fornitori di pagamento abilitati
+            dal Ristorante, provider DNS/hosting), eventi di forza maggiore o esigenze di
+            sicurezza.
           </p>
           <p className="mt-2">
             Nessuna disposizione dei presenti Termini esclude o limita diritti inderogabili

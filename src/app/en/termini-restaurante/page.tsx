@@ -2,12 +2,12 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms and Conditions — Restaurant (draft) — INCASSA",
+  title: "Terms and Conditions — Restaurant — INCASSA",
 };
 
 const SUPPORT_EMAIL = "viverevivi37@gmail.com";
 const PEC_EMAIL = "supporto@pec.incassa.eu";
-const LAST_UPDATED = "October 7, 2026 (draft)";
+const LAST_UPDATED = "October 7, 2026";
 
 export default function TerminiRestauranteEnPage() {
   return (
@@ -15,11 +15,6 @@ export default function TerminiRestauranteEnPage() {
       <Link href="/en" className="text-sm text-amber-700 underline underline-offset-2">
         ← Back to home
       </Link>
-
-      <div className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-        <strong>Draft pending legal review.</strong> This text has not yet been validated by a
-        lawyer and must not be treated as final or binding until further notice.
-      </div>
 
       <h1 className="mt-6 text-2xl font-bold text-stone-900">
         Terms and Conditions of Service — Restaurant Platform
@@ -172,8 +167,10 @@ export default function TerminiRestauranteEnPage() {
         <section>
           <h2 className="text-base font-semibold text-stone-900">8. End Customer Order Payments</h2>
           <p className="mt-2">
-            Where the Restaurant activates the Online Store, End Customer orders may be paid via
-            Pix through the external provider Asaas. INCASSA is not a party to the sales contract
+            Where the Restaurant activates the Online Store, End Customer orders may be paid
+            through one or more external payment providers enabled by the Platform (for example
+            Pix via Asaas in Brazil, or other methods available depending on the country and
+            settings chosen by the Restaurant). INCASSA is not a party to the sales contract
             between the Restaurant and the End Customer, does not hold custody of funds related to
             such payments, and does not guarantee the outcome, receipt, or settlement of payment.
             The Restaurant is solely responsible to its End Customers for fulfilling orders, product
@@ -274,8 +271,8 @@ export default function TerminiRestauranteEnPage() {
           <p className="mt-2">
             INCASSA takes reasonable measures to ensure continuity and security of the Service.
             However, interruptions may occur due to maintenance, updates, technical issues,
-            third-party services (including Stripe, Asaas, and DNS/hosting providers), force
-            majeure, or security needs.
+            third-party services (including Stripe, payment providers enabled by the Restaurant,
+            and DNS/hosting providers), force majeure, or security needs.
           </p>
           <p className="mt-2">
             Nothing in these Terms excludes or limits any mandatory rights granted to the Consumer.

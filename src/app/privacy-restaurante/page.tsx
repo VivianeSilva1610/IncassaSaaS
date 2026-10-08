@@ -2,12 +2,12 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Informativa sulla Privacy — Ristorante (bozza) — INCASSA",
+  title: "Informativa sulla Privacy — Ristorante — INCASSA",
 };
 
 const SUPPORT_EMAIL = "viverevivi37@gmail.com";
 const PEC_EMAIL = "supporto@pec.incassa.eu";
-const LAST_UPDATED = "7 ottobre 2026 (bozza)";
+const LAST_UPDATED = "7 ottobre 2026";
 
 export default function PrivacyRestaurantePage() {
   return (
@@ -15,12 +15,6 @@ export default function PrivacyRestaurantePage() {
       <Link href="/" className="text-sm text-amber-700 underline underline-offset-2">
         ← Torna alla home
       </Link>
-
-      <div className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-        <strong>Bozza in attesa di revisione legale.</strong> Questo testo non è ancora stato
-        validato da un avvocato e non deve essere considerato definitivo né vincolante fino a
-        nuova indicazione.
-      </div>
 
       <h1 className="mt-6 text-2xl font-bold text-stone-900">
         Informativa sulla Privacy — Piattaforma per Ristoranti
@@ -72,13 +66,14 @@ export default function PrivacyRestaurantePage() {
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>Nome e numero di telefono</li>
             <li>Indirizzo di consegna e zona/quartiere</li>
-            <li>CPF/CNPJ (documento fiscale), richiesto dal fornitore di pagamento Pix per elaborare il pagamento</li>
+            <li>Documento fiscale (ad esempio CPF/CNPJ in Brasile, o equivalente secondo il paese), quando richiesto dal fornitore di pagamento abilitato dal Ristorante per elaborare il pagamento</li>
             <li>Contenuto dell&apos;ordine (prodotti, quantità, note, importo)</li>
           </ul>
           <p className="mt-2">
             Non riceviamo né conserviamo i dati completi della carta di pagamento
-            dell&apos;abbonamento: questi sono gestiti interamente da Stripe. I pagamenti Pix degli
-            ordini dei Clienti Finali sono elaborati interamente dal fornitore esterno Asaas.
+            dell&apos;abbonamento: questi sono gestiti interamente da Stripe. I pagamenti degli
+            ordini dei Clienti Finali sono elaborati interamente dal fornitore di pagamento
+            abilitato dal Ristorante (ad esempio Pix tramite Asaas in Brasile).
           </p>
         </section>
 
@@ -105,7 +100,7 @@ export default function PrivacyRestaurantePage() {
           <p className="mt-2">Per fornire il servizio ci affidiamo ai seguenti fornitori, che agiscono come responsabili del trattamento:</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li><strong>Stripe</strong> — elaborazione dei pagamenti dell&apos;abbonamento del Ristorante</li>
-            <li><strong>Asaas</strong> — elaborazione dei pagamenti Pix degli ordini dei Clienti Finali (riceve nome, CPF/CNPJ e telefono del Cliente Finale)</li>
+            <li><strong>Fornitore di pagamento abilitato dal Ristorante</strong> — elaborazione dei pagamenti degli ordini dei Clienti Finali (ad esempio Asaas per Pix in Brasile; riceve nome, documento fiscale e telefono del Cliente Finale, secondo il metodo attivato)</li>
             <li><strong>Supabase</strong> — hosting del database e autenticazione degli account</li>
             <li><strong>Resend</strong> — invio delle email transazionali</li>
             <li><strong>Vercel</strong> — hosting del sito e instradamento dei domini personalizzati</li>
@@ -158,8 +153,8 @@ export default function PrivacyRestaurantePage() {
             Questo sito non utilizza cookie di profilazione, analytics o marketing. Utilizziamo
             solo cookie tecnici necessari per mantenere la sessione di accesso all&apos;account. Il
             pagamento dell&apos;abbonamento avviene su una pagina ospitata da Stripe (dominio
-            stripe.com); il pagamento degli ordini dei Clienti Finali avviene tramite Pix generato
-            da Asaas.
+            stripe.com); il pagamento degli ordini dei Clienti Finali avviene tramite il fornitore
+            di pagamento abilitato dal Ristorante (ad esempio Pix generato da Asaas in Brasile).
           </p>
         </section>
 

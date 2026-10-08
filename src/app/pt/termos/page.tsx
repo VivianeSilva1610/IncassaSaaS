@@ -2,12 +2,12 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Termos e Condições — Restaurante (rascunho) — INCASSA",
+  title: "Termos e Condições — Restaurante — INCASSA",
 };
 
 const SUPPORT_EMAIL = "viverevivi37@gmail.com";
 const PEC_EMAIL = "supporto@pec.incassa.eu";
-const LAST_UPDATED = "7 de outubro de 2026 (rascunho)";
+const LAST_UPDATED = "7 de outubro de 2026";
 
 export default function TermosPtPage() {
   return (
@@ -15,11 +15,6 @@ export default function TermosPtPage() {
       <Link href="/pt" className="text-sm text-amber-700 underline underline-offset-2">
         ← Voltar para a home
       </Link>
-
-      <div className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-        <strong>Rascunho aguardando revisão jurídica.</strong> Este texto ainda não foi validado
-        por um advogado e não deve ser considerado definitivo nem vinculante até nova indicação.
-      </div>
 
       <h1 className="mt-6 text-2xl font-bold text-stone-900">
         Termos e Condições de Serviço — Plataforma para Restaurantes
@@ -175,7 +170,9 @@ export default function TermosPtPage() {
           <h2 className="text-base font-semibold text-stone-900">8. Pagamentos dos pedidos dos Clientes Finais</h2>
           <p className="mt-2">
             Quando o Restaurante ativar a Loja Online, os pedidos dos Clientes Finais podem ser
-            pagos via Pix através do fornecedor externo Asaas. A INCASSA não é parte do contrato de
+            pagos por um ou mais fornecedores externos de pagamento habilitados pela Plataforma
+            (por exemplo Pix via Asaas no Brasil, ou outros métodos disponíveis conforme o país e
+            as configurações escolhidas pelo Restaurante). A INCASSA não é parte do contrato de
             venda entre o Restaurante e o Cliente Final, não custodia os valores relativos a esses
             pagamentos e não garante o resultado, o recebimento ou a liquidação do pagamento. O
             Restaurante é o único responsável, perante seus Clientes Finais, pela entrega dos
@@ -289,8 +286,9 @@ export default function TermosPtPage() {
           <p className="mt-2">
             A INCASSA adota medidas razoáveis para garantir a continuidade e a segurança do
             Serviço. Ainda assim, podem ocorrer interrupções devidas a manutenção, atualizações,
-            problemas técnicos, serviços de terceiros (incluindo Stripe, Asaas e provedores de
-            DNS/hospedagem), casos de força maior ou necessidades de segurança.
+            problemas técnicos, serviços de terceiros (incluindo Stripe, os fornecedores de
+            pagamento habilitados pelo Restaurante, e provedores de DNS/hospedagem), casos de
+            força maior ou necessidades de segurança.
           </p>
           <p className="mt-2">
             Nenhuma disposição destes Termos exclui ou limita direitos irrenunciáveis reconhecidos

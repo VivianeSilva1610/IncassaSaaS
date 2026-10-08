@@ -2,12 +2,12 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Política de Privacidade — Restaurante (rascunho) — INCASSA",
+  title: "Política de Privacidade — Restaurante — INCASSA",
 };
 
 const SUPPORT_EMAIL = "viverevivi37@gmail.com";
 const PEC_EMAIL = "supporto@pec.incassa.eu";
-const LAST_UPDATED = "7 de outubro de 2026 (rascunho)";
+const LAST_UPDATED = "7 de outubro de 2026";
 
 export default function PrivacidadePtPage() {
   return (
@@ -15,11 +15,6 @@ export default function PrivacidadePtPage() {
       <Link href="/pt" className="text-sm text-amber-700 underline underline-offset-2">
         ← Voltar para a home
       </Link>
-
-      <div className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-        <strong>Rascunho aguardando revisão jurídica.</strong> Este texto ainda não foi validado
-        por um advogado e não deve ser considerado definitivo nem vinculante até nova indicação.
-      </div>
 
       <h1 className="mt-6 text-2xl font-bold text-stone-900">
         Política de Privacidade — Plataforma para Restaurantes
@@ -66,13 +61,14 @@ export default function PrivacidadePtPage() {
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>Nome e telefone</li>
             <li>Endereço de entrega e bairro/zona</li>
-            <li>CPF/CNPJ, exigido pelo provedor de pagamento Pix para processar o pagamento</li>
+            <li>Documento fiscal (ex: CPF/CNPJ no Brasil, ou equivalente local), quando exigido pelo provedor de pagamento habilitado pelo Restaurante para processar o pagamento</li>
             <li>Conteúdo do pedido (produtos, quantidades, observações, valor)</li>
           </ul>
           <p className="mt-2">
             Não recebemos nem armazenamos os dados completos do cartão de pagamento da assinatura:
-            isso é feito inteiramente pela Stripe. Os pagamentos via Pix dos pedidos dos Clientes
-            Finais são processados inteiramente pelo fornecedor externo Asaas.
+            isso é feito inteiramente pela Stripe. Os pagamentos dos pedidos dos Clientes Finais
+            são processados inteiramente pelo provedor de pagamento habilitado pelo Restaurante
+            (por exemplo Pix via Asaas no Brasil).
           </p>
         </section>
 
@@ -97,7 +93,7 @@ export default function PrivacidadePtPage() {
           <p className="mt-2">Para fornecer o Serviço, contamos com os seguintes fornecedores, que atuam como operadores:</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li><strong>Stripe</strong> — processamento dos pagamentos da assinatura do Restaurante</li>
-            <li><strong>Asaas</strong> — processamento dos pagamentos via Pix dos pedidos dos Clientes Finais (recebe nome, CPF/CNPJ e telefone do Cliente Final)</li>
+            <li><strong>Provedor de pagamento habilitado pelo Restaurante</strong> — processamento dos pagamentos dos pedidos dos Clientes Finais (ex: Asaas para Pix no Brasil; recebe nome, documento fiscal e telefone do Cliente Final, conforme o método ativado)</li>
             <li><strong>Supabase</strong> — hospedagem do banco de dados e autenticação das contas</li>
             <li><strong>Resend</strong> — envio dos e-mails transacionais</li>
             <li><strong>Vercel</strong> — hospedagem do site e roteamento dos domínios personalizados</li>
@@ -148,7 +144,8 @@ export default function PrivacidadePtPage() {
             Este site não usa cookies de perfilamento, análise ou marketing. Usamos apenas cookies
             técnicos necessários para manter sua sessão de acesso à conta. O pagamento da
             assinatura ocorre em uma página hospedada pela Stripe (domínio stripe.com); o
-            pagamento dos pedidos dos Clientes Finais ocorre via Pix gerado pela Asaas.
+            pagamento dos pedidos dos Clientes Finais ocorre pelo provedor de pagamento habilitado
+            pelo Restaurante (ex: Pix gerado pela Asaas no Brasil).
           </p>
         </section>
 
