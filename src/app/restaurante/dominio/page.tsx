@@ -1,11 +1,10 @@
 import { redirect } from "next/navigation";
-import { requireRestaurantSubscription } from "@/lib/subscription";
+import { requireRestaurantSubscription, type RestauranteLocale } from "@/lib/subscription";
 import { addRestaurantDomain, verifyRestaurantDomain, deleteRestaurantDomain } from "@/app/restaurante/actions";
 
-const STATUS_LABEL: Record<string, string> = {
-  pending: "Pendente de verificação",
-  verified: "Verificado",
-  blocked: "Bloqueado",
+const STATUS_LABEL: Record<RestauranteLocale, Record<string, string>> = {
+  "pt-BR": { pending: "Pendente de verificação", verified: "Verificado", blocked: "Bloqueado" },
+  it: { pending: "In attesa di verifica", verified: "Verificato", blocked: "Bloccato" },
 };
 
 const STATUS_CLASSE: Record<string, string> = {
@@ -14,8 +13,47 @@ const STATUS_CLASSE: Record<string, string> = {
   blocked: "bg-red-100 text-red-700",
 };
 
+const CONTEUDO: Record<RestauranteLocale, {
+  titulo: string; semRestaurante: string; lojaFuncionaEm: (link: React.ReactNode) => React.ReactNode;
+  cadastreDominio: string; cadastrarDominio: string; dominioPlaceholder: string; adicionar: string;
+  principal: string; passo1: string; passo1Descricao: (hostname: string) => React.ReactNode;
+  verificarAgora: string; passo2: string; passo2Descricao: (hostname: string) => React.ReactNode;
+  verificadoEm: (data: string) => string; cnameInfo: (hostname: string) => string; remover: string;
+  nenhumDominio: string;
+}> = {
+  "pt-BR": {
+    titulo: "Domínio", semRestaurante: "Ainda não existe um registro de restaurante pra essa conta — fale com o suporte.",
+    lojaFuncionaEm: (link) => <>Sua loja já funciona em {link}. Cadastre um domínio próprio (ex: seurestaurante.com.br) pra usar esse endereço em vez do padrão.</>,
+    cadastreDominio: "Cadastrar domínio", cadastrarDominio: "Cadastrar domínio",
+    dominioPlaceholder: "seurestaurante.com.br", adicionar: "Adicionar", principal: "(principal)",
+    passo1: "Passo 1 — prove que o domínio é seu",
+    passo1Descricao: (hostname) => <>Crie um registro <strong>TXT</strong> em <code>_incassa-challenge.{hostname}</code> com o valor:</>,
+    verificarAgora: "Verificar agora", passo2: "Passo 2 — depois de verificado",
+    passo2Descricao: (hostname) => <>Aponte um <strong>CNAME</strong> de {hostname} para <code>cname.vercel-dns.com</code> e me avise — preciso adicionar o domínio no projeto da Vercel manualmente antes dele funcionar de verdade.</>,
+    verificadoEm: (data) => `Verificado em ${data}.`,
+    cnameInfo: (hostname) => `Se o CNAME já estiver apontado e o domínio adicionado no projeto da Vercel, ${hostname} já serve sua loja direto.`,
+    remover: "Remover", nenhumDominio: "Nenhum domínio cadastrado ainda.",
+  },
+  it: {
+    titulo: "Dominio", semRestaurante: "Non esiste ancora un ristorante registrato per questo account — contatta l'assistenza.",
+    lojaFuncionaEm: (link) => <>Il tuo negozio funziona già su {link}. Registra un dominio tuo (es: ilsuoristorante.it) per usare questo indirizzo al posto di quello predefinito.</>,
+    cadastreDominio: "Registra dominio", cadastrarDominio: "Registra dominio",
+    dominioPlaceholder: "ilsuoristorante.it", adicionar: "Aggiungi", principal: "(principale)",
+    passo1: "Passo 1 — dimostra che il dominio è tuo",
+    passo1Descricao: (hostname) => <>Crea un record <strong>TXT</strong> in <code>_incassa-challenge.{hostname}</code> con il valore:</>,
+    verificarAgora: "Verifica ora", passo2: "Passo 2 — dopo la verifica",
+    passo2Descricao: (hostname) => <>Punta un <strong>CNAME</strong> di {hostname} verso <code>cname.vercel-dns.com</code> e avvisami — devo aggiungere il dominio nel progetto Vercel manualmente prima che funzioni davvero.</>,
+    verificadoEm: (data) => `Verificato il ${data}.`,
+    cnameInfo: (hostname) => `Se il CNAME è già puntato e il dominio è stato aggiunto nel progetto Vercel, ${hostname} serve già direttamente il tuo negozio.`,
+    remover: "Rimuovi", nenhumDominio: "Nessun dominio registrato ancora.",
+  },
+};
+
 export default async function DominioPage() {
-  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isOwner, locale } = await requireRestaurantSubscription();
+  const t = CONTEUDO[locale];
+  const statusLabel = STATUS_LABEL[locale];
+  const intlLocale = locale === "it" ? "it-IT" : "pt-BR";
 
   if (!isOwner) {
     redirect("/restaurante");
@@ -30,9 +68,9 @@ export default async function DominioPage() {
   if (!restaurant) {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-stone-900">Domínio</h1>
+        <h1 className="text-2xl font-bold text-stone-900">{t.titulo}</h1>
         <p className="mt-2 text-sm text-stone-600">
-          Ainda não existe um registro de restaurante pra essa conta — fale com o suporte.
+          {t.semRestaurante}
         </p>
       </div>
     );
@@ -46,26 +84,26 @@ export default async function DominioPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-stone-900">Domínio</h1>
+      <h1 className="text-2xl font-bold text-stone-900">{t.titulo}</h1>
       <p className="mt-1 text-sm text-stone-600">
-        Sua loja já funciona em{" "}
-        <a href={`/loja/${restaurant.slug}`} className="text-amber-700 underline underline-offset-2">
-          incassa.eu/loja/{restaurant.slug}
-        </a>
-        . Cadastre um domínio próprio (ex: seurestaurante.com.br) pra usar esse endereço em vez do padrão.
+        {t.lojaFuncionaEm(
+          <a href={`/loja/${restaurant.slug}`} className="text-amber-700 underline underline-offset-2">
+            incassa.eu/loja/{restaurant.slug}
+          </a>,
+        )}
       </p>
 
       <section className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
-        <h2 className="font-semibold text-stone-900">Cadastrar domínio</h2>
+        <h2 className="font-semibold text-stone-900">{t.cadastrarDominio}</h2>
         <form action={addRestaurantDomain} className="mt-2 flex flex-wrap gap-2">
           <input
             name="hostname"
             required
-            placeholder="seurestaurante.com.br"
+            placeholder={t.dominioPlaceholder}
             className="min-w-56 flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm"
           />
           <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white">
-            Adicionar
+            {t.adicionar}
           </button>
         </form>
       </section>
@@ -75,48 +113,46 @@ export default async function DominioPage() {
           <div key={d.id} className="rounded-xl border border-stone-200 bg-white p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="font-medium text-stone-900">
-                {d.hostname} {d.is_primary && <span className="text-xs text-stone-400">(principal)</span>}
+                {d.hostname} {d.is_primary && <span className="text-xs text-stone-400">{t.principal}</span>}
               </p>
               <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSE[d.verification_status] ?? "bg-stone-100 text-stone-600"}`}>
-                {STATUS_LABEL[d.verification_status] ?? d.verification_status}
+                {statusLabel[d.verification_status] ?? d.verification_status}
               </span>
             </div>
 
             {d.verification_status !== "verified" && (
               <div className="mt-3 rounded-lg bg-stone-50 p-3 text-xs text-stone-600">
-                <p className="font-medium text-stone-700">Passo 1 — prove que o domínio é seu</p>
+                <p className="font-medium text-stone-700">{t.passo1}</p>
                 <p className="mt-1">
-                  Crie um registro <strong>TXT</strong> em <code>_incassa-challenge.{d.hostname}</code> com o valor:
+                  {t.passo1Descricao(d.hostname)}
                 </p>
                 <code className="mt-1 block break-all rounded bg-white px-2 py-1 text-stone-900">{d.verification_token}</code>
                 <form action={verifyRestaurantDomain.bind(null, d.id)} className="mt-2">
                   <button type="submit" className="rounded-md bg-stone-900 px-3 py-1.5 text-xs font-medium text-white">
-                    Verificar agora
+                    {t.verificarAgora}
                   </button>
                 </form>
-                <p className="mt-3 font-medium text-stone-700">Passo 2 — depois de verificado</p>
+                <p className="mt-3 font-medium text-stone-700">{t.passo2}</p>
                 <p className="mt-1">
-                  Aponte um <strong>CNAME</strong> de {d.hostname} para <code>cname.vercel-dns.com</code> e me avise — preciso
-                  adicionar o domínio no projeto da Vercel manualmente antes dele funcionar de verdade.
+                  {t.passo2Descricao(d.hostname)}
                 </p>
               </div>
             )}
 
             {d.verification_status === "verified" && (
               <p className="mt-2 text-xs text-stone-500">
-                Verificado em {d.verified_at ? new Date(d.verified_at).toLocaleString("pt-BR") : "—"}. Se o CNAME já
-                estiver apontado e o domínio adicionado no projeto da Vercel, {d.hostname} já serve sua loja direto.
+                {t.verificadoEm(d.verified_at ? new Date(d.verified_at).toLocaleString(intlLocale) : "—")} {t.cnameInfo(d.hostname)}
               </p>
             )}
 
             <form action={deleteRestaurantDomain.bind(null, d.id)} className="mt-3">
               <button type="submit" className="text-xs text-red-600 hover:underline">
-                Remover
+                {t.remover}
               </button>
             </form>
           </div>
         ))}
-        {(dominios ?? []).length === 0 && <p className="text-sm text-stone-500">Nenhum domínio cadastrado ainda.</p>}
+        {(dominios ?? []).length === 0 && <p className="text-sm text-stone-500">{t.nenhumDominio}</p>}
       </section>
     </div>
   );
