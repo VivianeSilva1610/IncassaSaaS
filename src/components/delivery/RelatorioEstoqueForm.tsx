@@ -1,13 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import type { RestauranteLocale } from "@/lib/subscription";
 
 function mesAtual() {
   const agora = new Date();
   return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export function RelatorioEstoqueForm() {
+const CONTEUDO: Record<RestauranteLocale, {
+  periodo: string; mes: string; ano: string; de: string; ate: string; baixarCsv: string; baixarExcel: string;
+}> = {
+  "pt-BR": { periodo: "Período", mes: "Mês", ano: "Ano", de: "De", ate: "Até", baixarCsv: "Baixar CSV", baixarExcel: "Baixar Excel (.xlsx)" },
+  it: { periodo: "Periodo", mes: "Mese", ano: "Anno", de: "Da", ate: "A", baixarCsv: "Scarica CSV", baixarExcel: "Scarica Excel (.xlsx)" },
+};
+
+export function RelatorioEstoqueForm({ locale = "pt-BR" }: { locale?: RestauranteLocale }) {
+  const t = CONTEUDO[locale];
   const [tipo, setTipo] = useState<"mensal" | "anual">("mensal");
   const [de, setDe] = useState(mesAtual());
   const [ate, setAte] = useState(mesAtual());
@@ -20,21 +29,21 @@ export function RelatorioEstoqueForm() {
     <div>
       <div className="flex flex-wrap items-end gap-3 rounded-xl border border-stone-200 bg-white p-4">
         <label className="text-sm text-stone-600">
-          <span className="mb-1 block text-xs text-stone-500">Período</span>
+          <span className="mb-1 block text-xs text-stone-500">{t.periodo}</span>
           <select
             value={tipo}
             onChange={(e) => setTipo(e.target.value as "mensal" | "anual")}
             className="rounded-md border border-stone-300 px-3 py-2 text-sm"
           >
-            <option value="mensal">Mês</option>
-            <option value="anual">Ano</option>
+            <option value="mensal">{t.mes}</option>
+            <option value="anual">{t.ano}</option>
           </select>
         </label>
 
         {tipo === "mensal" ? (
           <>
             <label className="text-sm text-stone-600">
-              <span className="mb-1 block text-xs text-stone-500">De</span>
+              <span className="mb-1 block text-xs text-stone-500">{t.de}</span>
               <input
                 type="month"
                 value={de}
@@ -44,7 +53,7 @@ export function RelatorioEstoqueForm() {
               />
             </label>
             <label className="text-sm text-stone-600">
-              <span className="mb-1 block text-xs text-stone-500">Até</span>
+              <span className="mb-1 block text-xs text-stone-500">{t.ate}</span>
               <input
                 type="month"
                 value={ate}
@@ -56,7 +65,7 @@ export function RelatorioEstoqueForm() {
           </>
         ) : (
           <label className="text-sm text-stone-600">
-            <span className="mb-1 block text-xs text-stone-500">Ano</span>
+            <span className="mb-1 block text-xs text-stone-500">{t.ano}</span>
             <input
               type="number"
               value={ano}
@@ -74,13 +83,13 @@ export function RelatorioEstoqueForm() {
           href={`/api/restaurante/export-estoque?formato=csv&${query}`}
           className="rounded-md bg-stone-900 px-4 py-2.5 text-sm font-medium text-white transition-transform hover:bg-stone-700 active:scale-[0.98]"
         >
-          Baixar CSV
+          {t.baixarCsv}
         </a>
         <a
           href={`/api/restaurante/export-estoque?formato=excel&${query}`}
           className="rounded-md bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white transition-transform hover:bg-emerald-600 active:scale-[0.98]"
         >
-          Baixar Excel (.xlsx)
+          {t.baixarExcel}
         </a>
       </div>
     </div>
