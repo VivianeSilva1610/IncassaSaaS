@@ -8,6 +8,7 @@ const LABEL_MODULO: Record<ModuloRestaurante, string> = {
   vendas: "Vendas",
   cardapio: "Menu do site",
   cozinha: "Cozinha",
+  producao: "Produção",
   custos: "Custos",
   caixa: "Caixa",
   financeiro: "Financeiro",

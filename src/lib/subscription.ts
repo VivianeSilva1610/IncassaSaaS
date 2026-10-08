@@ -47,7 +47,7 @@ export async function requireActiveSubscription() {
   return { user, profile };
 }
 
-export const MODULOS_RESTAURANTE = ["compras", "estoque", "vendas", "cardapio", "cozinha", "custos", "caixa", "financeiro", "gestao"] as const;
+export const MODULOS_RESTAURANTE = ["compras", "estoque", "vendas", "cardapio", "cozinha", "producao", "custos", "caixa", "financeiro", "gestao"] as const;
 export type ModuloRestaurante = (typeof MODULOS_RESTAURANTE)[number];
 
 /**

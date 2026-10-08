@@ -9,6 +9,7 @@ const navItems: { href: string; label: string; modulo: ModuloRestaurante }[] = [
   { href: "/restaurante/cardapio", label: "Cardápio", modulo: "cardapio" },
   { href: "/restaurante/cardapio/produtos", label: "Menu do site", modulo: "cardapio" },
   { href: "/restaurante/cozinha", label: "Cozinha", modulo: "cozinha" },
+  { href: "/restaurante/producao", label: "Produção", modulo: "producao" },
   { href: "/restaurante/custos", label: "Custos", modulo: "custos" },
   { href: "/restaurante/caixa", label: "Caixa", modulo: "caixa" },
   { href: "/restaurante/financeiro", label: "Financeiro", modulo: "financeiro" },
