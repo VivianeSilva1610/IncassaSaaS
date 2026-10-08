@@ -1,26 +1,39 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requireRestaurantSubscription } from "@/lib/subscription";
+import { requireRestaurantSubscription, type RestauranteLocale } from "@/lib/subscription";
 
-const LINKS = [
-  { href: "/restaurante/fiscal", label: "Visão geral" },
-  { href: "/restaurante/fiscal/emissoes", label: "Emissões" },
-  { href: "/restaurante/fiscal/fechamento-diario", label: "Fechamento diário" },
-  { href: "/restaurante/fiscal/fechamento-mensal", label: "Fechamento mensal" },
-  { href: "/restaurante/fiscal/exportacao", label: "Exportação" },
-  { href: "/restaurante/fiscal/estabelecimento", label: "Estabelecimento" },
-  { href: "/restaurante/fiscal/classificacao", label: "Classificação" },
-  { href: "/restaurante/fiscal/notas", label: "Notas fiscais" },
-];
+const LINKS: Record<RestauranteLocale, { href: string; label: string }[]> = {
+  "pt-BR": [
+    { href: "/restaurante/fiscal", label: "Visão geral" },
+    { href: "/restaurante/fiscal/emissoes", label: "Emissões" },
+    { href: "/restaurante/fiscal/fechamento-diario", label: "Fechamento diário" },
+    { href: "/restaurante/fiscal/fechamento-mensal", label: "Fechamento mensal" },
+    { href: "/restaurante/fiscal/exportacao", label: "Exportação" },
+    { href: "/restaurante/fiscal/estabelecimento", label: "Estabelecimento" },
+    { href: "/restaurante/fiscal/classificacao", label: "Classificação" },
+    { href: "/restaurante/fiscal/notas", label: "Notas fiscais" },
+  ],
+  it: [
+    { href: "/restaurante/fiscal", label: "Panoramica" },
+    { href: "/restaurante/fiscal/emissoes", label: "Emissioni" },
+    { href: "/restaurante/fiscal/fechamento-diario", label: "Chiusura giornaliera" },
+    { href: "/restaurante/fiscal/fechamento-mensal", label: "Chiusura mensile" },
+    { href: "/restaurante/fiscal/exportacao", label: "Esportazione" },
+    { href: "/restaurante/fiscal/estabelecimento", label: "Dati fiscali" },
+    { href: "/restaurante/fiscal/classificacao", label: "Classificazione" },
+    { href: "/restaurante/fiscal/notas", label: "Documenti fiscali" },
+  ],
+};
 
 export default async function FiscalLayout({ children }: { children: React.ReactNode }) {
-  const { isOwner } = await requireRestaurantSubscription();
+  const { isOwner, locale } = await requireRestaurantSubscription();
   if (!isOwner) redirect("/restaurante");
+  const links = LINKS[locale];
 
   return (
     <div>
       <nav aria-label="Módulos fiscais" className="mb-6 flex flex-wrap gap-2 border-b border-stone-200 pb-4">
-        {LINKS.map((item) => (
+        {links.map((item) => (
           <Link
             key={item.href}
             href={item.href}

@@ -101,5 +101,18 @@ export async function requireRestaurantSubscription(moduloRequerido?: ModuloRest
     redirect("/restaurante");
   }
 
-  return { user, supabase, restaurantOwnerId, isOwner, isGerente, modulosPermitidos, subscription };
+  // Idioma do painel interno (não confundir com o site público, que já é
+  // trilíngue à parte) — por restaurante, não por usuário, já que equipe
+  // inteira trabalha no mesmo idioma do tenant. Vem de restaurants.default_locale,
+  // setado pela detecção de país em Fiscal > Estabelecimento.
+  const { data: restaurantRow } = await supabase
+    .from("restaurants")
+    .select("default_locale")
+    .eq("owner_user_id", restaurantOwnerId)
+    .maybeSingle();
+  const locale: RestauranteLocale = restaurantRow?.default_locale === "it" ? "it" : "pt-BR";
+
+  return { user, supabase, restaurantOwnerId, isOwner, isGerente, modulosPermitidos, subscription, locale };
 }
+
+export type RestauranteLocale = "pt-BR" | "it";
