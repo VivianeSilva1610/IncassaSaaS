@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createOrder } from "@/app/restaurante/actions";
+import type { RestauranteLocale } from "@/lib/subscription";
 
 type Product = { id: string; nome: string; preco: number };
 type Tamanho = { id: string; nome: string; preco: number; maxAcompanhamentos: number };
@@ -10,11 +11,52 @@ type CardapioDia = { diaSemana: number; productId: string };
 type FixedRow = { key: number; productId: string; label: string; preco: number; groupKey: number };
 type FreeRow = { key: number; productId: string; quantidade: number };
 
-const DIAS_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+const DIAS_SEMANA: Record<RestauranteLocale, string[]> = {
+  "pt-BR": ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"],
+  it: ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"],
+};
 
-function formatReal(value: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+function formatMoney(value: number, locale: RestauranteLocale) {
+  return locale === "it"
+    ? new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(value)
+    : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
+
+const CONTEUDO: Record<RestauranteLocale, {
+  nomeCliente: string; telefone: string; canalTelefone: string; canalWhatsapp: string; canalBalcao: string;
+  taxaEntrega: string; observacoes: string; aPrazo: string; semItens: string; monteOPranzo: string;
+  tamanhoPlaceholder: string; acompanhamentosLabel: string; pratoPrincipalPlaceholder: string;
+  nenhumPrincipal: (dia: string) => string; extrasLabel: string; adicionarPranzo: string; pranzoLabel: string;
+  remover: string; itensAvulsos: string; itemPlaceholder: string; adicionarItem: string; totalPedido: string;
+  registrarPedido: string;
+}> = {
+  "pt-BR": {
+    nomeCliente: "Nome do cliente (opcional)", telefone: "Telefone (opcional)",
+    canalTelefone: "Telefone (delivery)", canalWhatsapp: "WhatsApp (delivery)", canalBalcao: "Balcão (consumo local — prato)",
+    taxaEntrega: "Taxa de entrega (R$)", observacoes: "Observações (opcional)",
+    aPrazo: "Pedido a prazo (fiado) — lança em Financeiro → Contas a receber, pra cobrar depois",
+    semItens: "Adicione pelo menos um item ao menu antes de registrar um pedido.",
+    monteOPranzo: "Monte o Pranzo", tamanhoPlaceholder: "Tamanho…", acompanhamentosLabel: "Acompanhamentos",
+    pratoPrincipalPlaceholder: "Prato principal…",
+    nenhumPrincipal: (dia) => `Nenhum principal definido para ${dia}. Cadastre em Cardápio → Cardápio da semana.`,
+    extrasLabel: "Extras:", adicionarPranzo: "+ Adicionar pranzo ao pedido", pranzoLabel: "Pranzo",
+    remover: "Remover", itensAvulsos: "Itens avulsos (pratos, bebidas…)", itemPlaceholder: "Item…",
+    adicionarItem: "+ Adicionar item avulso", totalPedido: "Total do pedido", registrarPedido: "Registrar pedido",
+  },
+  it: {
+    nomeCliente: "Nome del cliente (opzionale)", telefone: "Telefono (opzionale)",
+    canalTelefone: "Telefono (consegna)", canalWhatsapp: "WhatsApp (consegna)", canalBalcao: "Banco (consumo sul posto — piatto)",
+    taxaEntrega: "Costo di consegna (EUR)", observacoes: "Note (opzionale)",
+    aPrazo: "Ordine a credito — registrato in Finanza → Crediti, da incassare dopo",
+    semItens: "Aggiungi almeno un articolo al menu prima di registrare un ordine.",
+    monteOPranzo: "Componi il Pranzo", tamanhoPlaceholder: "Formato…", acompanhamentosLabel: "Contorni",
+    pratoPrincipalPlaceholder: "Piatto principale…",
+    nenhumPrincipal: (dia) => `Nessun piatto principale definito per ${dia}. Registralo in Menu → Menu della settimana.`,
+    extrasLabel: "Extra:", adicionarPranzo: "+ Aggiungi pranzo all'ordine", pranzoLabel: "Pranzo",
+    remover: "Rimuovi", itensAvulsos: "Articoli singoli (piatti, bevande…)", itemPlaceholder: "Articolo…",
+    adicionarItem: "+ Aggiungi articolo singolo", totalPedido: "Totale ordine", registrarPedido: "Registra ordine",
+  },
+};
 
 export function NewOrderForm({
   products,
@@ -24,6 +66,7 @@ export function NewOrderForm({
   extras = [],
   cardapioSemana = [],
   isOwner = false,
+  locale = "pt-BR",
 }: {
   products: Product[];
   tamanhos?: Tamanho[];
@@ -32,7 +75,11 @@ export function NewOrderForm({
   extras?: Product[];
   cardapioSemana?: CardapioDia[];
   isOwner?: boolean;
+  locale?: RestauranteLocale;
 }) {
+  const t = CONTEUDO[locale];
+  const diasSemana = DIAS_SEMANA[locale];
+  const formatReal = (value: number) => formatMoney(value, locale);
   const [freeRows, setFreeRows] = useState<FreeRow[]>([{ key: 0, productId: "", quantidade: 1 }]);
   const [fixedRows, setFixedRows] = useState<FixedRow[]>([]);
   const [nextKey, setNextKey] = useState(1);
@@ -128,7 +175,7 @@ export function NewOrderForm({
   if (products.length === 0 && !temMonteSeuPranzo) {
     return (
       <p className="mt-6 rounded-lg border border-stone-200 bg-white p-4 text-sm text-stone-500">
-        Adicione pelo menos um item ao menu antes de registrar um pedido.
+        {t.semItens}
       </p>
     );
   }
@@ -142,12 +189,12 @@ export function NewOrderForm({
   return (
     <form action={createOrder} className="mt-6 space-y-4 rounded-xl border border-stone-200 bg-white p-4">
       <div className="grid gap-3 sm:grid-cols-2">
-        <input name="cliente_nome" placeholder="Nome do cliente (opcional)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
-        <input name="cliente_telefone" placeholder="Telefone (opcional)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        <input name="cliente_nome" placeholder={t.nomeCliente} className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        <input name="cliente_telefone" placeholder={t.telefone} className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
         <select name="canal" className="rounded-md border border-stone-300 px-3 py-2 text-sm">
-          <option value="telefone">Telefone (delivery)</option>
-          <option value="whatsapp">WhatsApp (delivery)</option>
-          <option value="balcao">Balcão (consumo local — prato)</option>
+          <option value="telefone">{t.canalTelefone}</option>
+          <option value="whatsapp">{t.canalWhatsapp}</option>
+          <option value="balcao">{t.canalBalcao}</option>
         </select>
         <input
           name="taxa_entrega"
@@ -156,21 +203,21 @@ export function NewOrderForm({
           min="0"
           value={taxaEntrega}
           onChange={(e) => setTaxaEntrega(Number(e.target.value) || 0)}
-          placeholder="Taxa de entrega (R$)"
+          placeholder={t.taxaEntrega}
           className="rounded-md border border-stone-300 px-3 py-2 text-sm"
         />
-        <input name="note" placeholder="Observações (opcional)" className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2" />
+        <input name="note" placeholder={t.observacoes} className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2" />
         {isOwner && (
           <label className="flex items-center gap-2 text-xs text-stone-700 sm:col-span-2">
             <input type="checkbox" name="a_prazo" />
-            Pedido a prazo (fiado) — lança em Financeiro → Contas a receber, pra cobrar depois
+            {t.aPrazo}
           </label>
         )}
       </div>
 
       {temMonteSeuPranzo && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-          <p className="text-sm font-medium text-stone-900">Monte o Pranzo</p>
+          <p className="text-sm font-medium text-stone-900">{t.monteOPranzo}</p>
 
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             <select
@@ -181,15 +228,15 @@ export function NewOrderForm({
               }}
               className="rounded-md border border-stone-300 px-2 py-1.5 text-xs"
             >
-              {DIAS_SEMANA.map((label, i) => (
+              {diasSemana.map((label, i) => (
                 <option key={i} value={i}>{label}</option>
               ))}
             </select>
             <select value={tamanhoId} onChange={(e) => setTamanhoId(e.target.value)} className="rounded-md border border-stone-300 px-2 py-1.5 text-xs">
-              <option value="">Tamanho…</option>
-              {tamanhos.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.nome} — {formatReal(t.preco)} ({t.maxAcompanhamentos} acompanhamentos)
+              <option value="">{t.tamanhoPlaceholder}</option>
+              {tamanhos.map((tam) => (
+                <option key={tam.id} value={tam.id}>
+                  {tam.nome} — {formatReal(tam.preco)} ({tam.maxAcompanhamentos} {t.acompanhamentosLabel.toLowerCase()})
                 </option>
               ))}
             </select>
@@ -201,21 +248,21 @@ export function NewOrderForm({
             disabled={principaisDoDia.length === 0}
             className="mt-2 w-full rounded-md border border-stone-300 px-2 py-1.5 text-xs disabled:bg-stone-100 disabled:text-stone-400"
           >
-            <option value="">Prato principal…</option>
+            <option value="">{t.pratoPrincipalPlaceholder}</option>
             {principaisDoDia.map((p) => (
               <option key={p.id} value={p.id}>{p.nome}</option>
             ))}
           </select>
           {principaisDoDia.length === 0 && (
             <p className="mt-1 text-xs text-amber-700">
-              Nenhum principal definido para {DIAS_SEMANA[diaSemana]}. Cadastre em Cardápio → Cardápio da semana.
+              {t.nenhumPrincipal(diasSemana[diaSemana])}
             </p>
           )}
 
           {tamanhoSelecionado && (
             <div className="mt-2">
               <p className="text-xs text-stone-600">
-                Acompanhamentos ({acompanhamentoIds.length}/{tamanhoSelecionado.maxAcompanhamentos}):
+                {t.acompanhamentosLabel} ({acompanhamentoIds.length}/{tamanhoSelecionado.maxAcompanhamentos}):
               </p>
               <div className="mt-1 flex flex-wrap gap-2">
                 {acompanhamentos.map((a) => (
@@ -234,7 +281,7 @@ export function NewOrderForm({
 
           {extras.length > 0 && (
             <div className="mt-2">
-              <p className="text-xs text-stone-600">Extras:</p>
+              <p className="text-xs text-stone-600">{t.extrasLabel}</p>
               <div className="mt-1 flex flex-wrap gap-3">
                 {extras.map((e) => (
                   <label key={e.id} className="flex items-center gap-1 text-xs text-stone-700">
@@ -259,7 +306,7 @@ export function NewOrderForm({
             disabled={!tamanhoSelecionado || !principalId}
             className="mt-3 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-500 disabled:opacity-50"
           >
-            + Adicionar pranzo ao pedido
+            {t.adicionarPranzo}
           </button>
         </div>
       )}
@@ -271,9 +318,9 @@ export function NewOrderForm({
             return (
               <div key={groupKey} className="rounded-lg border border-stone-200 bg-stone-50 p-2 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-stone-900">Pranzo</span>
+                  <span className="font-medium text-stone-900">{t.pranzoLabel}</span>
                   <button type="button" onClick={() => removerGrupo(groupKey)} className="text-red-600 hover:underline">
-                    Remover
+                    {t.remover}
                   </button>
                 </div>
                 <ul className="mt-1 text-stone-600">
@@ -298,7 +345,7 @@ export function NewOrderForm({
       )}
 
       <div className="space-y-2">
-        <p className="text-sm font-medium text-stone-900">Itens avulsos (pratos, bebidas…)</p>
+        <p className="text-sm font-medium text-stone-900">{t.itensAvulsos}</p>
         {freeRows.map((row) => {
           const preco = precoDoProduto(row.productId);
           return (
@@ -309,10 +356,10 @@ export function NewOrderForm({
                 onChange={(e) => updateFreeRow(row.key, { productId: e.target.value })}
                 className="flex-1 rounded-md border border-stone-300 px-2 py-1.5 text-sm"
               >
-                <option value="">Item…</option>
+                <option value="">{t.itemPlaceholder}</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.nome} — R${Number(p.preco).toFixed(2)}
+                    {p.nome} — {formatReal(Number(p.preco))}
                   </option>
                 ))}
               </select>
@@ -340,11 +387,11 @@ export function NewOrderForm({
       </div>
 
       <button type="button" onClick={addFreeRow} className="text-xs text-amber-700 underline underline-offset-2">
-        + Adicionar item avulso
+        {t.adicionarItem}
       </button>
 
       <div className="flex items-center justify-between rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-sm">
-        <span className="font-medium text-stone-700">Total do pedido</span>
+        <span className="font-medium text-stone-700">{t.totalPedido}</span>
         <span className="text-base font-semibold text-stone-900">{formatReal(totalPedido)}</span>
       </div>
 
@@ -352,7 +399,7 @@ export function NewOrderForm({
         type="submit"
         className="block w-full rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-transform hover:bg-stone-700 active:scale-[0.98]"
       >
-        Registrar pedido
+        {t.registrarPedido}
       </button>
     </form>
   );

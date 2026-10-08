@@ -1,8 +1,14 @@
 import { requireRestaurantSubscription } from "@/lib/subscription";
 import { NewOrderForm } from "@/components/delivery/NewOrderForm";
 
+const CONTEUDO = {
+  "pt-BR": { titulo: "Novo pedido", descricao: "Registre uma venda recebida no balcão, telefone ou atendimento interno." },
+  it: { titulo: "Nuovo ordine", descricao: "Registra una vendita ricevuta al banco, telefono o servizio interno." },
+} as const;
+
 export default async function NovoPedidoPage() {
-  const { supabase, isOwner } = await requireRestaurantSubscription("vendas");
+  const { supabase, isOwner, locale } = await requireRestaurantSubscription("vendas");
+  const t = CONTEUDO[locale];
   const [{ data: products }, { data: cardapioSemana }] = await Promise.all([
     supabase.from("del_products").select("*").eq("ativo", true).order("nome"),
     supabase.from("del_cardapio_semana").select("dia_semana, product_id"),
@@ -16,8 +22,8 @@ export default async function NovoPedidoPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-stone-900">Novo pedido</h1>
-      <p className="mt-1 text-sm text-stone-600">Registre uma venda recebida no balcão, telefone ou atendimento interno.</p>
+      <h1 className="text-2xl font-bold text-stone-900">{t.titulo}</h1>
+      <p className="mt-1 text-sm text-stone-600">{t.descricao}</p>
       <div className="mt-6">
         <NewOrderForm
           products={itensAvulsos}
@@ -27,6 +33,7 @@ export default async function NovoPedidoPage() {
           extras={extras}
           cardapioSemana={(cardapioSemana ?? []).map((c) => ({ diaSemana: c.dia_semana, productId: c.product_id }))}
           isOwner={isOwner}
+          locale={locale}
         />
       </div>
     </div>
