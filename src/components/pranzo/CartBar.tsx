@@ -7,7 +7,7 @@ function formatReal(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
-type PixData = { orderId: string; encodedImage: string; payload: string };
+type PixData = { encodedImage: string; payload: string };
 type ZonaEntrega = { id: string; bairro: string; taxa: number; pedidoMinimoGratis: number | null };
 
 export function CartBar({
@@ -38,13 +38,16 @@ export function CartBar({
   const totalComEntrega = total + taxaEntregaAtual;
   const [status, setStatus] = useState<"idle" | "enviando" | "erro" | "aguardando_pix" | "confirmado">("idle");
   const [erro, setErro] = useState<string | null>(null);
+  const [metodoPagamento, setMetodoPagamento] = useState<"pix" | "cartao">("pix");
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
   const [pix, setPix] = useState<PixData | null>(null);
+  const [invoiceUrl, setInvoiceUrl] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
 
   useEffect(() => {
-    if (status !== "aguardando_pix" || !pix) return;
+    if (status !== "aguardando_pix" || !pendingOrderId) return;
     const interval = setInterval(async () => {
-      const res = await fetch(`/api/pedido-site/status?orderId=${pix.orderId}`);
+      const res = await fetch(`/api/pedido-site/status?orderId=${pendingOrderId}`);
       const data = await res.json();
       if (data.status && data.status !== "aguardando_pagamento") {
         setStatus("confirmado");
@@ -52,7 +55,7 @@ export function CartBar({
       }
     }, 4000);
     return () => clearInterval(interval);
-  }, [status, pix, limpar]);
+  }, [status, pendingOrderId, limpar]);
 
   if (quantidadeTotal === 0 && !aberto && status === "idle") return null;
 
@@ -63,6 +66,8 @@ export function CartBar({
     }
     setStatus("enviando");
     setErro(null);
+    setPix(null);
+    setInvoiceUrl(null);
     try {
       const res = await fetch("/api/pedido-site/checkout", {
         method: "POST",
@@ -76,15 +81,22 @@ export function CartBar({
           bairroId,
           endereco,
           note,
+          metodoPagamento,
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Erro ao gerar Pix");
-      setPix({ orderId: data.orderId, encodedImage: data.encodedImage, payload: data.payload });
+      if (!res.ok) throw new Error(data.error ?? "Erro ao gerar pagamento");
+      setPendingOrderId(data.orderId);
+      if (data.invoiceUrl) {
+        setInvoiceUrl(data.invoiceUrl);
+        window.open(data.invoiceUrl, "_blank");
+      } else {
+        setPix({ encodedImage: data.encodedImage, payload: data.payload });
+      }
       setStatus("aguardando_pix");
     } catch (err) {
       setStatus("erro");
-      setErro(err instanceof Error ? err.message : "Erro ao gerar Pix");
+      setErro(err instanceof Error ? err.message : "Erro ao gerar pagamento");
     }
   }
 
@@ -148,6 +160,26 @@ export function CartBar({
               </div>
             )}
 
+            {status === "aguardando_pix" && !pix && invoiceUrl && (
+              <div className="text-center">
+                <h2 className="text-lg font-bold text-stone-900">Pague com cartão</h2>
+                <p className="mt-2 text-sm text-stone-600">
+                  Abrimos uma aba segura pra você digitar os dados do cartão. Não encontrou? Clique abaixo.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => window.open(invoiceUrl, "_blank")}
+                  className="mt-4 w-full rounded-md bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white"
+                >
+                  Abrir página de pagamento
+                </button>
+                <p className="mt-4 flex items-center justify-center gap-2 text-sm text-stone-500">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
+                  Aguardando confirmação do pagamento…
+                </p>
+              </div>
+            )}
+
             {status === "confirmado" && (
               <div className="py-6 text-center">
                 <h2 className="text-lg font-bold text-stone-900">Pagamento confirmado! 🎉</h2>
@@ -158,6 +190,8 @@ export function CartBar({
                     setAberto(false);
                     setStatus("idle");
                     setPix(null);
+                    setInvoiceUrl(null);
+                    setPendingOrderId(null);
                   }}
                   className="mt-4 rounded-full bg-stone-900 px-5 py-2 text-sm font-semibold text-white"
                 >
@@ -278,13 +312,34 @@ export function CartBar({
                       />
                     </div>
 
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setMetodoPagamento("pix")}
+                        className={`rounded-md border px-3 py-2 text-sm font-medium ${metodoPagamento === "pix" ? "border-stone-900 bg-stone-900 text-white" : "border-stone-300 text-stone-600"}`}
+                      >
+                        Pix
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMetodoPagamento("cartao")}
+                        className={`rounded-md border px-3 py-2 text-sm font-medium ${metodoPagamento === "cartao" ? "border-stone-900 bg-stone-900 text-white" : "border-stone-300 text-stone-600"}`}
+                      >
+                        Cartão de crédito
+                      </button>
+                    </div>
+
                     <button
                       type="button"
                       onClick={finalizarPedido}
                       disabled={status === "enviando" || zonasEntrega.length === 0}
-                      className="mt-4 w-full rounded-full bg-stone-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+                      className="mt-3 w-full rounded-full bg-stone-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
                     >
-                      {status === "enviando" ? "Gerando Pix…" : "Pagar com Pix"}
+                      {status === "enviando"
+                        ? "Gerando pagamento…"
+                        : metodoPagamento === "pix"
+                          ? "Pagar com Pix"
+                          : "Pagar com cartão"}
                     </button>
                     {erro && <p className="mt-2 text-sm text-red-600">{erro}</p>}
                     <p className="mt-2 text-center text-xs text-stone-400">

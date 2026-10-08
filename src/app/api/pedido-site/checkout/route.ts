@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { findOrCreateAsaasCustomer, createAsaasPixPayment, getAsaasPixQrCode } from "@/lib/asaas";
+import { findOrCreateAsaasCustomer, createAsaasPixPayment, createAsaasCardPayment, getAsaasPixQrCode } from "@/lib/asaas";
 import { getRestaurantBySlug } from "@/lib/restaurant";
 import { getAsaasApiKeyForRestaurant } from "@/lib/delivery/providers";
 
@@ -14,6 +14,7 @@ export async function POST(req: Request) {
   const bairroId = String(body.bairroId ?? "").trim();
   const endereco = String(body.endereco ?? "").trim() || null;
   const note = String(body.note ?? "").trim() || null;
+  const metodoPagamento = body.metodoPagamento === "cartao" ? "cartao" : "pix";
 
   if (!restaurantSlug || !clienteNome || !cpfCnpj || !bairroId || itemsRaw.length === 0) {
     return NextResponse.json({ error: "Preencha nome, CPF, bairro e pelo menos um item." }, { status: 400 });
@@ -123,12 +124,25 @@ export async function POST(req: Request) {
       cpfCnpj,
       phone: clienteTelefone,
     });
+    const descricao = `Pedido ${restaurant.name} — ${items.map((i) => `${i.quantidade}x ${i.nome}`).join(", ")}`;
+
+    if (metodoPagamento === "cartao") {
+      const payment = await createAsaasCardPayment({
+        apiKey: asaasApiKey,
+        customerId,
+        value: totale,
+        description: descricao,
+        externalReference: order.id,
+      });
+      await admin.from("del_orders").update({ asaas_payment_id: payment.id }).eq("id", order.id);
+      return NextResponse.json({ orderId: order.id, invoiceUrl: payment.invoiceUrl });
+    }
 
     const payment = await createAsaasPixPayment({
       apiKey: asaasApiKey,
       customerId,
       value: totale,
-      description: `Pedido ${restaurant.name} — ${items.map((i) => `${i.quantidade}x ${i.nome}`).join(", ")}`,
+      description: descricao,
       externalReference: order.id,
     });
 
@@ -143,7 +157,7 @@ export async function POST(req: Request) {
       expirationDate: qrCode.expirationDate,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Erro ao gerar pagamento Pix.";
-    return NextResponse.json({ error: `Não foi possível gerar o Pix: ${message}` }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Erro ao gerar pagamento.";
+    return NextResponse.json({ error: `Não foi possível gerar o pagamento: ${message}` }, { status: 500 });
   }
 }

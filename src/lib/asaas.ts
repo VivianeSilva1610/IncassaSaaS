@@ -71,6 +71,34 @@ export async function createAsaasPixPayment(params: {
   });
 }
 
+// Cartão de crédito: NUNCA coletamos o número do cartão no nosso servidor
+// (isso puxaria o sistema pra dentro de escopo PCI-DSS). Em vez disso, a
+// Asaas gera uma página de fatura hospedada por ela (invoiceUrl) — o
+// cliente digita o cartão lá, no domínio da Asaas, e a confirmação chega
+// pelo mesmo webhook que já trata o Pix (PAYMENT_RECEIVED/CONFIRMED),
+// pois não depende do billingType.
+export async function createAsaasCardPayment(params: {
+  apiKey: string;
+  customerId: string;
+  value: number;
+  description: string;
+  externalReference: string;
+}): Promise<{ id: string; invoiceUrl: string }> {
+  const dueDate = new Date().toISOString().slice(0, 10);
+
+  return asaasRequest<{ id: string; invoiceUrl: string }>(params.apiKey, "/payments", {
+    method: "POST",
+    body: JSON.stringify({
+      customer: params.customerId,
+      billingType: "CREDIT_CARD",
+      value: params.value,
+      dueDate,
+      description: params.description,
+      externalReference: params.externalReference,
+    }),
+  });
+}
+
 export async function getAsaasPixQrCode(apiKey: string, paymentId: string): Promise<{
   encodedImage: string;
   payload: string;
