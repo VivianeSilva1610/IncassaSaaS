@@ -1,12 +1,42 @@
-import { requireRestaurantSubscription } from "@/lib/subscription";
+import { requireRestaurantSubscription, type RestauranteLocale } from "@/lib/subscription";
 import { AutoRefresh } from "@/components/delivery/AutoRefresh";
 
-function formatNumero(value: number) {
-  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 3 }).format(value);
+function formatNumero(value: number, intlLocale: string) {
+  return new Intl.NumberFormat(intlLocale, { maximumFractionDigits: 3 }).format(value);
 }
 
+const CONTEUDO: Record<RestauranteLocale, {
+  titulo: string; descricao: string; pratosPreparar: string; nenhumPedido: string;
+  ingredientesNecessarios: string; ingredientesDescricao: string; estoqueInsuficiente: string;
+  precisaTem: (necessario: string, unidade: string, atual: string) => string; nenhumIngrediente: string;
+}> = {
+  "pt-BR": {
+    titulo: "Produção",
+    descricao: "O que precisa ser preparado agora, somando todos os pedidos em aberto (novo + em preparo). Atualiza automaticamente a cada 30 segundos.",
+    pratosPreparar: "Pratos a preparar", nenhumPedido: "Nenhum pedido em aberto no momento.",
+    ingredientesNecessarios: "Ingredientes necessários",
+    ingredientesDescricao: "Soma da ficha técnica de cada prato acima, comparada com o estoque atual.",
+    estoqueInsuficiente: "Estoque insuficiente",
+    precisaTem: (necessario, unidade, atual) => `precisa ${necessario} ${unidade} · tem ${atual} ${unidade}`,
+    nenhumIngrediente: "Nenhum ingrediente a calcular — os pratos em aberto ainda não têm ficha técnica cadastrada, ou não há pedidos.",
+  },
+  it: {
+    titulo: "Produzione",
+    descricao: "Cosa va preparato adesso, sommando tutti gli ordini aperti (nuovo + in preparazione). Si aggiorna automaticamente ogni 30 secondi.",
+    pratosPreparar: "Piatti da preparare", nenhumPedido: "Nessun ordine aperto al momento.",
+    ingredientesNecessarios: "Ingredienti necessari",
+    ingredientesDescricao: "Somma della scheda tecnica di ogni piatto sopra, confrontata con la scorta attuale.",
+    estoqueInsuficiente: "Scorta insufficiente",
+    precisaTem: (necessario, unidade, atual) => `serve ${necessario} ${unidade} · disponibile ${atual} ${unidade}`,
+    nenhumIngrediente: "Nessun ingrediente da calcolare — i piatti aperti non hanno ancora una scheda tecnica registrata, oppure non ci sono ordini.",
+  },
+};
+
 export default async function ProducaoPage() {
-  const { supabase } = await requireRestaurantSubscription("producao");
+  const { supabase, locale } = await requireRestaurantSubscription("producao");
+  const t = CONTEUDO[locale];
+  const intlLocale = locale === "it" ? "it-IT" : "pt-BR";
+  const numero = (value: number) => formatNumero(value, intlLocale);
 
   const { data: pedidos } = await supabase
     .from("del_orders")
@@ -55,28 +85,27 @@ export default async function ProducaoPage() {
   return (
     <div>
       <AutoRefresh seconds={30} />
-      <h1 className="text-2xl font-bold text-stone-900">Produção</h1>
+      <h1 className="text-2xl font-bold text-stone-900">{t.titulo}</h1>
       <p className="mt-1 text-sm text-stone-600">
-        O que precisa ser preparado agora, somando todos os pedidos em aberto (novo + em preparo). Atualiza
-        automaticamente a cada 30 segundos.
+        {t.descricao}
       </p>
 
       <section className="mt-6">
-        <h2 className="font-semibold text-stone-900">Pratos a preparar</h2>
+        <h2 className="font-semibold text-stone-900">{t.pratosPreparar}</h2>
         <div className="mt-2 space-y-1.5">
           {produtosOrdenados.map((p) => (
             <div key={p.nome} className="flex items-center justify-between rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm">
               <span className="font-medium text-stone-900">{p.nome}</span>
-              <span className="font-semibold text-amber-700">{formatNumero(p.quantidade)}x</span>
+              <span className="font-semibold text-amber-700">{numero(p.quantidade)}x</span>
             </div>
           ))}
-          {produtosOrdenados.length === 0 && <p className="text-sm text-stone-500">Nenhum pedido em aberto no momento.</p>}
+          {produtosOrdenados.length === 0 && <p className="text-sm text-stone-500">{t.nenhumPedido}</p>}
         </div>
       </section>
 
       <section className="mt-8">
-        <h2 className="font-semibold text-stone-900">Ingredientes necessários</h2>
-        <p className="mt-1 text-xs text-stone-500">Soma da ficha técnica de cada prato acima, comparada com o estoque atual.</p>
+        <h2 className="font-semibold text-stone-900">{t.ingredientesNecessarios}</h2>
+        <p className="mt-1 text-xs text-stone-500">{t.ingredientesDescricao}</p>
         <div className="mt-2 space-y-1.5">
           {ingredientesOrdenados.map((i) => {
             const falta = i.necessario > i.quantidadeAtual;
@@ -84,15 +113,15 @@ export default async function ProducaoPage() {
               <div key={i.nome} className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm ${falta ? "border-red-300 bg-red-50" : "border-stone-200 bg-white"}`}>
                 <span className={falta ? "font-medium text-red-900" : "text-stone-900"}>
                   {i.nome}
-                  {falta && <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">Estoque insuficiente</span>}
+                  {falta && <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">{t.estoqueInsuficiente}</span>}
                 </span>
                 <span className="text-stone-600">
-                  precisa {formatNumero(i.necessario)} {i.unidade} · tem {formatNumero(i.quantidadeAtual)} {i.unidade}
+                  {t.precisaTem(numero(i.necessario), i.unidade, numero(i.quantidadeAtual))}
                 </span>
               </div>
             );
           })}
-          {ingredientesOrdenados.length === 0 && <p className="text-sm text-stone-500">Nenhum ingrediente a calcular — os pratos em aberto ainda não têm ficha técnica cadastrada, ou não há pedidos.</p>}
+          {ingredientesOrdenados.length === 0 && <p className="text-sm text-stone-500">{t.nenhumIngrediente}</p>}
         </div>
       </section>
     </div>
