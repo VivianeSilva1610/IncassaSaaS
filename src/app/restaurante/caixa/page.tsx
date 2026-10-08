@@ -1,16 +1,69 @@
-import { requireRestaurantSubscription } from "@/lib/subscription";
+import { requireRestaurantSubscription, type RestauranteLocale } from "@/lib/subscription";
 import { addCaixaMovimento, deleteCaixaMovimento } from "@/app/restaurante/actions";
+import { offsetParaData } from "@/lib/fiscal/fechamento";
 import Link from "next/link";
 
-function formatReal(value: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-}
+const CONTEUDO: Record<RestauranteLocale, {
+  titulo: string; descricao: string; caixaHoje: (status: string) => string; fechado: string; aberto: string;
+  fechadoPor: (email: string) => string; usuarioIdentificado: string; confiraAntes: string;
+  verFechamento: string; conferirFechar: string;
+  vendasCompetencia: string; pedidosEntregues: string; recebimentosDoMes: string; pagamentosConfirmados: string;
+  contasAReceber: string; pedidosNaoPagos: string; estornosDoMes: string; devolucoesConfirmadas: string;
+  saldoCaixaDoMes: string; contasAPagarAberto: string; verContasAPagar: string; saldoEstimado: string;
+  recebidoAReceberContas: string; novoLancamento: string; saida: string; entrada: string; despesa: string;
+  retirada: string; aporte: string; outro: string; valorPlaceholder: string; descricaoOpcional: string;
+  registrarLancamento: string; lancamentosRecentes: string; excluir: string; nenhumLancamento: string;
+}> = {
+  "pt-BR": {
+    titulo: "Caixa",
+    descricao: "Competência usa a data de entrega; caixa usa a data do pagamento. Lance abaixo apenas movimentações que não estejam nos pedidos, evitando duplicar vendas.",
+    caixaHoje: (status) => `Caixa de hoje: ${status}`, fechado: "fechado", aberto: "aberto",
+    fechadoPor: (email) => `Fechado por ${email}.`, usuarioIdentificado: "usuário identificado",
+    confiraAntes: "Confira os valores antes de encerrar o movimento do dia.",
+    verFechamento: "Ver fechamento", conferirFechar: "Conferir e fechar caixa",
+    vendasCompetencia: "Vendas por competência", pedidosEntregues: "Pedidos entregues neste mês",
+    recebimentosDoMes: "Recebimentos do mês", pagamentosConfirmados: "Pix, dinheiro e cartões confirmados",
+    contasAReceber: "Contas a receber", pedidosNaoPagos: "Pedidos válidos ainda não pagos",
+    estornosDoMes: "Estornos do mês", devolucoesConfirmadas: "Devoluções financeiras confirmadas",
+    saldoCaixaDoMes: "Saldo de caixa do mês", contasAPagarAberto: "Contas a pagar em aberto",
+    verContasAPagar: "Ver contas a pagar", saldoEstimado: "Saldo estimado",
+    recebidoAReceberContas: "Recebido + a receber − contas a pagar em aberto",
+    novoLancamento: "Novo lançamento", saida: "Saída (despesa, retirada…)", entrada: "Entrada (aporte, outra receita…)",
+    despesa: "Despesa", retirada: "Retirada", aporte: "Aporte", outro: "Outro",
+    valorPlaceholder: "Valor (R$)", descricaoOpcional: "Descrição (opcional)", registrarLancamento: "Registrar lançamento",
+    lancamentosRecentes: "Lançamentos recentes", excluir: "Excluir", nenhumLancamento: "Nenhum lançamento ainda.",
+  },
+  it: {
+    titulo: "Cassa",
+    descricao: "La competenza usa la data di consegna; la cassa usa la data del pagamento. Registra qui sotto solo movimenti che non sono già negli ordini, per evitare di duplicare le vendite.",
+    caixaHoje: (status) => `Cassa di oggi: ${status}`, fechado: "chiusa", aberto: "aperta",
+    fechadoPor: (email) => `Chiusa da ${email}.`, usuarioIdentificado: "utente identificato",
+    confiraAntes: "Verifica i valori prima di chiudere il movimento del giorno.",
+    verFechamento: "Vedi chiusura", conferirFechar: "Verifica e chiudi cassa",
+    vendasCompetencia: "Vendite per competenza", pedidosEntregues: "Ordini consegnati questo mese",
+    recebimentosDoMes: "Incassi del mese", pagamentosConfirmados: "Contanti e carte confermati",
+    contasAReceber: "Crediti", pedidosNaoPagos: "Ordini validi non ancora pagati",
+    estornosDoMes: "Storni del mese", devolucoesConfirmadas: "Rimborsi finanziari confermati",
+    saldoCaixaDoMes: "Saldo di cassa del mese", contasAPagarAberto: "Debiti aperti",
+    verContasAPagar: "Vedi debiti", saldoEstimado: "Saldo stimato",
+    recebidoAReceberContas: "Incassato + da incassare − debiti aperti",
+    novoLancamento: "Nuovo movimento", saida: "Uscita (spesa, prelievo…)", entrada: "Entrata (conferimento, altra entrata…)",
+    despesa: "Spesa", retirada: "Prelievo", aporte: "Conferimento", outro: "Altro",
+    valorPlaceholder: "Importo (EUR)", descricaoOpcional: "Descrizione (opzionale)", registrarLancamento: "Registra movimento",
+    lancamentosRecentes: "Movimenti recenti", excluir: "Elimina", nenhumLancamento: "Nessun movimento ancora.",
+  },
+};
 
 export default async function CaixaPage() {
-  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription("caixa");
+  const { supabase, restaurantOwnerId, isOwner, locale } = await requireRestaurantSubscription("caixa");
+  const t = CONTEUDO[locale];
+  const formatReal = (value: number) => (locale === "it"
+    ? new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(value)
+    : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value));
+  const timezone = locale === "it" ? "Europe/Rome" : "America/Sao_Paulo";
 
   const nowParts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Sao_Paulo",
+    timeZone: timezone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -20,7 +73,7 @@ export default async function CaixaPage() {
   const day = nowParts.find((part) => part.type === "day")!.value;
   const hoje = `${year}-${month}-${day}`;
   const inicioMes = `${year}-${month}-01`;
-  const inicioMesIso = `${inicioMes}T00:00:00-03:00`;
+  const inicioMesIso = `${inicioMes}T00:00:00${offsetParaData(timezone, inicioMes)}`;
 
   const [{ data: vendasCompetencia }, { data: recebimentos }, { data: estornos }, { data: valoresAReceber }, { data: movimentos }, { data: fechamentoHoje }, { data: contasAPagarAbertas }] = await Promise.all([
     supabase
@@ -66,90 +119,89 @@ export default async function CaixaPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-stone-900">Caixa</h1>
+      <h1 className="text-2xl font-bold text-stone-900">{t.titulo}</h1>
       <p className="mt-1 text-sm text-stone-600">
-        Competência usa a data de entrega; caixa usa a data do pagamento. Lance abaixo apenas movimentações que não
-        estejam nos pedidos, evitando duplicar vendas.
+        {t.descricao}
       </p>
 
       <div className={`mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 ${fechamentoHoje ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
-        <div><p className="font-semibold text-stone-900">Caixa de hoje: {fechamentoHoje ? "fechado" : "aberto"}</p><p className="text-xs text-stone-600">{fechamentoHoje ? `Fechado por ${fechamentoHoje.fechado_por_email || "usuário identificado"}.` : "Confira os valores antes de encerrar o movimento do dia."}</p></div>
-        {isOwner && <Link href={`/restaurante/fiscal/fechamento-diario?data=${hoje}`} className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white">{fechamentoHoje ? "Ver fechamento" : "Conferir e fechar caixa"}</Link>}
+        <div><p className="font-semibold text-stone-900">{t.caixaHoje(fechamentoHoje ? t.fechado : t.aberto)}</p><p className="text-xs text-stone-600">{fechamentoHoje ? t.fechadoPor(fechamentoHoje.fechado_por_email || t.usuarioIdentificado) : t.confiraAntes}</p></div>
+        {isOwner && <Link href={`/restaurante/fiscal/fechamento-diario?data=${hoje}`} className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white">{fechamentoHoje ? t.verFechamento : t.conferirFechar}</Link>}
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-stone-200 bg-white p-4">
-          <p className="text-sm text-stone-500">Vendas por competência</p>
+          <p className="text-sm text-stone-500">{t.vendasCompetencia}</p>
           <p className="mt-1 text-xl font-bold text-stone-900">{formatReal(vendasDoMes)}</p>
-          <p className="mt-1 text-xs text-stone-400">Pedidos entregues neste mês</p>
+          <p className="mt-1 text-xs text-stone-400">{t.pedidosEntregues}</p>
         </div>
         <div className="rounded-xl border border-stone-200 bg-white p-4">
-          <p className="text-sm text-stone-500">Recebimentos do mês</p>
+          <p className="text-sm text-stone-500">{t.recebimentosDoMes}</p>
           <p className="mt-1 text-xl font-bold text-emerald-700">{formatReal(recebimentosDoMes)}</p>
-          <p className="mt-1 text-xs text-stone-400">Pix, dinheiro e cartões confirmados</p>
+          <p className="mt-1 text-xs text-stone-400">{t.pagamentosConfirmados}</p>
         </div>
         <div className="rounded-xl border border-stone-200 bg-white p-4">
-          <p className="text-sm text-stone-500">Contas a receber</p>
+          <p className="text-sm text-stone-500">{t.contasAReceber}</p>
           <p className="mt-1 text-xl font-bold text-amber-700">{formatReal(totalAReceber)}</p>
-          <p className="mt-1 text-xs text-stone-400">Pedidos válidos ainda não pagos</p>
+          <p className="mt-1 text-xs text-stone-400">{t.pedidosNaoPagos}</p>
         </div>
         <div className="rounded-xl border border-stone-200 bg-white p-4">
-          <p className="text-sm text-stone-500">Estornos do mês</p>
+          <p className="text-sm text-stone-500">{t.estornosDoMes}</p>
           <p className="mt-1 text-xl font-bold text-red-600">{formatReal(estornosDoMes)}</p>
-          <p className="mt-1 text-xs text-stone-400">Devoluções financeiras confirmadas</p>
+          <p className="mt-1 text-xs text-stone-400">{t.devolucoesConfirmadas}</p>
         </div>
         <div className="rounded-xl border border-stone-200 bg-white p-4">
-          <p className="text-sm text-stone-500">Saldo de caixa do mês</p>
+          <p className="text-sm text-stone-500">{t.saldoCaixaDoMes}</p>
           <p className={`mt-1 text-xl font-bold ${saldoDoMes >= 0 ? "text-emerald-700" : "text-red-600"}`}>
             {formatReal(saldoDoMes)}
           </p>
           <p className="mt-1 text-xs text-stone-400">
-            Recebimentos − {formatReal(estornosDoMes)} + {formatReal(entradasManuaisDoMes)} − {formatReal(saidasManuaisDoMes)}
+            {t.recebimentosDoMes} − {formatReal(estornosDoMes)} + {formatReal(entradasManuaisDoMes)} − {formatReal(saidasManuaisDoMes)}
           </p>
         </div>
         <div className="rounded-xl border border-stone-200 bg-white p-4">
-          <p className="text-sm text-stone-500">Contas a pagar em aberto</p>
+          <p className="text-sm text-stone-500">{t.contasAPagarAberto}</p>
           <p className="mt-1 text-xl font-bold text-red-600">{formatReal(totalContasAPagar)}</p>
           <Link href="/restaurante/financeiro/contas-a-pagar" className="mt-1 inline-block text-xs text-amber-700 underline underline-offset-2">
-            Ver contas a pagar
+            {t.verContasAPagar}
           </Link>
         </div>
         <div className="rounded-xl border border-stone-200 bg-stone-900 p-4">
-          <p className="text-sm text-stone-300">Saldo estimado</p>
+          <p className="text-sm text-stone-300">{t.saldoEstimado}</p>
           <p className={`mt-1 text-xl font-bold ${saldoEstimado >= 0 ? "text-emerald-400" : "text-red-400"}`}>
             {formatReal(saldoEstimado)}
           </p>
-          <p className="mt-1 text-xs text-stone-400">Recebido + a receber − contas a pagar em aberto</p>
+          <p className="mt-1 text-xs text-stone-400">{t.recebidoAReceberContas}</p>
         </div>
       </div>
 
       <section className="mt-8">
-        <h2 className="font-semibold text-stone-900">Novo lançamento</h2>
+        <h2 className="font-semibold text-stone-900">{t.novoLancamento}</h2>
         <form action={addCaixaMovimento} className="mt-2 grid gap-3 rounded-xl border border-stone-200 bg-white p-4 sm:grid-cols-2">
           <select name="tipo" className="rounded-md border border-stone-300 px-3 py-2 text-sm">
-            <option value="saida">Saída (despesa, retirada…)</option>
-            <option value="entrada">Entrada (aporte, outra receita…)</option>
+            <option value="saida">{t.saida}</option>
+            <option value="entrada">{t.entrada}</option>
           </select>
           <select name="categoria" className="rounded-md border border-stone-300 px-3 py-2 text-sm">
-            <option value="despesa">Despesa</option>
-            <option value="retirada">Retirada</option>
-            <option value="aporte">Aporte</option>
-            <option value="outro">Outro</option>
+            <option value="despesa">{t.despesa}</option>
+            <option value="retirada">{t.retirada}</option>
+            <option value="aporte">{t.aporte}</option>
+            <option value="outro">{t.outro}</option>
           </select>
-          <input name="valor" type="number" step="0.01" min="0" required placeholder="Valor (R$)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+          <input name="valor" type="number" step="0.01" min="0" required placeholder={t.valorPlaceholder} className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
           <input name="data" type="date" defaultValue={new Date().toISOString().slice(0, 10)} className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
-          <input name="descrizione" placeholder="Descrição (opcional)" className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2" />
+          <input name="descrizione" placeholder={t.descricaoOpcional} className="rounded-md border border-stone-300 px-3 py-2 text-sm sm:col-span-2" />
           <button
             type="submit"
             className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-transform hover:bg-stone-700 active:scale-[0.98] sm:col-span-2"
           >
-            Registrar lançamento
+            {t.registrarLancamento}
           </button>
         </form>
       </section>
 
       <section className="mt-8">
-        <h2 className="font-semibold text-stone-900">Lançamentos recentes</h2>
+        <h2 className="font-semibold text-stone-900">{t.lancamentosRecentes}</h2>
         <div className="mt-2 space-y-1.5">
           {(movimentos ?? []).map((m) => (
             <div key={m.id} className="flex items-center justify-between rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm">
@@ -165,12 +217,12 @@ export default async function CaixaPage() {
               </div>
               <form action={deleteCaixaMovimento.bind(null, m.id)}>
                 <button type="submit" className="text-xs text-red-600 hover:underline">
-                  Excluir
+                  {t.excluir}
                 </button>
               </form>
             </div>
           ))}
-          {(movimentos ?? []).length === 0 && <p className="text-sm text-stone-500">Nenhum lançamento ainda.</p>}
+          {(movimentos ?? []).length === 0 && <p className="text-sm text-stone-500">{t.nenhumLancamento}</p>}
         </div>
       </section>
     </div>
