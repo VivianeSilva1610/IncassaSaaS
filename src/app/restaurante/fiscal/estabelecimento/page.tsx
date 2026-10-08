@@ -1,13 +1,28 @@
 import { updateFiscalConfig, updateFiscalConfigIt } from "@/app/restaurante/actions";
 import { requireRestaurantSubscription } from "@/lib/subscription";
+import { DetectarPaisForm } from "./detectar-pais-form";
 
 export default async function EstabelecimentoFiscalPage() {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, country_code")
+    .select("id, country_code, country_confirmed")
     .eq("owner_user_id", restaurantOwnerId)
     .maybeSingle();
+
+  if (restaurant && !restaurant.country_confirmed) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold text-stone-900">Dados do estabelecimento</h1>
+        <p className="mt-1 text-sm text-stone-600">
+          Primeiro passo: identificar o país do restaurante, pra te mostrar o módulo fiscal certo.
+        </p>
+        <div className="mt-6">
+          <DetectarPaisForm />
+        </div>
+      </div>
+    );
+  }
 
   if (restaurant?.country_code === "IT") {
     const { data: configIt } = await supabase

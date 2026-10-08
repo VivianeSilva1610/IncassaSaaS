@@ -802,6 +802,51 @@ export async function updateFiscalConfigIt(formData: FormData) {
   revalidatePath("/restaurante/fiscal/estabelecimento");
 }
 
+// Detecta o país pelo tamanho do documento informado (CNPJ=14 dígitos,
+// Partita IVA=11) — o cliente confirma visualmente antes de gravar, e pode
+// corrigir manualmente (ex: se digitou CPF por engano). Evita precisar de
+// um seletor de país no cadastro: o primeiro dado fiscal real já decide.
+export async function confirmarPaisRestaurante(formData: FormData) {
+  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
+  if (!isOwner) throw new Error("Apenas o dono do restaurante pode confirmar o país.");
+
+  const countryCode = String(formData.get("country_code") ?? "");
+  if (countryCode !== "BR" && countryCode !== "IT") {
+    throw new Error("Escolha Brasil ou Itália antes de confirmar.");
+  }
+  const documento = String(formData.get("documento") ?? "").replace(/\D/g, "");
+
+  const restaurantId = await getRestauranteIdDoOwner(supabase, restaurantOwnerId);
+
+  const { error } = await supabase
+    .from("restaurants")
+    .update({
+      country_code: countryCode,
+      currency: countryCode === "BR" ? "BRL" : "EUR",
+      timezone: countryCode === "BR" ? "America/Sao_Paulo" : "Europe/Rome",
+      default_locale: countryCode === "BR" ? "pt-BR" : "it",
+      country_confirmed: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", restaurantId);
+  if (error) throw new Error(`Não foi possível salvar: ${error.message}`);
+
+  // Pré-preenche o documento no cadastro fiscal certo, pra não digitar de novo.
+  if (countryCode === "BR" && documento.length === 14) {
+    await supabase.from("del_fiscal_config").upsert(
+      { owner_id: restaurantOwnerId, cnpj: documento, updated_at: new Date().toISOString() },
+      { onConflict: "owner_id" },
+    );
+  } else if (countryCode === "IT" && documento.length === 11) {
+    await supabase.from("restaurant_fiscal_it").upsert(
+      { restaurant_id: restaurantId, partita_iva: documento, updated_at: new Date().toISOString() },
+      { onConflict: "restaurant_id" },
+    );
+  }
+
+  revalidatePath("/restaurante/fiscal/estabelecimento");
+}
+
 export async function updateProductFiscal(id: string, formData: FormData) {
   const { supabase } = await requireRestaurantSubscription();
 
