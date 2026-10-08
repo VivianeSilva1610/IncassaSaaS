@@ -26,6 +26,12 @@ const MODULOS = [
     descricao: "Contas a pagar e a receber em aberto, projetadas mês a mês.",
     icone: "📅",
   },
+  {
+    href: "/restaurante/financeiro/estornos",
+    titulo: "Estornos",
+    descricao: "Histórico de todo estorno (manual ou Pix via Asaas), com motivo e valor.",
+    icone: "↩",
+  },
 ];
 
 export default async function FinanceiroPage() {
