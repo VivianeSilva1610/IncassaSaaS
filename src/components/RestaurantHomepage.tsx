@@ -1,6 +1,13 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { Reveal } from "@/components/Reveal";
+import { useRef } from "react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 const SUPPORT_EMAIL = "viverevivi37@gmail.com";
 
@@ -28,7 +35,114 @@ export type HomepageContent = {
   faqs: readonly Faq[];
   finalCta: string;
   footerRights: string;
+  englishLink?: string;
+  portugueseLink?: string;
 };
+
+/* ─── SVG Icons ────────────────────────────────────────────────────────────── */
+
+function IconWarehouse() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+      <path d="M3 9.5L12 3l9 6.5V21H3V9.5z" />
+      <path d="M9 21v-6h6v6" />
+    </svg>
+  );
+}
+
+function IconOrders() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+      <rect x="2" y="3" width="20" height="18" rx="2" />
+      <path d="M8 7h8M8 11h8M8 15h4" />
+    </svg>
+  );
+}
+
+function IconReceipt() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+      <path d="M4 2v20l3-2 3 2 3-2 3 2 3-2V2l-3 2-3-2-3 2-3-2-3 2z" />
+      <path d="M9 7h6M9 11h6M9 15h4" />
+    </svg>
+  );
+}
+
+function IconMenu() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+      <path d="M12 2a5 5 0 0 1 5 5c0 2-1 3.5-2.5 4.5V21H9.5V11.5C8 10.5 7 9 7 7a5 5 0 0 1 5-5z" />
+    </svg>
+  );
+}
+
+function IconKitchen() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+      <rect x="2" y="2" width="20" height="20" rx="2" />
+      <path d="M6 12h4M14 12h4M12 6v4M12 14v4" />
+    </svg>
+  );
+}
+
+function IconOnline() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" />
+    </svg>
+  );
+}
+
+function IconFiscal() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+      <path d="M9 14l2 2 4-4" />
+      <path d="M4 4h16v16a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4z" />
+      <path d="M8 4V2M16 4V2" />
+    </svg>
+  );
+}
+
+function IconCassa() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+      <rect x="2" y="6" width="20" height="14" rx="2" />
+      <path d="M6 6V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2" />
+      <path d="M12 11v4M10 13h4" />
+    </svg>
+  );
+}
+
+function IconTeam() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+      <circle cx="9" cy="7" r="4" />
+      <path d="M3 20a6 6 0 0 1 12 0" />
+      <circle cx="17" cy="9" r="3" />
+      <path d="M19 20a4 4 0 0 0-8 0" />
+    </svg>
+  );
+}
+
+const FEATURE_ICONS = [
+  <IconWarehouse key="wh" />,
+  <IconOrders key="ord" />,
+  <IconMenu key="menu" />,
+  <IconKitchen key="kit" />,
+  <IconOnline key="onl" />,
+  <IconFiscal key="fisc" />,
+  <IconCassa key="cass" />,
+  <IconTeam key="team" />,
+];
+
+const PROBLEM_ICONS = [
+  <IconWarehouse key="p1" />,
+  <IconOrders key="p2" />,
+  <IconReceipt key="p3" />,
+];
+
+/* ─── Main component ────────────────────────────────────────────────────────── */
 
 export function RestaurantHomepage({
   content,
@@ -42,137 +156,383 @@ export function RestaurantHomepage({
   legalLinks: { privacyHref: string; termsHref: string; privacyLabel: string; termsLabel: string };
 }) {
   const contactHref = `mailto:${SUPPORT_EMAIL}`;
+  const pageRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
+
+  useGSAP(
+    () => {
+      if (typeof window === "undefined") return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+      // Hero entrance animations
+      gsap.fromTo(".hero-badge", { opacity: 0, y: -16, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: "back.out(1.4)" });
+      gsap.fromTo(".hero-title", { opacity: 0, y: 32 }, { opacity: 1, y: 0, duration: 0.9, ease: "power3.out", delay: 0.15 });
+      gsap.fromTo(".hero-text", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out", delay: 0.3 });
+      gsap.fromTo(".hero-cta", { opacity: 0, y: 20, scale: 0.95 }, { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: "back.out(1.3)", delay: 0.5 });
+      gsap.fromTo(".hero-stat", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out", delay: 0.7, stagger: 0.1 });
+
+      // Scroll-triggered sections
+      gsap.utils.toArray<HTMLElement>(".reveal-section").forEach((el) => {
+        gsap.fromTo(el, { opacity: 0, y: 40 }, {
+          opacity: 1, y: 0, duration: 0.7, ease: "power2.out",
+          scrollTrigger: { trigger: el, start: "top 88%", once: true },
+        });
+      });
+
+      gsap.utils.toArray<HTMLElement>(".reveal-card").forEach((el, i) => {
+        gsap.fromTo(el, { opacity: 0, y: 30, scale: 0.97 }, {
+          opacity: 1, y: 0, scale: 1, duration: 0.55, ease: "power2.out",
+          delay: (i % 4) * 0.07,
+          scrollTrigger: { trigger: el, start: "top 90%", once: true },
+        });
+      });
+
+      // Orb parallax
+      gsap.to(".hero-orb-1", {
+        y: -50, ease: "none",
+        scrollTrigger: { trigger: heroRef.current, start: "top top", end: "bottom top", scrub: 1.2 },
+      });
+      gsap.to(".hero-orb-2", {
+        y: -80, ease: "none",
+        scrollTrigger: { trigger: heroRef.current, start: "top top", end: "bottom top", scrub: 1.8 },
+      });
+    },
+    { scope: pageRef }
+  );
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
-      <div className="flex items-center justify-between text-sm">
-        <Image src="/logo.png" alt="INCASSA" width={96} height={96} className="rounded-full" priority />
-        <div className="flex items-center gap-4">
-          {langLinks.map((l) => (
-            <Link key={l.href} href={l.href} className="text-stone-400 hover:text-stone-900">
-              {l.label}
+    <div ref={pageRef} style={{ background: "var(--background)", minHeight: "100vh" }}>
+
+      {/* ── NAV ──────────────────────────────────────────────────────── */}
+      <nav style={{
+        position: "sticky", top: 0, zIndex: 50,
+        borderBottom: "1px solid var(--border)",
+        backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+        background: "rgba(10,10,15,0.85)",
+      }}>
+        <div className="mx-auto max-w-6xl px-6" style={{ height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Image src="/logo.png" alt="INCASSA" width={38} height={38} className="rounded-full" priority />
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            {langLinks.map((l) => (
+              <Link key={l.href} href={l.href} style={{ color: "var(--text-muted)", fontSize: 13, fontWeight: 500, textDecoration: "none", transition: "color 0.2s" }}
+                onMouseOver={(e) => ((e.target as HTMLElement).style.color = "var(--foreground)")}
+                onMouseOut={(e) => ((e.target as HTMLElement).style.color = "var(--text-muted)")}>
+                {l.label}
+              </Link>
+            ))}
+            <Link href={loginHref} style={{
+              color: "var(--foreground)", fontSize: 13, fontWeight: 600, textDecoration: "none",
+              padding: "7px 18px", borderRadius: 8,
+              border: "1px solid var(--border)", background: "var(--surface-2)",
+              transition: "background 0.2s, border-color 0.2s",
+            }}
+              onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--surface-3)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.15)"; }}
+              onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--surface-2)"; (e.currentTarget as HTMLElement).style.borderColor = "var(--border)"; }}>
+              {content.login}
             </Link>
-          ))}
-          <Link href={loginHref} className="text-stone-500 hover:text-stone-900">
-            {content.login}
-          </Link>
+          </div>
         </div>
-      </div>
+      </nav>
 
-      <section className="relative mt-10 overflow-hidden text-center">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-amber-300/30 blur-3xl"
-        />
-        <Reveal mode="load" stagger={0.1} className="relative">
-          <p className="mb-3 inline-block rounded-full border border-amber-200 bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-            {content.badge}
+      {/* ── HERO ─────────────────────────────────────────────────────── */}
+      <section ref={heroRef} style={{ position: "relative", overflow: "hidden", padding: "100px 24px 120px", textAlign: "center" }}>
+        <div className="hero-orb-1" aria-hidden style={{
+          position: "absolute", top: -80, left: "50%", transform: "translateX(-50%)",
+          width: 600, height: 600, borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(245,158,11,0.13) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }} />
+        <div className="hero-orb-2" aria-hidden style={{
+          position: "absolute", top: 120, right: "8%",
+          width: 320, height: 320, borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(234,88,12,0.08) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }} />
+        <div aria-hidden style={{
+          position: "absolute", inset: 0,
+          backgroundImage: "linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)",
+          backgroundSize: "60px 60px", pointerEvents: "none",
+        }} />
+
+        <div className="mx-auto max-w-3xl" style={{ position: "relative" }}>
+          <div className="hero-badge" style={{ opacity: 0 }}>
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 7,
+              padding: "5px 14px", borderRadius: 100,
+              border: "1px solid rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.08)",
+              fontSize: 12, fontWeight: 600, letterSpacing: "0.03em", color: "#fbbf24", marginBottom: 28,
+            }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fbbf24", boxShadow: "0 0 8px #fbbf24", display: "inline-block" }} />
+              {content.badge}
+            </span>
+          </div>
+
+          <h1 className="hero-title" style={{
+            opacity: 0,
+            fontSize: "clamp(2.2rem, 5vw, 3.8rem)", fontWeight: 800,
+            lineHeight: 1.1, letterSpacing: "-0.03em", margin: "0 0 20px",
+            background: "linear-gradient(135deg, #f0ede8 0%, #fbbf24 45%, #f0ede8 100%)",
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+          }}>
+            {content.heroTitle}
+          </h1>
+
+          <p className="hero-text" style={{
+            opacity: 0,
+            fontSize: "clamp(1rem, 2vw, 1.2rem)", color: "var(--text-secondary)",
+            lineHeight: 1.75, maxWidth: 600, margin: "0 auto 40px",
+          }}>
+            {content.heroText}
           </p>
-          <h1 className="text-3xl font-bold leading-tight text-stone-900 sm:text-4xl">{content.heroTitle}</h1>
-          <p className="mx-auto mt-4 max-w-xl text-lg text-stone-600">{content.heroText}</p>
-        </Reveal>
-      </section>
 
-      <section className="mt-16">
-        <Reveal>
-          <h2 className="text-center text-xl font-semibold text-stone-900">{content.problemsTitle}</h2>
-        </Reveal>
-        <Reveal stagger={0.1} className="mt-6 grid gap-6 sm:grid-cols-3">
-          {content.problems.map((p) => (
-            <div key={p.title} className="rounded-xl border border-stone-200 bg-stone-50 p-5">
-              <h3 className="font-semibold text-stone-900">{p.title}</h3>
-              <p className="mt-1 text-sm text-stone-600">{p.text}</p>
-            </div>
-          ))}
-        </Reveal>
-      </section>
+          <div className="hero-cta" style={{ opacity: 0 }}>
+            <a href={contactHref} style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "14px 32px", borderRadius: 12,
+              background: "linear-gradient(135deg, #f59e0b, #ea580c)",
+              color: "#fff", fontWeight: 700, fontSize: "1rem", textDecoration: "none",
+              boxShadow: "0 0 40px rgba(245,158,11,0.25), 0 4px 24px rgba(0,0,0,0.3)",
+              transition: "transform 0.18s, box-shadow 0.18s",
+            }}
+              onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.transform = "translateY(-2px) scale(1.02)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 0 60px rgba(245,158,11,0.4), 0 8px 32px rgba(0,0,0,0.3)"; }}
+              onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.transform = "none"; (e.currentTarget as HTMLElement).style.boxShadow = "0 0 40px rgba(245,158,11,0.25), 0 4px 24px rgba(0,0,0,0.3)"; }}>
+              {content.pricingCta}
+              <svg viewBox="0 0 20 20" fill="currentColor" style={{ width: 18, height: 18 }}>
+                <path fillRule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10Z" clipRule="evenodd" />
+              </svg>
+            </a>
+          </div>
 
-      <section className="mt-16">
-        <Reveal>
-          <h2 className="text-center text-xl font-semibold text-stone-900">{content.featuresTitle}</h2>
-        </Reveal>
-        <Reveal stagger={0.1} className="mt-6 grid gap-6 sm:grid-cols-2">
-          {content.features.map((f) => (
-            <div key={f.title} className="rounded-xl border border-stone-200 bg-white p-4">
-              <h3 className="font-semibold text-stone-900">{f.title}</h3>
-              <p className="mt-1 text-sm text-stone-600">{f.text}</p>
-            </div>
-          ))}
-        </Reveal>
-      </section>
-
-      <section className="mt-16">
-        <Reveal>
-          <h2 className="text-center text-xl font-semibold text-stone-900">{content.stepsTitle}</h2>
-        </Reveal>
-        <Reveal stagger={0.12} className="mt-6 grid gap-6 sm:grid-cols-3">
-          {content.steps.map((s) => (
-            <div key={s.step} className="text-center">
-              <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-b from-amber-500 to-orange-600 text-sm font-semibold text-white shadow-md shadow-orange-900/20">
-                {s.step}
+          <div style={{ display: "flex", justifyContent: "center", gap: 36, marginTop: 56, flexWrap: "wrap" }}>
+            {[{ label: "Senza installazione", icon: "🌐" }, { label: "Dati sempre tuoi", icon: "🔒" }, { label: "Supporto diretto", icon: "💬" }].map((s) => (
+              <div key={s.label} className="hero-stat" style={{ opacity: 0, display: "flex", alignItems: "center", gap: 8, color: "var(--text-muted)", fontSize: 13 }}>
+                <span style={{ fontSize: 15 }}>{s.icon}</span>
+                <span>{s.label}</span>
               </div>
-              <h3 className="mt-3 font-semibold text-stone-900">{s.title}</h3>
-              <p className="mt-1 text-sm text-stone-600">{s.text}</p>
-            </div>
-          ))}
-        </Reveal>
+            ))}
+          </div>
+        </div>
       </section>
 
-      <Reveal className="mt-16 rounded-xl bg-gradient-to-b from-stone-900 to-stone-800 p-6 text-center text-white shadow-xl sm:p-10">
-        <h2 className="text-xl font-semibold">{content.pricingTitle}</h2>
-        <p className="mx-auto mt-2 max-w-sm text-sm text-stone-300">{content.pricingText}</p>
-        <ul className="mx-auto mt-6 max-w-sm space-y-2 text-left text-sm text-stone-200">
-          {content.pricingBullets.map((b) => (
-            <li key={b}>✓ {b}</li>
+      {/* ── PROBLEMS ─────────────────────────────────────────────────── */}
+      <section className="mx-auto max-w-6xl px-6 py-20">
+        <div className="reveal-section" style={{ opacity: 0, textAlign: "center", marginBottom: 48 }}>
+          <h2 style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 700, letterSpacing: "-0.02em", color: "var(--foreground)" }}>
+            {content.problemsTitle}
+          </h2>
+          <p style={{ color: "var(--text-muted)", marginTop: 8, fontSize: 15 }}>Problemi che conosci bene.</p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20 }}>
+          {content.problems.map((p, i) => (
+            <div key={p.title} className="reveal-card" style={{
+              opacity: 0, padding: "28px", borderRadius: 16,
+              border: "1px solid rgba(245,158,11,0.15)",
+              background: "linear-gradient(135deg, var(--surface-1) 0%, var(--surface-2) 100%)",
+              transition: "border-color 0.2s, transform 0.2s",
+            }}
+              onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(245,158,11,0.3)"; (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; }}
+              onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(245,158,11,0.15)"; (e.currentTarget as HTMLElement).style.transform = "none"; }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: 10,
+                background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#fbbf24", marginBottom: 16,
+              }}>{PROBLEM_ICONS[i]}</div>
+              <h3 style={{ fontWeight: 700, fontSize: "1rem", color: "var(--foreground)", marginBottom: 8 }}>{p.title}</h3>
+              <p style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.65 }}>{p.text}</p>
+            </div>
           ))}
-        </ul>
-        <div className="mt-8">
-          <a
-            href={contactHref}
-            className="inline-block rounded-lg bg-white px-6 py-3 text-base font-semibold text-stone-900 shadow-lg transition-transform hover:bg-stone-100 active:scale-[0.98]"
-          >
+        </div>
+      </section>
+
+      {/* ── FEATURES ─────────────────────────────────────────────────── */}
+      <section style={{ background: "var(--surface-1)", padding: "80px 24px" }}>
+        <div className="mx-auto max-w-6xl">
+          <div className="reveal-section" style={{ opacity: 0, textAlign: "center", marginBottom: 52 }}>
+            <h2 style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 700, letterSpacing: "-0.02em", color: "var(--foreground)" }}>
+              {content.featuresTitle}
+            </h2>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(270px, 1fr))", gap: 16 }}>
+            {content.features.map((f, i) => (
+              <div key={f.title} className="reveal-card" style={{
+                opacity: 0, padding: "24px", borderRadius: 14,
+                border: "1px solid var(--border)", background: "var(--surface-2)",
+                display: "flex", flexDirection: "column", gap: 12,
+                transition: "border-color 0.2s, background 0.2s, transform 0.2s",
+              }}
+                onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.14)"; (e.currentTarget as HTMLElement).style.background = "var(--surface-3)"; (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; }}
+                onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLElement).style.background = "var(--surface-2)"; (e.currentTarget as HTMLElement).style.transform = "none"; }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  background: "linear-gradient(135deg, rgba(245,158,11,0.15), rgba(234,88,12,0.1))",
+                  border: "1px solid rgba(245,158,11,0.2)",
+                  display: "flex", alignItems: "center", justifyContent: "center", color: "#f59e0b", flexShrink: 0,
+                }}>{FEATURE_ICONS[i] ?? null}</div>
+                <div>
+                  <h3 style={{ fontWeight: 600, fontSize: "0.95rem", color: "var(--foreground)", marginBottom: 6 }}>{f.title}</h3>
+                  <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.65 }}>{f.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ──────────────────────────────────────────────── */}
+      <section className="mx-auto max-w-5xl px-6 py-20">
+        <div className="reveal-section" style={{ opacity: 0, textAlign: "center", marginBottom: 52 }}>
+          <h2 style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 700, letterSpacing: "-0.02em", color: "var(--foreground)" }}>
+            {content.stepsTitle}
+          </h2>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 40 }}>
+          {content.steps.map((s) => (
+            <div key={s.step} className="reveal-card" style={{ opacity: 0, textAlign: "center" }}>
+              <div style={{
+                width: 52, height: 52, borderRadius: "50%",
+                background: "linear-gradient(135deg, #f59e0b, #ea580c)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontWeight: 800, fontSize: "1.15rem", color: "#fff",
+                margin: "0 auto 20px",
+                boxShadow: "0 0 28px rgba(245,158,11,0.3)",
+              }}>{s.step}</div>
+              <h3 style={{ fontWeight: 700, fontSize: "1rem", color: "var(--foreground)", marginBottom: 8 }}>{s.title}</h3>
+              <p style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.65 }}>{s.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── PRICING / CTA ─────────────────────────────────────────────── */}
+      <section className="px-6 pb-6">
+        <div className="reveal-section mx-auto max-w-3xl" style={{
+          opacity: 0, borderRadius: 24,
+          border: "1px solid rgba(245,158,11,0.2)",
+          background: "linear-gradient(135deg, var(--surface-1) 0%, rgba(245,158,11,0.04) 100%)",
+          padding: "clamp(36px, 5vw, 64px)", textAlign: "center",
+          position: "relative", overflow: "hidden",
+        }}>
+          <div aria-hidden style={{
+            position: "absolute", top: -60, left: "50%", transform: "translateX(-50%)",
+            width: 400, height: 200, borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }} />
+          <h2 style={{ fontSize: "clamp(1.5rem, 3vw, 2.2rem)", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--foreground)", marginBottom: 12 }}>
+            {content.pricingTitle}
+          </h2>
+          <p style={{ color: "var(--text-secondary)", fontSize: 15, maxWidth: 480, margin: "0 auto 32px", lineHeight: 1.7 }}>
+            {content.pricingText}
+          </p>
+          <ul style={{ listStyle: "none", padding: 0, margin: "0 auto 40px", maxWidth: 380, display: "flex", flexDirection: "column", gap: 12, textAlign: "left" }}>
+            {content.pricingBullets.map((b) => (
+              <li key={b} style={{ display: "flex", alignItems: "flex-start", gap: 12, fontSize: 14, color: "var(--text-secondary)" }}>
+                <span style={{
+                  flexShrink: 0, width: 20, height: 20, borderRadius: "50%",
+                  background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#fbbf24", fontSize: 10, fontWeight: 700, marginTop: 1,
+                }}>✓</span>
+                {b}
+              </li>
+            ))}
+          </ul>
+          <a href={contactHref} style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            padding: "14px 36px", borderRadius: 12,
+            background: "linear-gradient(135deg, #f59e0b, #ea580c)",
+            color: "#fff", fontWeight: 700, fontSize: "1rem", textDecoration: "none",
+            boxShadow: "0 0 40px rgba(245,158,11,0.25)",
+            transition: "transform 0.18s, box-shadow 0.18s",
+          }}
+            onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 0 60px rgba(245,158,11,0.4)"; }}
+            onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.transform = "none"; (e.currentTarget as HTMLElement).style.boxShadow = "0 0 40px rgba(245,158,11,0.25)"; }}>
             {content.pricingCta}
+            <svg viewBox="0 0 20 20" fill="currentColor" style={{ width: 18, height: 18 }}>
+              <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0 0 16 4H4a2 2 0 0 0-1.997 1.884z" />
+              <path d="m18 8.118-8 4-8-4V14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8.118z" />
+            </svg>
           </a>
         </div>
-      </Reveal>
-
-      <section className="mt-16">
-        <Reveal>
-          <h2 className="text-center text-xl font-semibold text-stone-900">{content.faqTitle}</h2>
-        </Reveal>
-        <Reveal stagger={0.05} className="mt-6 space-y-3">
-          {content.faqs.map((f) => (
-            <details key={f.q} className="group rounded-lg border border-stone-200 bg-white p-4 open:shadow-sm">
-              <summary className="flex cursor-pointer list-none items-center justify-between font-medium text-stone-900">
-                {f.q}
-                <span className="ml-4 shrink-0 text-stone-400 transition-transform group-open:rotate-45">+</span>
-              </summary>
-              <p className="mt-2 text-sm text-stone-600">{f.a}</p>
-            </details>
-          ))}
-        </Reveal>
       </section>
 
-      <Reveal className="mt-16 text-center">
-        <a
-          href={contactHref}
-          className="rounded-lg bg-gradient-to-b from-amber-500 to-orange-600 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-orange-900/20 transition-transform hover:from-amber-400 hover:to-orange-500 active:scale-[0.98]"
-        >
-          {content.finalCta}
-        </a>
-      </Reveal>
+      {/* ── FAQ ──────────────────────────────────────────────────────── */}
+      <section className="mx-auto max-w-3xl px-6 py-20">
+        <div className="reveal-section" style={{ opacity: 0, textAlign: "center", marginBottom: 44 }}>
+          <h2 style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 700, letterSpacing: "-0.02em", color: "var(--foreground)" }}>
+            {content.faqTitle}
+          </h2>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {content.faqs.map((f) => (
+            <details key={f.q} className="reveal-card" style={{
+              opacity: 0, borderRadius: 14,
+              border: "1px solid var(--border)", background: "var(--surface-1)", overflow: "hidden",
+              transition: "border-color 0.2s",
+            }}
+              onToggle={(e) => { (e.currentTarget as HTMLElement).style.borderColor = (e.currentTarget as HTMLDetailsElement).open ? "rgba(245,158,11,0.2)" : "var(--border)"; }}>
+              <summary style={{
+                padding: "18px 22px", cursor: "pointer", listStyle: "none",
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                fontWeight: 600, fontSize: "0.95rem", color: "var(--foreground)", userSelect: "none",
+              }}>
+                {f.q}
+                <span style={{
+                  flexShrink: 0, marginLeft: 16, width: 24, height: 24, borderRadius: "50%",
+                  border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "var(--text-muted)", fontSize: 16, fontWeight: 300,
+                }}>+</span>
+              </summary>
+              <p style={{ padding: "0 22px 18px", fontSize: 14, color: "var(--text-muted)", lineHeight: 1.7 }}>{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
 
-      <footer className="mt-16 border-t border-stone-200 pt-6 text-center text-xs text-stone-400">
-        <p>© {new Date().getFullYear()} INCASSA. {content.footerRights}</p>
-        <p className="mt-2 space-x-3">
-          <Link href={legalLinks.privacyHref} className="underline underline-offset-2 hover:text-stone-600">
-            {legalLinks.privacyLabel}
-          </Link>
-          <Link href={legalLinks.termsHref} className="underline underline-offset-2 hover:text-stone-600">
-            {legalLinks.termsLabel}
-          </Link>
-        </p>
+      {/* ── FINAL CTA ────────────────────────────────────────────────── */}
+      <section style={{ padding: "20px 24px 100px", textAlign: "center" }}>
+        <div className="reveal-section" style={{ opacity: 0 }}>
+          <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>Pronto a semplificare il tuo locale?</p>
+          <a href={contactHref} style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            padding: "16px 40px", borderRadius: 14,
+            background: "linear-gradient(135deg, #f59e0b, #ea580c)",
+            color: "#fff", fontWeight: 700, fontSize: "1.1rem", textDecoration: "none",
+            boxShadow: "0 0 60px rgba(245,158,11,0.3), 0 8px 32px rgba(0,0,0,0.3)",
+            transition: "transform 0.18s, box-shadow 0.18s",
+          }}
+            onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.transform = "translateY(-3px) scale(1.02)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 0 80px rgba(245,158,11,0.45), 0 12px 40px rgba(0,0,0,0.3)"; }}
+            onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.transform = "none"; (e.currentTarget as HTMLElement).style.boxShadow = "0 0 60px rgba(245,158,11,0.3), 0 8px 32px rgba(0,0,0,0.3)"; }}>
+            {content.finalCta}
+            <svg viewBox="0 0 20 20" fill="currentColor" style={{ width: 18, height: 18 }}>
+              <path fillRule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10Z" clipRule="evenodd" />
+            </svg>
+          </a>
+        </div>
+      </section>
+
+      {/* ── FOOTER ───────────────────────────────────────────────────── */}
+      <footer style={{ borderTop: "1px solid var(--border)", padding: "32px 24px", background: "var(--surface-1)" }}>
+        <div className="mx-auto max-w-6xl" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+          <Image src="/logo.png" alt="INCASSA" width={30} height={30} className="rounded-full" style={{ opacity: 0.5 }} />
+          <p style={{ fontSize: 12, color: "var(--text-muted)" }}>
+            © {new Date().getFullYear()} INCASSA. {content.footerRights}
+          </p>
+          <div style={{ display: "flex", gap: 20 }}>
+            <Link href={legalLinks.privacyHref} style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none", transition: "color 0.2s" }}
+              onMouseOver={(e) => ((e.target as HTMLElement).style.color = "var(--foreground)")}
+              onMouseOut={(e) => ((e.target as HTMLElement).style.color = "var(--text-muted)")}>
+              {legalLinks.privacyLabel}
+            </Link>
+            <Link href={legalLinks.termsHref} style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none", transition: "color 0.2s" }}
+              onMouseOver={(e) => ((e.target as HTMLElement).style.color = "var(--foreground)")}
+              onMouseOut={(e) => ((e.target as HTMLElement).style.color = "var(--text-muted)")}>
+              {legalLinks.termsLabel}
+            </Link>
+          </div>
+        </div>
       </footer>
-    </main>
+    </div>
   );
 }
