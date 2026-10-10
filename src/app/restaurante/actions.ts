@@ -769,6 +769,14 @@ export async function updateFiscalConfig(formData: FormData) {
   const cnae = campoNumericoOpcional(formData, "cnae", 7, "O CNAE");
   const codigoMunicipioIbge = campoNumericoOpcional(formData, "codigo_municipio_ibge", 7, "O código do município (IBGE)");
 
+  const { data: fiscalExistente } = await supabase
+    .from("del_fiscal_config")
+    .select("provedor_api_key")
+    .eq("owner_id", restaurantOwnerId)
+    .maybeSingle();
+  const novaChaveProvedor = String(formData.get("provedor_api_key") ?? "").trim();
+  const chaveProvedorFinal = novaChaveProvedor || fiscalExistente?.provedor_api_key || null;
+
   const { error } = await supabase.from("del_fiscal_config").upsert(
     {
       owner_id: restaurantOwnerId,
@@ -788,6 +796,7 @@ export async function updateFiscalConfig(formData: FormData) {
       crt: formData.get("crt") ? Number(formData.get("crt")) : null,
       ambiente,
       provedor,
+      provedor_api_key: chaveProvedorFinal,
       emissao_automatica: formData.get("emissao_automatica") === "on",
       updated_at: new Date().toISOString(),
     },
@@ -817,6 +826,14 @@ export async function updateFiscalConfigIt(formData: FormData) {
   );
   if (perfilError) throw new Error(`Não foi possível salvar o perfil fiscal: ${perfilError.message}`);
 
+  const { data: fiscalItExistente } = await supabase
+    .from("restaurant_fiscal_it")
+    .select("provedor_api_key")
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+  const novaChaveProvedorIt = String(formData.get("provedor_api_key") ?? "").trim();
+  const chaveProvedorItFinal = novaChaveProvedorIt || fiscalItExistente?.provedor_api_key || null;
+
   const { error } = await supabase.from("restaurant_fiscal_it").upsert(
     {
       restaurant_id: restaurantId,
@@ -827,6 +844,7 @@ export async function updateFiscalConfigIt(formData: FormData) {
       pec: String(formData.get("pec") ?? "").trim() || null,
       codice_destinatario: String(formData.get("codice_destinatario") ?? "").trim() || null,
       provedor,
+      provedor_api_key: chaveProvedorItFinal,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "restaurant_id" },

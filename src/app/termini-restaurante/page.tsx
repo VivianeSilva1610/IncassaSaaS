@@ -255,8 +255,10 @@ export default function TerminiRestaurantePage() {
           </p>
           <p className="mt-2">
             Il Ristorante resta l&apos;unico responsabile del rispetto dei propri obblighi fiscali,
-            contabili e di emissione documentale secondo la normativa del proprio paese, anche
-            quando utilizza strumenti o automazioni messi a disposizione dalla Piattaforma.
+            tributari, contabili e di emissione documentale secondo la normativa del proprio paese,
+            anche quando utilizza strumenti o automazioni messi a disposizione dalla Piattaforma.
+            INCASSA non si assume responsabilità per l&apos;adempimento fiscale e tributario del
+            Ristorante presso le autorità competenti.
           </p>
         </section>
 
@@ -269,7 +271,10 @@ export default function TerminiRestaurantePage() {
             dati inseriti dal Ristorante o raccolti dai Clienti Finali tramite il Negozio Online,
             salvo ove espressamente indicato per una specifica funzionalità. Il Ristorante è
             responsabile di verificare che tali dati siano corretti, aggiornati e raccolti nel
-            rispetto della normativa applicabile.
+            rispetto della normativa applicabile. Questo include i dati fiscali e tributari (ad
+            esempio regime, aliquote e classificazione fiscale) usati dalle funzionalità della
+            Piattaforma che dipendono da tali informazioni — INCASSA non si assume responsabilità
+            per le conseguenze di dati fiscali o tributari errati inseriti dal Ristorante.
           </p>
         </section>
 
@@ -379,7 +384,7 @@ export default function TerminiRestaurantePage() {
           <p className="mt-2">
             <strong>Esattezza dei dati inseriti.</strong> Il Ristorante è l&apos;unico responsabile
             dell&apos;esattezza, completezza e aggiornamento dei dati che inserisce o raccoglie
-            tramite il Servizio, inclusi prezzi, disponibilità, dati fiscali e dati dei Clienti
+            tramite il Servizio, inclusi prezzi, disponibilità, dati fiscali e tributari e dati dei Clienti
             Finali. INCASSA non verifica né garantisce la correttezza di tali dati.
           </p>
           <p className="mt-2">

@@ -39,7 +39,7 @@ export async function emitirNotaFiscalParaPedido(
     return { notaId: notaAtiva.id as string, status: notaAtiva.status as "pendente" | "emitida", mensagemErro: undefined };
   }
 
-  const provider = getFiscalProvider(config?.provedor ?? null);
+  const provider = getFiscalProvider(config?.provedor ?? null, config?.provedor_api_key ?? null);
   const numero = config?.proxima_numeracao ?? 1;
   const serie = config?.serie ?? 1;
   const itensSnapshot = ((pedido.del_order_items ?? []) as unknown as ItemFiscal[]).map((item) => ({
@@ -139,11 +139,11 @@ export async function cancelarNotaFiscal(
 
   const { data: config } = await supabase
     .from("del_fiscal_config")
-    .select("provedor")
+    .select("provedor, provedor_api_key")
     .eq("owner_id", params.ownerId)
     .maybeSingle();
 
-  const provider = getFiscalProvider(config?.provedor ?? null);
+  const provider = getFiscalProvider(config?.provedor ?? null, config?.provedor_api_key ?? null);
   await supabase
     .from("del_notas_fiscais")
     .update({

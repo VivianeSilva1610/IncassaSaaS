@@ -2,6 +2,11 @@ import { updateFiscalConfig, updateFiscalConfigIt } from "@/app/restaurante/acti
 import { requireRestaurantSubscription } from "@/lib/subscription";
 import { DetectarPaisForm } from "./detectar-pais-form";
 
+function mascarar(chave: string | null | undefined) {
+  if (!chave) return null;
+  return chave.length <= 6 ? "••••••" : `${"•".repeat(chave.length - 4)}${chave.slice(-4)}`;
+}
+
 export default async function EstabelecimentoFiscalPage() {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("fiscal");
   const { data: restaurant } = await supabase
@@ -60,6 +65,17 @@ export default async function EstabelecimentoFiscalPage() {
             <option value="">Nessun provider contrattato</option>
             <option value="simulado">🧪 Simulazione</option>
           </select>
+          <label className="text-sm text-stone-600">
+            <span className="mb-1 block text-xs text-stone-500">
+              Chiave API del provider{mascarar(configIt?.provedor_api_key) ? ` (attuale: ${mascarar(configIt?.provedor_api_key)})` : ""}
+            </span>
+            <input
+              name="provedor_api_key"
+              type="password"
+              placeholder={configIt?.provedor_api_key ? "Lascia vuoto per mantenere la chiave attuale" : "Credenziali del tuo account presso il provider"}
+              className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
+            />
+          </label>
           <select name="ambiente" defaultValue="homologacao" className="rounded-md border border-stone-300 px-3 py-2 text-sm">
             <option value="homologacao">Omologazione (test)</option>
             <option value="producao" disabled>Produzione (bloccata)</option>
@@ -117,6 +133,17 @@ export default async function EstabelecimentoFiscalPage() {
           <option value="plugnotas">PlugNotas</option>
           <option value="enotas">eNotas</option>
         </select>
+        <label className="text-sm text-stone-600">
+          <span className="mb-1 block text-xs text-stone-500">
+            Chave de API do provedor{mascarar(config?.provedor_api_key) ? ` (atual: ${mascarar(config?.provedor_api_key)})` : ""}
+          </span>
+          <input
+            name="provedor_api_key"
+            type="password"
+            placeholder={config?.provedor_api_key ? "Deixe em branco para manter a chave atual" : "Credenciais da sua conta no provedor"}
+            className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
+          />
+        </label>
         <select name="ambiente" defaultValue={config?.ambiente ?? "homologacao"} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
           <option value="homologacao">Homologação (teste)</option>
           <option value="producao" disabled>Produção (bloqueada)</option>

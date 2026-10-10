@@ -121,13 +121,19 @@ class ProvedorSimulado implements FiscalProvider {
   }
 }
 
-export function getFiscalProvider(provedor: string | null): FiscalProvider {
+// apiKey é a credencial que o próprio restaurante colou em Fiscal →
+// Estabelecimento (del_fiscal_config.provedor_api_key) — passada aqui pra
+// quando as classes reais existirem, não precisar mudar a assinatura de
+// novo. As classes reais ainda não existem (ver comentário no topo do
+// arquivo), então por enquanto ela não é usada por nenhum provedor.
+export function getFiscalProvider(provedor: string | null, apiKey?: string | null): FiscalProvider {
+  void apiKey;
   switch (provedor) {
     case "simulado":
       return new ProvedorSimulado();
-    // case "focus_nfe": return new FocusNfeProvider();
-    // case "plugnotas": return new PlugNotasProvider();
-    // case "enotas": return new ENotasProvider();
+    // case "focus_nfe": return new FocusNfeProvider(apiKey);
+    // case "plugnotas": return new PlugNotasProvider(apiKey);
+    // case "enotas": return new ENotasProvider(apiKey);
     default:
       return new ProvedorNaoConfigurado();
   }

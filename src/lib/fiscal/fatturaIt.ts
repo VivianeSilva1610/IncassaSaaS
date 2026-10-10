@@ -78,7 +78,11 @@ class ProvedorSimuladoIt implements FiscalProviderIt {
   }
 }
 
-export function getFiscalProviderIt(provedor: string | null): FiscalProviderIt {
+// apiKey é a credencial que o próprio restaurante colou em Fiscal →
+// Estabelecimento (restaurant_fiscal_it.provedor_api_key) — mesma lógica
+// de nfce.ts (Brasil): preparada pra quando uma classe real existir.
+export function getFiscalProviderIt(provedor: string | null, apiKey?: string | null): FiscalProviderIt {
+  void apiKey;
   switch (provedor) {
     case "simulado":
       return new ProvedorSimuladoIt();

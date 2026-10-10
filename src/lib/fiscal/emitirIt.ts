@@ -40,7 +40,7 @@ export async function emitirDocumentoFiscaleParaPedido(
     supabase.from("restaurant_fiscal_profiles").select("ambiente").eq("restaurant_id", params.restaurantId).maybeSingle(),
   ]);
 
-  const provider = getFiscalProviderIt(configIt?.provedor ?? null);
+  const provider = getFiscalProviderIt(configIt?.provedor ?? null, configIt?.provedor_api_key ?? null);
   const resultado = await provider.emitirDocumento({
     config: {
       ragioneSociale: configIt?.ragione_sociale ?? null,
@@ -102,11 +102,11 @@ export async function cancelarDocumentoFiscale(
 
   const { data: configIt } = await supabase
     .from("restaurant_fiscal_it")
-    .select("provedor")
+    .select("provedor, provedor_api_key")
     .eq("restaurant_id", params.restaurantId)
     .maybeSingle();
 
-  const provider = getFiscalProviderIt(configIt?.provedor ?? null);
+  const provider = getFiscalProviderIt(configIt?.provedor ?? null, configIt?.provedor_api_key ?? null);
   const resultado = await provider.cancelarDocumento();
 
   const admin = getSupabaseAdmin();

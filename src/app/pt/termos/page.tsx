@@ -243,8 +243,10 @@ export default function TermosPtPage() {
           </p>
           <p className="mt-2">
             O Restaurante permanece o único responsável pelo cumprimento de suas obrigações
-            fiscais, contábeis e de emissão de documentos de acordo com a legislação do seu país,
-            inclusive quando usa ferramentas ou automações disponibilizadas pela Plataforma.
+            fiscais, tributárias, contábeis e de emissão de documentos de acordo com a legislação
+            do seu país, inclusive quando usa ferramentas ou automações disponibilizadas pela
+            Plataforma. A INCASSA não se responsabiliza pelo cumprimento fiscal e tributário do
+            Restaurante perante as autoridades competentes.
           </p>
         </section>
 
@@ -257,7 +259,10 @@ export default function TermosPtPage() {
             dados inseridos pelo Restaurante ou coletados dos Clientes Finais pela Loja Online,
             salvo quando expressamente indicado para uma funcionalidade específica. O Restaurante é
             responsável por verificar que esses dados estejam corretos, atualizados e coletados em
-            conformidade com a legislação aplicável.
+            conformidade com a legislação aplicável. Isso inclui dados fiscais e tributários (por
+            exemplo, regime, alíquotas e classificação fiscal) usados por funcionalidades da
+            Plataforma que dependem dessas informações — a INCASSA não se responsabiliza pelas
+            consequências de dados fiscais ou tributários incorretos informados pelo Restaurante.
           </p>
         </section>
 
@@ -369,7 +374,7 @@ export default function TermosPtPage() {
           <p className="mt-2">
             <strong>Exatidão dos dados inseridos.</strong> O Restaurante é o único responsável pela
             exatidão, integridade e atualização dos dados que insere ou coleta por meio do Serviço,
-            incluindo preços, disponibilidade, dados fiscais e dados dos Clientes Finais. A INCASSA
+            incluindo preços, disponibilidade, dados fiscais e tributários e dados dos Clientes Finais. A INCASSA
             não verifica nem garante a correção desses dados.
           </p>
           <p className="mt-2">
