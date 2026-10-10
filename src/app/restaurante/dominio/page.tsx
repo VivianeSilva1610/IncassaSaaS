@@ -21,6 +21,7 @@ const CONTEUDO: Record<RestauranteLocale, {
   verificadoEm: (data: string) => string; cnameInfo: (hostname: string) => string; remover: string;
   nenhumDominio: string;
   guiaTitulo: string; guia1: React.ReactNode; guia2: React.ReactNode; guia3: React.ReactNode; guiaPrazo: string;
+  guiaAviso: React.ReactNode;
 }> = {
   "pt-BR": {
     titulo: "Domínio", semRestaurante: "Ainda não existe um registro de restaurante pra essa conta — fale com o suporte.",
@@ -39,6 +40,10 @@ const CONTEUDO: Record<RestauranteLocale, {
     guia2: <>2. No painel do seu provedor de domínio (Registro.br, GoDaddy, Hostgator etc.), crie o registro <strong>TXT</strong> indicado e clique em <strong>Verificar agora</strong>. É assim que provamos que o domínio é seu.</>,
     guia3: <>3. Depois de verificado, aponte um <strong>CNAME</strong> pra <code>cname.vercel-dns.com</code>. A partir daí é automático: assim que o DNS propagar, seu domínio passa a servir sua loja sozinho.</>,
     guiaPrazo: "DNS pode levar de alguns minutos a algumas horas pra propagar — se não funcionar na hora, é normal, espere um pouco e recarregue.",
+    guiaAviso: <>
+      <strong>Atenção:</strong> apontar o domínio pra gente <strong>substitui</strong> o que está ali hoje — não é uma integração lado a lado. Se você já tem um site em <code>www.seurestaurante.com.br</code>, por exemplo, e não quer perdê-lo, cadastre um subdomínio diferente aqui (tipo <code>cardapio.seurestaurante.com.br</code> ou <code>pedidos.seurestaurante.com.br</code>) em vez do endereço principal — assim os dois convivem.
+      {" "}E o CNAME só funciona em subdomínio: pro domínio raiz sem <code>www</code> (ex: <code>seurestaurante.com.br</code> puro), o registro certo é do tipo <strong>A</strong> apontando pro IP <code>76.76.21.21</code>, não CNAME.
+    </>,
   },
   it: {
     titulo: "Dominio", semRestaurante: "Non esiste ancora un ristorante registrato per questo account — contatta l'assistenza.",
@@ -57,6 +62,10 @@ const CONTEUDO: Record<RestauranteLocale, {
     guia2: <>2. Nel pannello del tuo provider di dominio, crea il record <strong>TXT</strong> indicato e clicca su <strong>Verifica ora</strong>. Così dimostriamo che il dominio è tuo.</>,
     guia3: <>3. Dopo la verifica, punta un <strong>CNAME</strong> verso <code>cname.vercel-dns.com</code>. Da quel momento è automatico: appena il DNS si propaga, il tuo dominio inizia a servire il negozio da solo.</>,
     guiaPrazo: "Il DNS può richiedere da pochi minuti ad alcune ore per propagarsi — se non funziona subito è normale, aspetta un po' e ricarica.",
+    guiaAviso: <>
+      <strong>Attenzione:</strong> puntare il dominio verso di noi <strong>sostituisce</strong> quello che c&apos;è oggi — non è un&apos;integrazione affiancata. Se hai già un sito su <code>www.ilsuoristorante.it</code>, ad esempio, e non vuoi perderlo, registra qui un sottodominio diverso (tipo <code>menu.ilsuoristorante.it</code> o <code>ordini.ilsuoristorante.it</code>) invece dell&apos;indirizzo principale — così convivono entrambi.
+      {" "}Il CNAME funziona solo su un sottodominio: per il dominio radice senza <code>www</code> (es: <code>ilsuoristorante.it</code> puro), il record giusto è di tipo <strong>A</strong> verso l&apos;IP <code>76.76.21.21</code>, non CNAME.
+    </>,
   },
 };
 
@@ -112,6 +121,7 @@ export default async function DominioPage() {
           <li>{t.guia3}</li>
         </ol>
         <p className="mt-3 text-xs text-stone-500">{t.guiaPrazo}</p>
+        <p className="mt-3 rounded-lg bg-white p-3 text-xs text-stone-600">{t.guiaAviso}</p>
       </section>
 
       <section className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
