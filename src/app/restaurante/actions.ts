@@ -1309,8 +1309,10 @@ export async function deleteContaAReceber(id: string) {
   revalidatePath("/restaurante/caixa");
 }
 
+const LIMITE_EQUIPE_PADRAO = 3;
+
 export async function addStaff(formData: FormData) {
-  const { supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isOwner, addonEquipeIlimitada } = await requireRestaurantSubscription();
   if (!isOwner) {
     throw new Error("Apenas o dono do restaurante pode gerenciar a equipe.");
   }
@@ -1320,6 +1322,16 @@ export async function addStaff(formData: FormData) {
 
   if (!email || !email.includes("@")) {
     throw new Error("E-mail inválido.");
+  }
+
+  if (!addonEquipeIlimitada) {
+    const { data: existente } = await supabase.from("del_staff").select("id").eq("owner_id", restaurantOwnerId).eq("email", email).maybeSingle();
+    if (!existente) {
+      const { count } = await supabase.from("del_staff").select("id", { count: "exact", head: true }).eq("owner_id", restaurantOwnerId);
+      if ((count ?? 0) >= LIMITE_EQUIPE_PADRAO) {
+        throw new Error(`Seu plano inclui até ${LIMITE_EQUIPE_PADRAO} pessoas na equipe. Para adicionar mais, ative o complemento de equipe ilimitada em Meu plano.`);
+      }
+    }
   }
 
   const { error } = await supabase.from("del_staff").upsert(
@@ -1618,4 +1630,26 @@ export async function updateEmailProvider(formData: FormData) {
   if (error) throw new Error(`Não foi possível salvar a configuração de e-mail: ${error.message}`);
 
   revalidatePath("/restaurante/integracoes");
+}
+
+const LIMITE_MODULOS_PADRAO = 3;
+
+export async function updateModulosAtivos(formData: FormData) {
+  const { supabase, restaurantOwnerId, isOwner, addonModulosIlimitados } = await requireRestaurantSubscription();
+  if (!isOwner) throw new Error("Apenas o dono do restaurante pode escolher os módulos do plano.");
+  if (addonModulosIlimitados) throw new Error("Seu plano já inclui todos os módulos — não há o que escolher.");
+
+  const selecionados = MODULOS_RESTAURANTE.filter((modulo) => formData.get(`modulo_${modulo}`) === "on");
+  if (selecionados.length > LIMITE_MODULOS_PADRAO) {
+    throw new Error(`Seu plano inclui até ${LIMITE_MODULOS_PADRAO} módulos. Desmarque algum antes de salvar, ou ative o complemento de módulos ilimitados.`);
+  }
+
+  const { error } = await supabase
+    .from("restaurant_subscriptions")
+    .update({ modulos_ativos: selecionados })
+    .eq("user_id", restaurantOwnerId);
+  if (error) throw new Error(`Não foi possível salvar os módulos ativos: ${error.message}`);
+
+  revalidatePath("/restaurante/plano");
+  revalidatePath("/restaurante");
 }

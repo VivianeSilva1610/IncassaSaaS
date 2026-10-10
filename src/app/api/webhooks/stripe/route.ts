@@ -86,11 +86,41 @@ async function handlePranzoPedidoCheckout(session: Stripe.Checkout.Session) {
   }
 }
 
+// Complementos de plano do restaurante: cada um é uma assinatura Stripe
+// própria (mesmo checkout genérico da assinatura principal), identificada
+// pelo metadata.product. Mapeia pra coluna booleana em
+// restaurant_subscriptions — essa tabela precisa já existir pro usuário
+// (criada pela assinatura principal), por isso é update, não upsert.
+const COLUNA_POR_ADDON: Record<string, string> = {
+  restaurante_addon_modulos: "addon_modulos_ilimitados",
+  restaurante_addon_equipe: "addon_equipe_ilimitada",
+  restaurante_addon_abas: "addon_abas_ilimitadas",
+};
+
+async function handleAddonCheckout(userId: string, product: string) {
+  const coluna = COLUNA_POR_ADDON[product];
+  if (!coluna) return false;
+  const supabase = getSupabaseAdmin();
+  await supabase.from("restaurant_subscriptions").update({ [coluna]: true }).eq("user_id", userId);
+  return true;
+}
+
+async function handleAddonSubscriptionDeleted(userId: string, product: string) {
+  const coluna = COLUNA_POR_ADDON[product];
+  if (!coluna) return false;
+  const supabase = getSupabaseAdmin();
+  await supabase.from("restaurant_subscriptions").update({ [coluna]: false }).eq("user_id", userId);
+  return true;
+}
+
 async function handleSubscriptionCheckout(session: Stripe.Checkout.Session) {
   const userId = session.client_reference_id;
   if (!userId) return;
 
-  const product = session.metadata?.product === "restaurante" ? "restaurante" : "incassa";
+  const productRaw = session.metadata?.product ?? "incassa";
+  if (await handleAddonCheckout(userId, productRaw)) return;
+
+  const product = productRaw === "restaurante" ? "restaurante" : "incassa";
 
   const stripe = getStripe();
   const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
@@ -138,6 +168,7 @@ async function handleSubscriptionUpdated(
 ) {
   const userId = subscription.metadata?.user_id;
   if (!userId) return;
+  if (COLUNA_POR_ADDON[subscription.metadata?.product ?? ""]) return; // add-on é on/off, sem status próprio a sincronizar aqui
 
   const supabase = getSupabaseAdmin();
   const product = subscription.metadata?.product === "restaurante" ? "restaurante" : "incassa";
@@ -182,6 +213,7 @@ async function handleSubscriptionUpdated(
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const userId = subscription.metadata?.user_id;
   if (!userId) return;
+  if (await handleAddonSubscriptionDeleted(userId, subscription.metadata?.product ?? "")) return;
 
   const product = subscription.metadata?.product === "restaurante" ? "restaurante" : "incassa";
   const supabase = getSupabaseAdmin();

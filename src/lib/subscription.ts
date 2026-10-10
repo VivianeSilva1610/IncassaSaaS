@@ -84,7 +84,7 @@ export async function requireRestaurantSubscription(moduloRequerido?: ModuloRest
 
   const { data: subscription } = await supabase
     .from("restaurant_subscriptions")
-    .select("subscription_status")
+    .select("subscription_status, addon_modulos_ilimitados, addon_equipe_ilimitada, addon_abas_ilimitadas, modulos_ativos")
     .eq("user_id", restaurantOwnerId)
     .maybeSingle();
 
@@ -97,6 +97,16 @@ export async function requireRestaurantSubscription(moduloRequerido?: ModuloRest
     redirect("/");
   }
 
+  // Equipe (modulosPermitidos) decide o que a PESSOA pode ver; módulos
+  // ativos do plano decidem o que o RESTAURANTE tem direito de usar — as
+  // duas coisas precisam valer juntas pra staff, só a do plano pro dono.
+  const modulosAtivos = (subscription?.modulos_ativos as ModuloRestaurante[] | null) ?? [];
+  const addonModulosIlimitados = !!subscription?.addon_modulos_ilimitados;
+  const moduloLiberadoPeloPlano = addonModulosIlimitados || !moduloRequerido || modulosAtivos.includes(moduloRequerido);
+
+  if (moduloRequerido && !isAdmin && !moduloLiberadoPeloPlano) {
+    redirect(`/restaurante/plano?bloqueado=${moduloRequerido}`);
+  }
   if (moduloRequerido && !isOwner && !isAdmin && !modulosPermitidos.includes(moduloRequerido)) {
     redirect("/restaurante");
   }
@@ -112,7 +122,12 @@ export async function requireRestaurantSubscription(moduloRequerido?: ModuloRest
     .maybeSingle();
   const locale: RestauranteLocale = restaurantRow?.default_locale === "it" ? "it" : "pt-BR";
 
-  return { user, supabase, restaurantOwnerId, isOwner, isGerente, modulosPermitidos, subscription, locale };
+  return {
+    user, supabase, restaurantOwnerId, isOwner, isGerente, modulosPermitidos, subscription, locale,
+    modulosAtivos, addonModulosIlimitados,
+    addonEquipeIlimitada: !!subscription?.addon_equipe_ilimitada,
+    addonAbasIlimitadas: !!subscription?.addon_abas_ilimitadas,
+  };
 }
 
 export type RestauranteLocale = "pt-BR" | "it";
