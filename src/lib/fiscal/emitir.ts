@@ -5,7 +5,7 @@ type ItemFiscal = {
   product_id: string;
   quantidade: number;
   preco_unitario: number;
-  del_products: { nome: string; categoria: string; ncm: string | null; cfop: string; cest: string | null; origem: number } | null;
+  del_products: { nome: string; categoria: string; ncm: string | null; cfop: string; cest: string | null; origem: number; cst: string | null; csosn: string | null; aliquota_icms: number | null } | null;
 };
 
 export async function emitirNotaFiscalParaPedido(
@@ -20,7 +20,7 @@ export async function emitirNotaFiscalParaPedido(
 
   const { data: pedido } = await supabase
     .from("del_orders")
-    .select("id, totale, pago, cliente_nome, cliente_cpf_cnpj, del_order_items(product_id, quantidade, preco_unitario, del_products(nome, categoria, ncm, cfop, cest, origem))")
+    .select("id, totale, pago, cliente_nome, cliente_cpf_cnpj, del_order_items(product_id, quantidade, preco_unitario, del_products(nome, categoria, ncm, cfop, cest, origem, cst, csosn, aliquota_icms))")
     .eq("id", params.orderId)
     .eq("owner_id", params.ownerId)
     .single();
@@ -53,6 +53,9 @@ export async function emitirNotaFiscalParaPedido(
     cfop: item.del_products?.cfop ?? null,
     cest: item.del_products?.cest ?? null,
     origem: item.del_products?.origem ?? null,
+    cst: item.del_products?.cst ?? null,
+    csosn: item.del_products?.csosn ?? null,
+    aliquota_icms: item.del_products?.aliquota_icms ?? null,
   }));
 
   const resultado = await provider.emitirNFCe({

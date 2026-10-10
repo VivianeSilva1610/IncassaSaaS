@@ -766,6 +766,7 @@ export async function updateFiscalConfig(formData: FormData) {
     throw new Error("A emissão em produção permanece bloqueada até integrar e homologar um provedor fiscal real.");
   }
   const cnae = campoNumericoOpcional(formData, "cnae", 7, "O CNAE");
+  const codigoMunicipioIbge = campoNumericoOpcional(formData, "codigo_municipio_ibge", 7, "O código do município (IBGE)");
 
   const { error } = await supabase.from("del_fiscal_config").upsert(
     {
@@ -775,6 +776,7 @@ export async function updateFiscalConfig(formData: FormData) {
       cnpj: String(formData.get("cnpj") ?? "").trim() || null,
       inscricao_estadual: String(formData.get("inscricao_estadual") ?? "").trim() || null,
       cnae,
+      codigo_municipio_ibge: codigoMunicipioIbge,
       regime_tributario: String(formData.get("regime_tributario") ?? "mei"),
       logradouro: String(formData.get("logradouro") ?? "").trim() || null,
       numero: String(formData.get("numero") ?? "").trim() || null,

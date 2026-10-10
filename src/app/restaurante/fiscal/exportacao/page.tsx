@@ -7,6 +7,7 @@ const CONTEUDO: Record<
     dataInicial: string; dataFinal: string; baixarResumo: string; baixarItens: string;
     resumoLabel: string; resumoDesc: string; itensLabel: string; itensDesc: string; camposAusentes: string;
     regimeForfettario: string; regimeOrdinario: string; regimeAusente: string;
+    spedTitulo: string; spedMei: string; spedDescricao: string; spedBaixar: string;
   }
 > = {
   "pt-BR": {
@@ -25,6 +26,10 @@ const CONTEUDO: Record<
     itensDesc: "uma linha por produto, incluindo quantidade, valores, NCM, CFOP, CEST, origem e vínculo com a NFC-e.",
     camposAusentes: "Campos fiscais ausentes são marcados como classificação incompleta para revisão do contador.",
     regimeForfettario: "", regimeOrdinario: "", regimeAusente: "",
+    spedTitulo: "SPED Fiscal (EFD-ICMS/IPI)",
+    spedMei: "Regime MEI: dispensado de SPED e SINTEGRA por lei — esta seção não se aplica ao seu cadastro.",
+    spedDescricao: "Gera o arquivo no leiaute do SPED Fiscal com os documentos emitidos/cancelados no período. É um rascunho estrutural: confira com seu contador antes de transmitir — a versão do leiaute (COD_VER) e a classificação fiscal (CST/CSOSN/alíquota) de cada produto precisam estar corretas e atualizadas.",
+    spedBaixar: "Baixar arquivo SPED",
   },
   it: {
     titulo: "Esporta per il commercialista",
@@ -44,6 +49,7 @@ const CONTEUDO: Record<
     regimeForfettario: "Regime forfettario: le vendite non applicano IVA. Questa esportazione serve come base per l'imposta sostitutiva e gli altri adempimenti — l'importo finale va sempre confermato con il commercialista.",
     regimeOrdinario: "Regime ordinario: questa esportazione riporta le vendite riconciliate del periodo. Per la liquidazione IVA mancano ancora i dati IVA sugli acquisti (non tracciati in questo sistema) — il commercialista dovrà integrarli, e l'aliquota applicabile va confermata con lui.",
     regimeAusente: "Regime fiscale non ancora confermato. Completa i dati fiscali per sapere quale adempimento si applica.",
+    spedTitulo: "", spedMei: "", spedDescricao: "", spedBaixar: "",
   },
 };
 
@@ -52,12 +58,16 @@ export default async function ExportacaoFiscalPage() {
   const t = CONTEUDO[locale];
 
   let avisoRegime: string | null = null;
+  let regimeBr: string | null = null;
   if (locale === "it") {
     const { data: restaurant } = await supabase.from("restaurants").select("id").eq("owner_user_id", restaurantOwnerId).maybeSingle();
     const { data: configIt } = restaurant
       ? await supabase.from("restaurant_fiscal_it").select("regime_fiscale").eq("restaurant_id", restaurant.id).maybeSingle()
       : { data: null };
     avisoRegime = configIt?.regime_fiscale === "RF19" ? t.regimeForfettario : configIt?.regime_fiscale === "RF01" ? t.regimeOrdinario : t.regimeAusente;
+  } else {
+    const { data: configBr } = await supabase.from("del_fiscal_config").select("regime_tributario").eq("owner_id", restaurantOwnerId).maybeSingle();
+    regimeBr = configBr?.regime_tributario ?? "mei";
   }
 
   return (
@@ -92,6 +102,30 @@ export default async function ExportacaoFiscalPage() {
         <p className="mt-1"><strong>{t.itensLabel}</strong> {t.itensDesc}</p>
         <p className="mt-1">{t.camposAusentes}</p>
       </div>
+
+      {locale !== "it" && (
+        <section className="mt-8">
+          <h2 className="font-semibold text-stone-900">{t.spedTitulo}</h2>
+          {regimeBr === "mei" ? (
+            <p className="mt-2 rounded-lg border border-stone-200 bg-stone-50 p-3 text-xs text-stone-600">{t.spedMei}</p>
+          ) : (
+            <>
+              <p className="mt-1 text-xs text-stone-600">{t.spedDescricao}</p>
+              <form action="/api/restaurante/export-sped" method="get" className="mt-3 grid gap-3 rounded-xl border border-stone-200 bg-white p-5 sm:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-medium text-stone-600">{t.dataInicial}</label>
+                  <input type="date" name="de" required className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-stone-600">{t.dataFinal}</label>
+                  <input type="date" name="ate" required className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm" />
+                </div>
+                <button type="submit" className="rounded-md bg-stone-900 px-4 py-2.5 text-sm font-medium text-white sm:col-span-2">{t.spedBaixar}</button>
+              </form>
+            </>
+          )}
+        </section>
+      )}
     </div>
   );
 }
