@@ -1693,3 +1693,32 @@ export async function updateModulosAtivos(formData: FormData) {
   revalidatePath("/restaurante/plano");
   revalidatePath("/restaurante");
 }
+
+// Não cancela nada sozinho — só avisa o suporte por e-mail, que trata
+// manualmente (mesmo princípio de baixo risco já usado nos add-ons: o
+// corte automático de acesso/cobrança é uma decisão grande demais pra
+// automatizar sem ela decidir isso explicitamente).
+export async function solicitarCancelamento(formData: FormData) {
+  const { user, supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
+  if (!isOwner) throw new Error("Apenas o dono do restaurante pode solicitar o cancelamento.");
+
+  const { data: restaurant } = await supabase
+    .from("restaurants")
+    .select("name, slug")
+    .eq("owner_user_id", restaurantOwnerId)
+    .maybeSingle();
+  if (!restaurant) throw new Error("Restaurante não encontrado.");
+
+  const motivo = String(formData.get("motivo") ?? "").trim() || null;
+
+  const { sendSolicitacaoCancelamentoEmail } = await import("@/lib/email");
+  const resultado = await sendSolicitacaoCancelamentoEmail({
+    restaurantName: restaurant.name,
+    restaurantSlug: restaurant.slug,
+    ownerEmail: user.email ?? "desconhecido",
+    motivo,
+  });
+  if (!resultado.ok) throw new Error(`Não foi possível enviar o pedido de cancelamento: ${resultado.error}`);
+
+  redirect("/restaurante/plano?cancelamento=enviado");
+}

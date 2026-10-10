@@ -1,5 +1,5 @@
 import { requireRestaurantSubscription, MODULOS_RESTAURANTE, type ModuloRestaurante, type RestauranteLocale } from "@/lib/subscription";
-import { updateModulosAtivos } from "@/app/restaurante/actions";
+import { updateModulosAtivos, solicitarCancelamento } from "@/app/restaurante/actions";
 import { AddonCheckoutButton } from "@/components/restaurante/AddonCheckoutButton";
 
 const LABEL_MODULO: Record<RestauranteLocale, Record<ModuloRestaurante, string>> = {
@@ -21,6 +21,9 @@ const CONTEUDO: Record<RestauranteLocale, {
   equipeTitulo: string; equipeDescricao: (n: number, limite: number) => string; equipeIlimitada: string; contratarEquipe: string;
   abasTitulo: string; abasDescricao: string; abasIlimitadas: string; contratarAbas: string;
   carregando: string;
+  backupTitulo: string; backupDescricao: string; backupBotao: string;
+  cancelamentoTitulo: string; cancelamentoDescricao: string; cancelamentoPlaceholder: string;
+  cancelamentoBotao: string; cancelamentoEnviado: string;
 }> = {
   "pt-BR": {
     titulo: "Meu plano",
@@ -37,6 +40,14 @@ const CONTEUDO: Record<RestauranteLocale, {
     abasTitulo: "Abas simultâneas", abasDescricao: "Até 3 abas abertas ao mesmo tempo por pessoa.",
     abasIlimitadas: "Suas abas já são ilimitadas.", contratarAbas: "Contratar abas ilimitadas",
     carregando: "Um momento…",
+    backupTitulo: "Backup completo dos meus dados",
+    backupDescricao: "Baixa uma planilha com tudo: cardápio, vendas, estoque, financeiro, compras, equipe e fiscal. Útil pra guardar uma cópia ou levar seus dados caso decida cancelar.",
+    backupBotao: "Baixar backup completo (.xlsx)",
+    cancelamentoTitulo: "Cancelar assinatura",
+    cancelamentoDescricao: "Envia um pedido pro nosso suporte — não cancela automaticamente, alguém vai entrar em contato pra confirmar e finalizar.",
+    cancelamentoPlaceholder: "Motivo (opcional)",
+    cancelamentoBotao: "Solicitar cancelamento",
+    cancelamentoEnviado: "Pedido enviado! Nosso suporte vai entrar em contato em breve.",
   },
   it: {
     titulo: "Il mio piano",
@@ -53,6 +64,14 @@ const CONTEUDO: Record<RestauranteLocale, {
     abasTitulo: "Schede simultanee", abasDescricao: "Fino a 3 schede aperte contemporaneamente per persona.",
     abasIlimitadas: "Le tue schede sono già illimitate.", contratarAbas: "Attiva schede illimitate",
     carregando: "Un momento…",
+    backupTitulo: "Backup completo dei miei dati",
+    backupDescricao: "Scarica un foglio con tutto: menu, vendite, magazzino, finanza, acquisti, team e fiscale. Utile per conservare una copia o portare via i tuoi dati in caso di cancellazione.",
+    backupBotao: "Scarica backup completo (.xlsx)",
+    cancelamentoTitulo: "Annulla abbonamento",
+    cancelamentoDescricao: "Invia una richiesta al nostro supporto — non annulla automaticamente, qualcuno ti contatterà per confermare e finalizzare.",
+    cancelamentoPlaceholder: "Motivo (opzionale)",
+    cancelamentoBotao: "Richiedi annullamento",
+    cancelamentoEnviado: "Richiesta inviata! Il nostro supporto ti contatterà a breve.",
   },
 };
 
@@ -62,7 +81,7 @@ const LIMITE_EQUIPE = 3;
 export default async function PlanoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ bloqueado?: string; addon?: string; sucesso?: string; checkout?: string }>;
+  searchParams: Promise<{ bloqueado?: string; addon?: string; sucesso?: string; checkout?: string; cancelamento?: string }>;
 }) {
   const { supabase, restaurantOwnerId, isOwner, locale, modulosAtivos, addonModulosIlimitados, addonEquipeIlimitada, addonAbasIlimitadas } = await requireRestaurantSubscription();
   const t = CONTEUDO[locale];
@@ -85,6 +104,7 @@ export default async function PlanoPage({
       )}
       {params.sucesso === "1" && <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{t.pagamentoConfirmado}</p>}
       {params.checkout === "cancelled" && <p className="mt-4 rounded-lg border border-stone-200 bg-stone-50 p-3 text-sm text-stone-600">{t.pagamentoCancelado}</p>}
+      {params.cancelamento === "enviado" && <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{t.cancelamentoEnviado}</p>}
 
       <section className="mt-6 rounded-xl border border-stone-200 bg-white p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -151,6 +171,34 @@ export default async function PlanoPage({
           </>
         )}
       </section>
+
+      {isOwner && (
+        <section className="mt-6 rounded-xl border border-stone-200 bg-white p-5">
+          <h2 className="font-semibold text-stone-900">{t.backupTitulo}</h2>
+          <p className="mt-1 text-sm text-stone-600">{t.backupDescricao}</p>
+          <a href="/api/restaurante/export-backup-completo" className={`${botaoClasse} mt-3 inline-block`}>
+            {t.backupBotao}
+          </a>
+        </section>
+      )}
+
+      {isOwner && (
+        <section className="mt-6 rounded-xl border border-red-200 bg-white p-5">
+          <h2 className="font-semibold text-stone-900">{t.cancelamentoTitulo}</h2>
+          <p className="mt-1 text-sm text-stone-600">{t.cancelamentoDescricao}</p>
+          <form action={solicitarCancelamento} className="mt-3 flex flex-wrap gap-2">
+            <textarea
+              name="motivo"
+              placeholder={t.cancelamentoPlaceholder}
+              rows={2}
+              className="min-w-64 flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm"
+            />
+            <button type="submit" className="h-fit rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700">
+              {t.cancelamentoBotao}
+            </button>
+          </form>
+        </section>
+      )}
     </div>
   );
 }

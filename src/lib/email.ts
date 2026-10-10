@@ -110,3 +110,36 @@ export async function sendKitEmail(
   }
   return { ok: true };
 }
+
+/**
+ * Notifica o suporte (não o próprio restaurante) quando o dono pede
+ * cancelamento pela tela /restaurante/plano — não cancela nada sozinho,
+ * só avisa pra tratar manualmente. reply-to vai pro e-mail do dono, pra
+ * responder direto sem precisar copiar o endereço.
+ */
+export async function sendSolicitacaoCancelamentoEmail(params: {
+  restaurantName: string;
+  restaurantSlug: string;
+  ownerEmail: string;
+  motivo: string | null;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const resend = new Resend(process.env.RESEND_API_KEY!);
+  const destino = process.env.ADMIN_EMAILS?.split(",")[0]?.trim() || process.env.DELIVERY_ADMIN_EMAIL;
+  if (!destino) return { ok: false, error: "Nenhum e-mail de suporte configurado (ADMIN_EMAILS)." };
+
+  const { error } = await resend.emails.send({
+    from: process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev",
+    to: destino,
+    replyTo: params.ownerEmail,
+    subject: `Pedido de cancelamento — ${params.restaurantName}`,
+    html: `
+      <p>Restaurante: <strong>${params.restaurantName}</strong> (${params.restaurantSlug})</p>
+      <p>E-mail do dono: ${params.ownerEmail}</p>
+      <p>Motivo informado: ${params.motivo ? params.motivo : "(nenhum motivo informado)"}</p>
+      <p>Esse pedido não cancela nada automaticamente — precisa de ação manual.</p>
+    `,
+  });
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
