@@ -18,6 +18,29 @@ export async function getAsaasApiKeyForRestaurant(
   return data.asaas_api_key as string;
 }
 
+export type PaymentProviderConfig =
+  | { provider: "asaas"; apiKey: string }
+  | { provider: "stripe"; secretKey: string };
+
+export async function getPaymentProviderForRestaurant(
+  supabase: SupabaseClient,
+  restaurantId: string,
+): Promise<PaymentProviderConfig | null> {
+  const { data } = await supabase
+    .from("restaurant_payment_providers")
+    .select("provedor, asaas_api_key, stripe_secret_key, ativo")
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+  if (!data?.ativo) return null;
+  if (data.provedor === "stripe" && data.stripe_secret_key) {
+    return { provider: "stripe", secretKey: data.stripe_secret_key as string };
+  }
+  if (data.provedor === "asaas" && data.asaas_api_key) {
+    return { provider: "asaas", apiKey: data.asaas_api_key as string };
+  }
+  return null;
+}
+
 export async function getResendConfigForRestaurant(
   supabase: SupabaseClient,
   restaurantId: string,

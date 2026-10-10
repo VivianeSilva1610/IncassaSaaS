@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { findOrCreateAsaasCustomer, createAsaasPixPayment, createAsaasCardPayment, getAsaasPixQrCode } from "@/lib/asaas";
 import { getRestaurantBySlug } from "@/lib/restaurant";
-import { getAsaasApiKeyForRestaurant } from "@/lib/delivery/providers";
+import { getPaymentProviderForRestaurant } from "@/lib/delivery/providers";
+import { createRestaurantCheckoutSession } from "@/lib/stripeRestaurante";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -16,8 +17,8 @@ export async function POST(req: Request) {
   const note = String(body.note ?? "").trim() || null;
   const metodoPagamento = body.metodoPagamento === "cartao" ? "cartao" : "pix";
 
-  if (!restaurantSlug || !clienteNome || !cpfCnpj || !bairroId || itemsRaw.length === 0) {
-    return NextResponse.json({ error: "Preencha nome, CPF, bairro e pelo menos um item." }, { status: 400 });
+  if (!restaurantSlug || !clienteNome || !bairroId || itemsRaw.length === 0) {
+    return NextResponse.json({ error: "Preencha nome, bairro e pelo menos um item." }, { status: 400 });
   }
 
   const admin = getSupabaseAdmin();
@@ -30,9 +31,16 @@ export async function POST(req: Request) {
   }
   const ownerId = restaurant.ownerUserId;
 
-  const asaasApiKey = await getAsaasApiKeyForRestaurant(admin, restaurant.id);
-  if (!asaasApiKey) {
+  const providerConfig = await getPaymentProviderForRestaurant(admin, restaurant.id);
+  if (!providerConfig) {
     return NextResponse.json({ error: "Este restaurante ainda não configurou o recebimento de pagamentos." }, { status: 503 });
+  }
+
+  // CPF/CNPJ só existe no Brasil — é exigido pela Asaas (Pix/boleto), não
+  // faz sentido pedir isso de um cliente de um restaurante na Itália
+  // pagando via Stripe.
+  if (providerConfig.provider === "asaas" && !cpfCnpj) {
+    return NextResponse.json({ error: "Preencha o CPF." }, { status: 400 });
   }
 
   // Taxa de entrega sempre buscada no banco pelo id do bairro, nunca
@@ -117,14 +125,31 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Não foi possível salvar os itens do pedido." }, { status: 500 });
   }
 
+  const descricao = `Pedido ${restaurant.name} — ${items.map((i) => `${i.quantidade}x ${i.nome}`).join(", ")}`;
+
   try {
+    if (providerConfig.provider === "stripe") {
+      const origin = new URL(req.url).origin;
+      const session = await createRestaurantCheckoutSession({
+        stripeSecretKey: providerConfig.secretKey,
+        orderId: order.id,
+        currency: restaurant.currency.toLowerCase() === "eur" ? "eur" : "brl",
+        valueInCents: Math.round(totale * 100),
+        description: descricao,
+        successUrl: `${origin}/api/pedido-site/stripe-confirmar?session_id={CHECKOUT_SESSION_ID}&slug=${restaurantSlug}`,
+        cancelUrl: `${origin}/loja/${restaurantSlug}`,
+      });
+      await admin.from("del_orders").update({ stripe_checkout_session_id: session.id }).eq("id", order.id);
+      return NextResponse.json({ orderId: order.id, invoiceUrl: session.url });
+    }
+
+    const asaasApiKey = providerConfig.apiKey;
     const customerId = await findOrCreateAsaasCustomer({
       apiKey: asaasApiKey,
       name: clienteNome,
       cpfCnpj,
       phone: clienteTelefone,
     });
-    const descricao = `Pedido ${restaurant.name} — ${items.map((i) => `${i.quantidade}x ${i.nome}`).join(", ")}`;
 
     if (metodoPagamento === "cartao") {
       const payment = await createAsaasCardPayment({

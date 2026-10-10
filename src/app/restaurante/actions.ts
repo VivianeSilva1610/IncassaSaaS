@@ -1575,25 +1575,34 @@ export async function updatePaymentProvider(formData: FormData) {
   if (!isOwner) throw new Error("Apenas o dono do restaurante pode configurar o pagamento.");
 
   const restaurantId = await getRestauranteIdDoOwner(supabase, restaurantOwnerId);
-  const novaChave = String(formData.get("asaas_api_key") ?? "").trim();
+  const provedor = formData.get("provedor") === "stripe" ? "stripe" : "asaas";
+  const novaChaveAsaas = String(formData.get("asaas_api_key") ?? "").trim();
+  const novaChaveStripe = String(formData.get("stripe_secret_key") ?? "").trim();
   const ativo = formData.get("ativo") === "on";
 
   const { data: existente } = await supabase
     .from("restaurant_payment_providers")
-    .select("asaas_api_key")
+    .select("asaas_api_key, stripe_secret_key")
     .eq("restaurant_id", restaurantId)
     .maybeSingle();
 
-  const chaveFinal = novaChave || existente?.asaas_api_key || null;
-  if (ativo && !chaveFinal) {
-    throw new Error("Informe a chave de API da Asaas para ativar o recebimento de pagamentos.");
+  const asaasKeyFinal = novaChaveAsaas || existente?.asaas_api_key || null;
+  const stripeKeyFinal = novaChaveStripe || existente?.stripe_secret_key || null;
+  const chaveDoProvedorAtivo = provedor === "stripe" ? stripeKeyFinal : asaasKeyFinal;
+  if (ativo && !chaveDoProvedorAtivo) {
+    throw new Error(
+      provedor === "stripe"
+        ? "Informe a chave secreta da sua conta Stripe para ativar o recebimento."
+        : "Informe a chave de API da Asaas para ativar o recebimento de pagamentos.",
+    );
   }
 
   const { error } = await supabase.from("restaurant_payment_providers").upsert(
     {
       restaurant_id: restaurantId,
-      provedor: "asaas",
-      asaas_api_key: chaveFinal,
+      provedor,
+      asaas_api_key: asaasKeyFinal,
+      stripe_secret_key: stripeKeyFinal,
       ativo,
       updated_at: new Date().toISOString(),
     },

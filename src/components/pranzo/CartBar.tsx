@@ -14,10 +14,14 @@ export function CartBar({
   zonasEntrega,
   whatsappRetiradaHref,
   restaurantSlug,
+  exigirCpf = true,
+  aceitaPix = true,
 }: {
   zonasEntrega: ZonaEntrega[];
   whatsappRetiradaHref: string;
   restaurantSlug: string;
+  exigirCpf?: boolean;
+  aceitaPix?: boolean;
 }) {
   const { itens, remover, adicionar, total, quantidadeTotal, limpar } = useCart();
   const [aberto, setAberto] = useState(false);
@@ -38,7 +42,7 @@ export function CartBar({
   const totalComEntrega = total + taxaEntregaAtual;
   const [status, setStatus] = useState<"idle" | "enviando" | "erro" | "aguardando_pix" | "confirmado">("idle");
   const [erro, setErro] = useState<string | null>(null);
-  const [metodoPagamento, setMetodoPagamento] = useState<"pix" | "cartao">("pix");
+  const [metodoPagamento, setMetodoPagamento] = useState<"pix" | "cartao">(aceitaPix ? "pix" : "cartao");
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
   const [pix, setPix] = useState<PixData | null>(null);
   const [invoiceUrl, setInvoiceUrl] = useState<string | null>(null);
@@ -60,8 +64,8 @@ export function CartBar({
   if (quantidadeTotal === 0 && !aberto && status === "idle") return null;
 
   async function finalizarPedido() {
-    if (!clienteNome.trim() || !endereco.trim() || !cpfCnpj.trim() || !bairroId) {
-      setErro("Preencha nome, CPF, bairro e endereço de entrega.");
+    if (!clienteNome.trim() || !endereco.trim() || !bairroId || (exigirCpf && !cpfCnpj.trim())) {
+      setErro(exigirCpf ? "Preencha nome, CPF, bairro e endereço de entrega." : "Preencha nome, bairro e endereço de entrega.");
       return;
     }
     setStatus("enviando");
@@ -251,12 +255,14 @@ export function CartBar({
                         placeholder="Seu nome"
                         className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
                       />
-                      <input
-                        value={cpfCnpj}
-                        onChange={(e) => setCpfCnpj(e.target.value)}
-                        placeholder="CPF (necessário para o Pix)"
-                        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
-                      />
+                      {exigirCpf && (
+                        <input
+                          value={cpfCnpj}
+                          onChange={(e) => setCpfCnpj(e.target.value)}
+                          placeholder="CPF (necessário para o pagamento)"
+                          className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
+                        />
+                      )}
                       <input
                         value={clienteTelefone}
                         onChange={(e) => setClienteTelefone(e.target.value)}
@@ -312,22 +318,24 @@ export function CartBar({
                       />
                     </div>
 
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setMetodoPagamento("pix")}
-                        className={`rounded-md border px-3 py-2 text-sm font-medium ${metodoPagamento === "pix" ? "border-stone-900 bg-stone-900 text-white" : "border-stone-300 text-stone-600"}`}
-                      >
-                        Pix
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setMetodoPagamento("cartao")}
-                        className={`rounded-md border px-3 py-2 text-sm font-medium ${metodoPagamento === "cartao" ? "border-stone-900 bg-stone-900 text-white" : "border-stone-300 text-stone-600"}`}
-                      >
-                        Cartão de crédito
-                      </button>
-                    </div>
+                    {aceitaPix && (
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setMetodoPagamento("pix")}
+                          className={`rounded-md border px-3 py-2 text-sm font-medium ${metodoPagamento === "pix" ? "border-stone-900 bg-stone-900 text-white" : "border-stone-300 text-stone-600"}`}
+                        >
+                          Pix
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMetodoPagamento("cartao")}
+                          className={`rounded-md border px-3 py-2 text-sm font-medium ${metodoPagamento === "cartao" ? "border-stone-900 bg-stone-900 text-white" : "border-stone-300 text-stone-600"}`}
+                        >
+                          Cartão de crédito
+                        </button>
+                      </div>
+                    )}
 
                     <button
                       type="button"

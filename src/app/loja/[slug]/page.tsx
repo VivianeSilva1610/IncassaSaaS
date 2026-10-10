@@ -9,6 +9,7 @@ import { AddToCartButton } from "@/components/pranzo/AddToCartButton";
 import { CartBar } from "@/components/pranzo/CartBar";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getRestaurantBySlug } from "@/lib/restaurant";
+import { getPaymentProviderForRestaurant } from "@/lib/delivery/providers";
 
 // FASE 2a — loja pública multiempresa. Cardápio, preços, disponibilidade
 // e zonas de entrega já vêm 100% do banco, resolvidos pelo slug da URL
@@ -131,10 +132,14 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
   const restaurant = await getRestaurantBySlug(admin, slug);
   if (!restaurant) notFound();
 
-  const [cardapio, zonasEntrega] = await Promise.all([
+  const [cardapio, zonasEntrega, paymentProvider] = await Promise.all([
     buscarCardapio(admin, restaurant.ownerUserId),
     buscarZonasEntrega(admin, restaurant.ownerUserId),
+    getPaymentProviderForRestaurant(admin, restaurant.id),
   ]);
+  // CPF/CNPJ só existe no Brasil — a Asaas (Pix/boleto) exige, o Stripe não.
+  const exigirCpf = paymentProvider?.provider !== "stripe";
+  const aceitaPix = paymentProvider?.provider === "asaas";
 
   const ehPranzo = restaurant.slug === "pranzo";
 
@@ -438,7 +443,13 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
           <a href="#cardapio">Voltar ao topo ↑</a>
         </footer>
       </main>
-      <CartBar zonasEntrega={zonasEntrega} whatsappRetiradaHref={whatsappRetiradaHref} restaurantSlug={restaurant.slug} />
+      <CartBar
+        zonasEntrega={zonasEntrega}
+        whatsappRetiradaHref={whatsappRetiradaHref}
+        restaurantSlug={restaurant.slug}
+        exigirCpf={exigirCpf}
+        aceitaPix={aceitaPix}
+      />
     </CartProvider>
   );
 }
