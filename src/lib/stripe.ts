@@ -26,7 +26,9 @@ export async function createSubscriptionCheckout(params: {
     client_reference_id: params.userId,
     line_items: [{ price: params.priceId, quantity: 1 }],
     subscription_data: {
-      trial_period_days: params.trialPeriodDays,
+      // A Stripe rejeita trial_period_days: 0 ("minimum is 1") — omitir o
+      // campo é o jeito certo de dizer "sem período de teste".
+      ...(params.trialPeriodDays > 0 ? { trial_period_days: params.trialPeriodDays } : {}),
       // Duplicato qui (oltre che sulla Checkout Session) perché gli eventi
       // webhook customer.subscription.updated/deleted ricevono l'oggetto
       // Subscription, non la Session originale.
