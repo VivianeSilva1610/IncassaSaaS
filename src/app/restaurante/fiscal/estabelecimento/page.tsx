@@ -89,6 +89,7 @@ export default async function EstabelecimentoFiscalPage() {
         <input name="nome_fantasia" defaultValue={config?.nome_fantasia ?? ""} placeholder="Nome fantasia" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
         <input name="cnpj" defaultValue={config?.cnpj ?? ""} placeholder="CNPJ" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
         <input name="inscricao_estadual" defaultValue={config?.inscricao_estadual ?? ""} placeholder="Inscrição Estadual" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+        <input name="cnae" defaultValue={config?.cnae ?? ""} inputMode="numeric" maxLength={7} placeholder="CNAE (7 dígitos, opcional)" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
         <select name="regime_tributario" defaultValue={config?.regime_tributario ?? "mei"} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
           <option value="mei">MEI</option>
           <option value="simples_nacional">Simples Nacional</option>

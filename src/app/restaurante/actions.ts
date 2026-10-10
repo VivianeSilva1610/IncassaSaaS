@@ -80,6 +80,23 @@ function ncmOpcional(formData: FormData) {
   return ncm || null;
 }
 
+// Validações da classificação fiscal de produto (del_products) — mesmo
+// padrão de ncmOpcional, mas CFOP/CST/CSOSN têm tamanhos diferentes e o
+// CFOP tem um default histórico (5102) em vez de null.
+function campoNumericoOpcional(formData: FormData, nome: string, digitos: number, rotulo: string) {
+  const valor = String(formData.get(nome) ?? "").replace(/\D/g, "");
+  if (valor && valor.length !== digitos) throw new Error(`${rotulo} deve conter ${digitos} dígitos.`);
+  return valor || null;
+}
+
+function aliquotaIcmsOpcional(formData: FormData) {
+  const bruto = String(formData.get("aliquota_icms") ?? "").trim();
+  if (!bruto) return null;
+  const valor = Number(bruto.replace(",", "."));
+  if (!Number.isFinite(valor) || valor < 0 || valor > 100) throw new Error("A alíquota de ICMS deve ser um valor entre 0 e 100.");
+  return valor;
+}
+
 // Unidade de compra (ex: saco, caixa) é opcional, mas se informada precisa
 // vir com o fator de conversão pra unidade de estoque (ex: 1 saco = 25kg).
 function unidadeCompraOpcional(formData: FormData) {
@@ -748,6 +765,7 @@ export async function updateFiscalConfig(formData: FormData) {
   if (ambiente === "producao") {
     throw new Error("A emissão em produção permanece bloqueada até integrar e homologar um provedor fiscal real.");
   }
+  const cnae = campoNumericoOpcional(formData, "cnae", 7, "O CNAE");
 
   const { error } = await supabase.from("del_fiscal_config").upsert(
     {
@@ -756,6 +774,7 @@ export async function updateFiscalConfig(formData: FormData) {
       nome_fantasia: String(formData.get("nome_fantasia") ?? "").trim() || null,
       cnpj: String(formData.get("cnpj") ?? "").trim() || null,
       inscricao_estadual: String(formData.get("inscricao_estadual") ?? "").trim() || null,
+      cnae,
       regime_tributario: String(formData.get("regime_tributario") ?? "mei"),
       logradouro: String(formData.get("logradouro") ?? "").trim() || null,
       numero: String(formData.get("numero") ?? "").trim() || null,
@@ -864,13 +883,23 @@ export async function updateProductFiscal(id: string, formData: FormData) {
   const { supabase, isGerente } = await requireRestaurantSubscription("fiscal");
   if (!isGerente) throw new Error("Apenas o dono ou um gerente pode editar a classificação fiscal.");
 
+  const ncm = campoNumericoOpcional(formData, "ncm", 8, "O NCM");
+  const cfop = campoNumericoOpcional(formData, "cfop", 4, "O CFOP") ?? "5102";
+  const cest = campoNumericoOpcional(formData, "cest", 7, "O CEST");
+  const cst = campoNumericoOpcional(formData, "cst", 2, "O CST");
+  const csosn = campoNumericoOpcional(formData, "csosn", 3, "O CSOSN");
+  const aliquotaIcms = aliquotaIcmsOpcional(formData);
+
   const { error } = await supabase
     .from("del_products")
     .update({
-      ncm: String(formData.get("ncm") ?? "").trim() || null,
-      cfop: String(formData.get("cfop") ?? "").trim() || "5102",
-      cest: String(formData.get("cest") ?? "").trim() || null,
+      ncm,
+      cfop,
+      cest,
       origem: Number(formData.get("origem") ?? 0),
+      cst,
+      csosn,
+      aliquota_icms: aliquotaIcms,
     })
     .eq("id", id);
   if (error) throw new Error(`Não foi possível salvar os dados fiscais do produto: ${error.message}`);
