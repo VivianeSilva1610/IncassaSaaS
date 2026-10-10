@@ -121,6 +121,8 @@ export async function sendSolicitacaoCancelamentoEmail(params: {
   restaurantName: string;
   restaurantSlug: string;
   ownerEmail: string;
+  contatoEmail: string;
+  contatoTelefone: string;
   motivo: string | null;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const resend = new Resend(process.env.RESEND_API_KEY!);
@@ -130,11 +132,13 @@ export async function sendSolicitacaoCancelamentoEmail(params: {
   const { error } = await resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev",
     to: destino,
-    replyTo: params.ownerEmail,
+    replyTo: params.contatoEmail,
     subject: `Pedido de cancelamento — ${params.restaurantName}`,
     html: `
       <p>Restaurante: <strong>${params.restaurantName}</strong> (${params.restaurantSlug})</p>
-      <p>E-mail do dono: ${params.ownerEmail}</p>
+      <p>E-mail de login do dono: ${params.ownerEmail}</p>
+      <p>E-mail de contato informado: <strong>${params.contatoEmail}</strong></p>
+      <p>Telefone informado: <strong>${params.contatoTelefone}</strong></p>
       <p>Motivo informado: ${params.motivo ? params.motivo : "(nenhum motivo informado)"}</p>
       <p>Esse pedido não cancela nada automaticamente — precisa de ação manual.</p>
     `,

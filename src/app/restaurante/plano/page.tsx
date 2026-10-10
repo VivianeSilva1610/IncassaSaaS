@@ -23,6 +23,7 @@ const CONTEUDO: Record<RestauranteLocale, {
   carregando: string;
   backupTitulo: string; backupDescricao: string; backupBotao: string;
   cancelamentoTitulo: string; cancelamentoDescricao: string; cancelamentoPlaceholder: string;
+  cancelamentoEmailPlaceholder: string; cancelamentoTelefonePlaceholder: string;
   cancelamentoBotao: string; cancelamentoEnviado: string;
 }> = {
   "pt-BR": {
@@ -46,6 +47,7 @@ const CONTEUDO: Record<RestauranteLocale, {
     cancelamentoTitulo: "Cancelar assinatura",
     cancelamentoDescricao: "Envia um pedido pro nosso suporte — não cancela automaticamente, alguém vai entrar em contato pra confirmar e finalizar.",
     cancelamentoPlaceholder: "Motivo (opcional)",
+    cancelamentoEmailPlaceholder: "E-mail de contato", cancelamentoTelefonePlaceholder: "Telefone de contato",
     cancelamentoBotao: "Solicitar cancelamento",
     cancelamentoEnviado: "Pedido enviado! Nosso suporte vai entrar em contato em breve.",
   },
@@ -70,6 +72,7 @@ const CONTEUDO: Record<RestauranteLocale, {
     cancelamentoTitulo: "Annulla abbonamento",
     cancelamentoDescricao: "Invia una richiesta al nostro supporto — non annulla automaticamente, qualcuno ti contatterà per confermare e finalizzare.",
     cancelamentoPlaceholder: "Motivo (opzionale)",
+    cancelamentoEmailPlaceholder: "E-mail di contatto", cancelamentoTelefonePlaceholder: "Telefono di contatto",
     cancelamentoBotao: "Richiedi annullamento",
     cancelamentoEnviado: "Richiesta inviata! Il nostro supporto ti contatterà a breve.",
   },
@@ -186,14 +189,30 @@ export default async function PlanoPage({
         <section className="mt-6 rounded-xl border border-red-200 bg-white p-5">
           <h2 className="font-semibold text-stone-900">{t.cancelamentoTitulo}</h2>
           <p className="mt-1 text-sm text-stone-600">{t.cancelamentoDescricao}</p>
-          <form action={solicitarCancelamento} className="mt-3 flex flex-wrap gap-2">
+          <form action={solicitarCancelamento} className="mt-3 grid gap-2">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input
+                name="contato_email"
+                type="email"
+                required
+                placeholder={t.cancelamentoEmailPlaceholder}
+                className="rounded-md border border-stone-300 px-3 py-2 text-sm"
+              />
+              <input
+                name="contato_telefone"
+                type="tel"
+                required
+                placeholder={t.cancelamentoTelefonePlaceholder}
+                className="rounded-md border border-stone-300 px-3 py-2 text-sm"
+              />
+            </div>
             <textarea
               name="motivo"
               placeholder={t.cancelamentoPlaceholder}
               rows={2}
-              className="min-w-64 flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
             />
-            <button type="submit" className="h-fit rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700">
+            <button type="submit" className="h-fit w-fit rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700">
               {t.cancelamentoBotao}
             </button>
           </form>

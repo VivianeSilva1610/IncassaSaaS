@@ -1709,6 +1709,11 @@ export async function solicitarCancelamento(formData: FormData) {
     .maybeSingle();
   if (!restaurant) throw new Error("Restaurante não encontrado.");
 
+  const contatoEmail = String(formData.get("contato_email") ?? "").trim();
+  const contatoTelefone = String(formData.get("contato_telefone") ?? "").trim();
+  if (!contatoEmail || !contatoTelefone) {
+    throw new Error("Informe o e-mail e o telefone de contato pra podermos entrar em contato sobre o cancelamento.");
+  }
   const motivo = String(formData.get("motivo") ?? "").trim() || null;
 
   const { sendSolicitacaoCancelamentoEmail } = await import("@/lib/email");
@@ -1716,6 +1721,8 @@ export async function solicitarCancelamento(formData: FormData) {
     restaurantName: restaurant.name,
     restaurantSlug: restaurant.slug,
     ownerEmail: user.email ?? "desconhecido",
+    contatoEmail,
+    contatoTelefone,
     motivo,
   });
   if (!resultado.ok) throw new Error(`Não foi possível enviar o pedido de cancelamento: ${resultado.error}`);
