@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { Resend } from "resend";
 import { requireRestaurantSubscription } from "@/lib/subscription";
 import { getResendConfigForRestaurant } from "@/lib/delivery/providers";
+import { registrarAtividade } from "@/lib/activity-log";
 
 const baseUrl = "/restaurante/compras/orcamentos";
 
@@ -77,6 +78,10 @@ export async function criarOrcamento(formData: FormData) {
     .from("del_solicitacoes_compra")
     .update({ status: "em_orcamento", updated_at: new Date().toISOString() })
     .in("id", solicitacoes.map((s) => s.id));
+
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "orcamento_compra_criado", entidade: "orcamento_compra", entidadeId: orcamento.id,
+  });
 
   revalidatePath(baseUrl);
   revalidatePath("/restaurante/compras/solicitacoes");
@@ -251,6 +256,11 @@ export async function aprovarOrcamento(orcamentoId: string, orcamentoFornecedorI
     await supabase.from("del_solicitacoes_compra").update({ status: "atendida", updated_at: new Date().toISOString() }).in("id", solicitacaoIds);
   }
 
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "orcamento_compra_aprovado",
+    entidade: "orcamento_compra", entidadeId: orcamentoId, detalhe: `pedido ${pedido.id}`,
+  });
+
   revalidatePath(baseUrl);
   revalidatePath("/restaurante/compras/solicitacoes");
   revalidatePath("/restaurante/compras/pedidos");
@@ -258,7 +268,7 @@ export async function aprovarOrcamento(orcamentoId: string, orcamentoFornecedorI
 }
 
 export async function cancelarOrcamento(orcamentoId: string) {
-  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("compras");
+  const { supabase, restaurantOwnerId, isGerente, user } = await requireRestaurantSubscription("compras");
   const retorno = `${baseUrl}/${orcamentoId}`;
   if (!isGerente) go("erro", "Somente o dono ou gerente pode cancelar um orçamento.", retorno);
 
@@ -276,6 +286,10 @@ export async function cancelarOrcamento(orcamentoId: string) {
   if (solicitacaoIds.length > 0) {
     await supabase.from("del_solicitacoes_compra").update({ status: "aberta", updated_at: new Date().toISOString() }).in("id", solicitacaoIds).eq("status", "em_orcamento");
   }
+
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "orcamento_compra_cancelado", entidade: "orcamento_compra", entidadeId: orcamentoId,
+  });
 
   revalidatePath(baseUrl);
   revalidatePath("/restaurante/compras/solicitacoes");

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireRestaurantSubscription } from "@/lib/subscription";
+import { registrarAtividade } from "@/lib/activity-log";
 
 const DESTINOS_VALIDOS = ["/restaurante/compras/orcamentos", "/restaurante/compras/pedidos"];
 
@@ -16,7 +17,7 @@ function destinoSeguro(valor: string | null): string {
 // mesma chave de upsert (owner_id, documento): um fornecedor cadastrado
 // manualmente aqui também aparece nas duas telas.
 export async function cadastrarFornecedorManual(formData: FormData) {
-  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription("compras");
+  const { supabase, restaurantOwnerId, isGerente, user } = await requireRestaurantSubscription("compras");
   const voltar = destinoSeguro(String(formData.get("voltar") ?? ""));
   if (!isGerente) redirect(`${voltar}?erro=${encodeURIComponent("Apenas o dono ou um gerente pode cadastrar fornecedor.")}`);
 
@@ -30,6 +31,10 @@ export async function cadastrarFornecedorManual(formData: FormData) {
     { onConflict: "owner_id,documento" },
   );
   if (error) redirect(`${voltar}?erro=${encodeURIComponent("Não foi possível cadastrar o fornecedor — confira se o documento já está em uso.")}`);
+
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "fornecedor_cadastrado", entidade: "fornecedor", detalhe: razaoSocial,
+  });
 
   revalidatePath("/restaurante/compras/orcamentos");
   revalidatePath("/restaurante/compras/pedidos");

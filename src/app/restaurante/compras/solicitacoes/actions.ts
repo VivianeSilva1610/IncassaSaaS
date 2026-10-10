@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRestaurantSubscription } from "@/lib/subscription";
+import { registrarAtividade } from "@/lib/activity-log";
 
 const baseUrl = "/restaurante/compras/solicitacoes";
 
@@ -53,12 +54,17 @@ export async function criarSolicitacoes(formData: FormData) {
   );
   if (error) go("erro", `Não foi possível registrar a solicitação: ${error.message}`);
 
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "solicitacao_compra_criada",
+    entidade: "solicitacao_compra", detalhe: `${itens.length} ite${itens.length === 1 ? "m" : "ns"}`,
+  });
+
   revalidatePath(baseUrl);
   go("sucesso", itens.length === 1 ? "Solicitação registrada." : `${itens.length} solicitações registradas.`);
 }
 
 export async function cancelarSolicitacao(id: string) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("compras");
+  const { supabase, restaurantOwnerId, user } = await requireRestaurantSubscription("compras");
   const { error } = await supabase
     .from("del_solicitacoes_compra")
     .update({ status: "cancelada", updated_at: new Date().toISOString() })
@@ -66,6 +72,10 @@ export async function cancelarSolicitacao(id: string) {
     .eq("owner_id", restaurantOwnerId)
     .eq("status", "aberta");
   if (error) go("erro", "Não foi possível cancelar a solicitação.");
+
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "solicitacao_compra_cancelada", entidade: "solicitacao_compra", entidadeId: id,
+  });
 
   revalidatePath(baseUrl);
   go("sucesso", "Solicitação cancelada.");

@@ -18,10 +18,11 @@ import { carregarFechamento, offsetParaData } from "@/lib/fiscal/fechamento";
 import { refundAsaasPayment } from "@/lib/asaas";
 import { emitirDocumentoFiscaleParaPedido, cancelarDocumentoFiscale } from "@/lib/fiscal/emitirIt";
 import { getAsaasApiKeyForRestaurant } from "@/lib/delivery/providers";
+import { registrarAtividade } from "@/lib/activity-log";
 
 export async function fecharCaixaDiario(formData: FormData) {
-  const { user, supabase, restaurantOwnerId, isOwner } = await requireRestaurantSubscription();
-  if (!isOwner) throw new Error("Apenas o dono do restaurante pode fechar o caixa.");
+  const { user, supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription();
+  if (!isGerente) throw new Error("Apenas o dono ou um gerente pode fechar o caixa.");
   const data = String(formData.get("data") ?? "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error("Informe uma data válida.");
 
@@ -54,6 +55,10 @@ export async function fecharCaixaDiario(formData: FormData) {
   });
   if (error?.code === "23505") throw new Error("O caixa desta data já foi fechado.");
   if (error) throw new Error(`Não foi possível fechar o caixa: ${error.message}`);
+
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "caixa_fechado", entidade: "caixa", detalhe: data,
+  });
 
   revalidatePath("/restaurante/caixa");
   revalidatePath("/restaurante/fiscal/fechamento-diario");
@@ -114,7 +119,7 @@ function unidadeCompraOpcional(formData: FormData) {
 }
 
 export async function addIngredient(formData: FormData) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, user } = await requireRestaurantSubscription();
 
   const codigo = await proximoCodigo(supabase, restaurantOwnerId);
   const custoUnitario = formData.get("custo_unitario") ? Number(formData.get("custo_unitario")) : null;
@@ -145,11 +150,16 @@ export async function addIngredient(formData: FormData) {
     await registrarCustoHistorico(supabase, { ownerId: restaurantOwnerId, ingredientId: novoIngrediente.id, custoUnitario });
   }
 
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "ingrediente_criado",
+    entidade: "ingrediente", entidadeId: novoIngrediente.id, detalhe: String(formData.get("nome") ?? ""),
+  });
+
   revalidatePath("/restaurante/estoque/produtos");
 }
 
 export async function updateIngredient(id: string, formData: FormData) {
-  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isGerente, user } = await requireRestaurantSubscription();
   if (!isGerente) throw new Error("Apenas o dono ou um gerente pode editar o estoque.");
 
   const custoUnitario = formData.get("custo_unitario") ? Number(formData.get("custo_unitario")) : null;
@@ -176,12 +186,20 @@ export async function updateIngredient(id: string, formData: FormData) {
     await registrarCustoHistorico(supabase, { ownerId: restaurantOwnerId, ingredientId: id, custoUnitario });
   }
 
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "ingrediente_editado",
+    entidade: "ingrediente", entidadeId: id, detalhe: String(formData.get("nome") ?? ""),
+  });
+
   revalidatePath("/restaurante/estoque/produtos");
 }
 
 export async function deleteIngredient(id: string) {
-  const { supabase, isGerente } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isGerente, user } = await requireRestaurantSubscription();
   if (!isGerente) throw new Error("Apenas o dono ou um gerente pode excluir do estoque.");
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "ingrediente_removido", entidade: "ingrediente", entidadeId: id,
+  });
   await supabase.from("del_ingredients").delete().eq("id", id);
   revalidatePath("/restaurante/estoque/produtos");
 }
@@ -190,7 +208,7 @@ export async function deleteIngredient(id: string) {
 // selecionado), só lança entrada de estoque; se não existe, cadastra um
 // produto novo com código novo e a quantidade comprada como estoque inicial.
 export async function registrarCompraFornecedor(formData: FormData) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("compras");
+  const { supabase, restaurantOwnerId, user } = await requireRestaurantSubscription("compras");
 
   const ingredientId = String(formData.get("ingredient_id") ?? "");
   const quantidadeInformada = Number(formData.get("quantidade") ?? 0);
@@ -281,13 +299,19 @@ export async function registrarCompraFornecedor(formData: FormData) {
     }
   }
 
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "compra_fornecedor_registrada",
+    entidade: "ingrediente", entidadeId: ingredientId || null,
+    detalhe: `${quantidadeInformada} ${unidadeInformada}${fornecedor ? ` — ${fornecedor}` : ""}`,
+  });
+
   revalidatePath("/restaurante/compras/fornecedor");
   revalidatePath("/restaurante/estoque/produtos");
   revalidatePath("/restaurante/estoque/validades");
 }
 
 export async function addStockMovement(formData: FormData) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, user } = await requireRestaurantSubscription();
 
   const ingredientId = String(formData.get("ingredient_id") ?? "");
   const tipo = String(formData.get("tipo") ?? "entrada") as "entrada" | "saida" | "ajuste" | "perda";
@@ -314,12 +338,20 @@ export async function addStockMovement(formData: FormData) {
     });
   }
 
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: `estoque_${tipo}`,
+    entidade: "ingrediente", entidadeId: ingredientId, detalhe: motivo ? `${quantidade} — ${motivo}` : String(quantidade),
+  });
+
   revalidatePath("/restaurante/estoque/produtos");
   revalidatePath("/restaurante/estoque/validades");
 }
 
 export async function excluirLote(id: string) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, user } = await requireRestaurantSubscription();
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "lote_estoque_removido", entidade: "lote_estoque", entidadeId: id,
+  });
   await supabase.from("del_lotes_estoque").delete().eq("id", id).eq("owner_id", restaurantOwnerId);
   revalidatePath("/restaurante/estoque/validades");
 }
@@ -407,7 +439,7 @@ function mediaUrl(formData: FormData, field: "imagem_url" | "video_url"): string
 }
 
 export async function addProduct(formData: FormData) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, user } = await requireRestaurantSubscription();
 
   const categoria = parseCategoria(formData);
   const maxAcompanhamentos = formData.get("max_acompanhamentos")
@@ -415,7 +447,7 @@ export async function addProduct(formData: FormData) {
     : null;
 
   const nome = String(formData.get("nome") ?? "").trim();
-  const { error } = await supabase.from("del_products").insert({
+  const { data: novoProduto, error } = await supabase.from("del_products").insert({
     owner_id: restaurantOwnerId,
     nome,
     nome_site: nome,
@@ -425,8 +457,13 @@ export async function addProduct(formData: FormData) {
     max_acompanhamentos: categoria === "tamanho" ? maxAcompanhamentos : null,
     imagem_url: mediaUrl(formData, "imagem_url"),
     video_url: mediaUrl(formData, "video_url"),
-  });
+  }).select("id").single();
   if (error) throw new Error(`Não foi possível salvar o item: ${error.message}`);
+
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "produto_criado",
+    entidade: "produto", entidadeId: novoProduto?.id, detalhe: nome,
+  });
 
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/vendas/novo");
@@ -435,7 +472,7 @@ export async function addProduct(formData: FormData) {
 }
 
 export async function updateProduct(id: string, formData: FormData) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, user } = await requireRestaurantSubscription();
 
   const categoria = parseCategoria(formData);
   const maxAcompanhamentos = formData.get("max_acompanhamentos")
@@ -470,6 +507,11 @@ export async function updateProduct(id: string, formData: FormData) {
     .eq("owner_id", restaurantOwnerId);
   if (error) throw new Error(`Não foi possível atualizar o item: ${error.message}`);
 
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "produto_editado",
+    entidade: "produto", entidadeId: id, detalhe: nome,
+  });
+
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/vendas/novo");
   revalidatePath("/restaurante/custos/precificacao");
@@ -480,8 +522,12 @@ export async function updateProduct(id: string, formData: FormData) {
 }
 
 export async function toggleProductAtivo(id: string, ativo: boolean) {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, user } = await requireRestaurantSubscription();
   await supabase.from("del_products").update({ ativo: !ativo }).eq("id", id);
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email,
+    acao: ativo ? "produto_desativado" : "produto_ativado", entidade: "produto", entidadeId: id,
+  });
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/vendas/novo");
   revalidatePath("/restaurante/cardapio/produtos");
@@ -496,7 +542,10 @@ export async function toggleProductVisivelSite(id: string, visivelSite: boolean)
 }
 
 export async function deleteProduct(id: string) {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, user } = await requireRestaurantSubscription();
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "produto_removido", entidade: "produto", entidadeId: id,
+  });
   await supabase.from("del_products").delete().eq("id", id);
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/vendas/novo");
@@ -504,7 +553,7 @@ export async function deleteProduct(id: string) {
 }
 
 export async function createOrder(formData: FormData) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, user } = await requireRestaurantSubscription();
 
   const productIds = formData.getAll("product_id").map(String);
   const quantities = formData.getAll("quantidade").map((v) => Number(v));
@@ -552,6 +601,11 @@ export async function createOrder(formData: FormData) {
     revalidatePath("/restaurante/financeiro/contas-a-receber");
   }
 
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "pedido_criado",
+    entidade: "pedido", entidadeId: orderId, detalhe: clienteNome ?? undefined,
+  });
+
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/vendas/pedidos");
 }
@@ -564,7 +618,7 @@ const STATUS_TIMESTAMP_COLUMN: Record<string, string> = {
 };
 
 export async function updateOrderStatus(id: string, status: string) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, user } = await requireRestaurantSubscription();
 
   const { data: pedidoAtual } = await supabase
     .from("del_orders")
@@ -593,6 +647,11 @@ export async function updateOrderStatus(id: string, status: string) {
       });
     }
   }
+
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: `pedido_status_${status.replace(/\s+/g, "_")}`,
+    entidade: "pedido", entidadeId: id,
+  });
 
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/vendas/pedidos");
@@ -661,7 +720,7 @@ export async function removerItemPedido(orderId: string, orderItemId: string) {
 // não existe API pra chamar — grava o evento e o estorno direto, e devolve
 // o estoque se o estorno zerar o valor pago (a venda deixou de acontecer).
 export async function estornarPedido(orderId: string, formData: FormData) {
-  const { supabase, restaurantOwnerId, isGerente } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, isGerente, user } = await requireRestaurantSubscription();
   if (!isGerente) throw new Error("Apenas o dono ou um gerente pode estornar um pedido.");
 
   const { data: pedido } = await supabase
@@ -733,6 +792,11 @@ export async function estornarPedido(orderId: string, formData: FormData) {
     }
   }
 
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "pedido_estornado",
+    entidade: "pedido", entidadeId: orderId, detalhe: `${valorEstorno}${motivo ? ` — ${motivo}` : ""}`,
+  });
+
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/vendas/pedidos");
   revalidatePath("/restaurante/caixa");
@@ -740,7 +804,7 @@ export async function estornarPedido(orderId: string, formData: FormData) {
 }
 
 export async function deleteOrder(id: string) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, user } = await requireRestaurantSubscription();
   const { data: order } = await supabase
     .from("del_orders")
     .select("id, pago, del_notas_fiscais(id)")
@@ -753,6 +817,9 @@ export async function deleteOrder(id: string) {
   }
   const { error } = await supabase.from("del_orders").delete().eq("id", id).eq("owner_id", restaurantOwnerId);
   if (error) throw new Error(`Não foi possível excluir o pedido: ${error.message}`);
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "pedido_removido", entidade: "pedido", entidadeId: id,
+  });
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/vendas/pedidos");
 }
@@ -946,11 +1013,16 @@ export async function emitirNotaFiscal(orderId: string) {
 // No balcão e na mesa, o recebimento também conclui a entrega/consumo e a
 // competência. Nos demais canais, pagamento e entrega continuam separados.
 export async function marcarPedidoPago(orderId: string, formData: FormData) {
-  const { supabase, restaurantOwnerId } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, user } = await requireRestaurantSubscription();
+  const formaPagamento = String(formData.get("forma_pagamento") ?? "outro");
   await confirmarPagamentoEEmitirNota(supabase, {
     ownerId: restaurantOwnerId,
     orderId,
-    formaPagamento: String(formData.get("forma_pagamento") ?? "outro"),
+    formaPagamento,
+  });
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "pedido_marcado_pago",
+    entidade: "pedido", entidadeId: orderId, detalhe: formaPagamento,
   });
   revalidatePath("/restaurante/vendas");
   revalidatePath("/restaurante/vendas/pedidos");
@@ -1167,11 +1239,19 @@ export async function addCaixaMovimento(formData: FormData) {
   });
   if (error) throw new Error(`Não foi possível registrar o lançamento: ${error.message}`);
 
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: `caixa_${tipo}`,
+    entidade: "caixa_movimento", detalhe: String(formData.get("descrizione") ?? "") || String(valor),
+  });
+
   revalidatePath("/restaurante/caixa");
 }
 
 export async function deleteCaixaMovimento(id: string) {
-  const { supabase } = await requireRestaurantSubscription();
+  const { supabase, restaurantOwnerId, user } = await requireRestaurantSubscription();
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "caixa_movimento_removido", entidade: "caixa_movimento", entidadeId: id,
+  });
   await supabase.from("del_caixa_movimentos").delete().eq("id", id);
   revalidatePath("/restaurante/caixa");
 }

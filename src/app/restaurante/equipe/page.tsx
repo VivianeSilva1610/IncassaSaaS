@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { requireRestaurantSubscription, MODULOS_RESTAURANTE, type ModuloRestaurante, type RestauranteLocale } from "@/lib/subscription";
 import { addStaff, removeStaff, toggleStaffGerente, updateStaffModulos } from "@/app/restaurante/actions";
 
@@ -16,7 +17,7 @@ const LABEL_MODULO: Record<RestauranteLocale, Record<ModuloRestaurante, string>>
 const CONTEUDO: Record<RestauranteLocale, {
   titulo: string; descricao: React.ReactNode; emailPlaceholder: string; nomeOpcional: string; darAcesso: string;
   gerente: string; tirarGerente: string; tornarGerente: string; removerAcesso: string; salvarModulos: string;
-  ninguemAcesso: string;
+  ninguemAcesso: string; verAtividade: string;
 }> = {
   "pt-BR": {
     titulo: "Equipe",
@@ -25,6 +26,7 @@ const CONTEUDO: Record<RestauranteLocale, {
     gerente: "Gerente", tirarGerente: "Tirar gerente", tornarGerente: "Tornar gerente",
     removerAcesso: "Remover acesso", salvarModulos: "Salvar módulos",
     ninguemAcesso: "Ninguém com acesso ainda, além de você.",
+    verAtividade: "Ver atividade da equipe (quem fez o quê)",
   },
   it: {
     titulo: "Team",
@@ -33,6 +35,7 @@ const CONTEUDO: Record<RestauranteLocale, {
     gerente: "Gestore", tirarGerente: "Rimuovi gestore", tornarGerente: "Rendi gestore",
     removerAcesso: "Rimuovi accesso", salvarModulos: "Salva moduli",
     ninguemAcesso: "Nessuno con accesso ancora, oltre a te.",
+    verAtividade: "Vedi attività del team (chi ha fatto cosa)",
   },
 };
 
@@ -57,6 +60,10 @@ export default async function EquipePage() {
       <p className="mt-1 text-sm text-stone-600">
         {t.descricao}
       </p>
+
+      <Link href="/restaurante/equipe/atividade" className="mt-3 inline-block text-sm text-amber-700 underline underline-offset-2">
+        {t.verAtividade}
+      </Link>
 
       {isOwner && (
         <form action={addStaff} className="mt-6 grid gap-3 rounded-xl border border-stone-200 bg-white p-4 sm:grid-cols-2">
