@@ -20,6 +20,7 @@ const CONTEUDO: Record<RestauranteLocale, {
   verificarAgora: string; passo2: string; passo2Descricao: (hostname: string) => React.ReactNode;
   verificadoEm: (data: string) => string; cnameInfo: (hostname: string) => string; remover: string;
   nenhumDominio: string;
+  guiaTitulo: string; guia1: React.ReactNode; guia2: React.ReactNode; guia3: React.ReactNode; guiaPrazo: string;
 }> = {
   "pt-BR": {
     titulo: "Domínio", semRestaurante: "Ainda não existe um registro de restaurante pra essa conta — fale com o suporte.",
@@ -29,10 +30,15 @@ const CONTEUDO: Record<RestauranteLocale, {
     passo1: "Passo 1 — prove que o domínio é seu",
     passo1Descricao: (hostname) => <>Crie um registro <strong>TXT</strong> em <code>_incassa-challenge.{hostname}</code> com o valor:</>,
     verificarAgora: "Verificar agora", passo2: "Passo 2 — depois de verificado",
-    passo2Descricao: (hostname) => <>Aponte um <strong>CNAME</strong> de {hostname} para <code>cname.vercel-dns.com</code> e me avise — preciso adicionar o domínio no projeto da Vercel manualmente antes dele funcionar de verdade.</>,
+    passo2Descricao: (hostname) => <>Aponte um <strong>CNAME</strong> de {hostname} para <code>cname.vercel-dns.com</code>. Assim que o DNS propagar, seu domínio ativa sozinho — não precisa avisar ninguém.</>,
     verificadoEm: (data) => `Verificado em ${data}.`,
-    cnameInfo: (hostname) => `Se o CNAME já estiver apontado e o domínio adicionado no projeto da Vercel, ${hostname} já serve sua loja direto.`,
+    cnameInfo: (hostname) => `Com o CNAME apontado, ${hostname} serve sua loja direto — a ativação é automática, pode levar algumas horas pra propagar.`,
     remover: "Remover", nenhumDominio: "Nenhum domínio cadastrado ainda.",
+    guiaTitulo: "Como funciona, passo a passo",
+    guia1: <>1. Digite seu domínio acima e clique em <strong>Adicionar</strong>. Isso só reserva o endereço pra você — ainda não muda nada no ar.</>,
+    guia2: <>2. No painel do seu provedor de domínio (Registro.br, GoDaddy, Hostgator etc.), crie o registro <strong>TXT</strong> indicado e clique em <strong>Verificar agora</strong>. É assim que provamos que o domínio é seu.</>,
+    guia3: <>3. Depois de verificado, aponte um <strong>CNAME</strong> pra <code>cname.vercel-dns.com</code>. A partir daí é automático: assim que o DNS propagar, seu domínio passa a servir sua loja sozinho.</>,
+    guiaPrazo: "DNS pode levar de alguns minutos a algumas horas pra propagar — se não funcionar na hora, é normal, espere um pouco e recarregue.",
   },
   it: {
     titulo: "Dominio", semRestaurante: "Non esiste ancora un ristorante registrato per questo account — contatta l'assistenza.",
@@ -42,10 +48,15 @@ const CONTEUDO: Record<RestauranteLocale, {
     passo1: "Passo 1 — dimostra che il dominio è tuo",
     passo1Descricao: (hostname) => <>Crea un record <strong>TXT</strong> in <code>_incassa-challenge.{hostname}</code> con il valore:</>,
     verificarAgora: "Verifica ora", passo2: "Passo 2 — dopo la verifica",
-    passo2Descricao: (hostname) => <>Punta un <strong>CNAME</strong> di {hostname} verso <code>cname.vercel-dns.com</code> e avvisami — devo aggiungere il dominio nel progetto Vercel manualmente prima che funzioni davvero.</>,
+    passo2Descricao: (hostname) => <>Punta un <strong>CNAME</strong> di {hostname} verso <code>cname.vercel-dns.com</code>. Appena il DNS si propaga, il dominio si attiva da solo — non serve avvisare nessuno.</>,
     verificadoEm: (data) => `Verificato il ${data}.`,
-    cnameInfo: (hostname) => `Se il CNAME è già puntato e il dominio è stato aggiunto nel progetto Vercel, ${hostname} serve già direttamente il tuo negozio.`,
+    cnameInfo: (hostname) => `Con il CNAME puntato, ${hostname} serve già direttamente il tuo negozio — l'attivazione è automatica, può richiedere alcune ore per propagarsi.`,
     remover: "Rimuovi", nenhumDominio: "Nessun dominio registrato ancora.",
+    guiaTitulo: "Come funziona, passo per passo",
+    guia1: <>1. Scrivi il tuo dominio qui sopra e clicca su <strong>Aggiungi</strong>. Questo riserva solo l&apos;indirizzo per te — non cambia ancora nulla online.</>,
+    guia2: <>2. Nel pannello del tuo provider di dominio, crea il record <strong>TXT</strong> indicato e clicca su <strong>Verifica ora</strong>. Così dimostriamo che il dominio è tuo.</>,
+    guia3: <>3. Dopo la verifica, punta un <strong>CNAME</strong> verso <code>cname.vercel-dns.com</code>. Da quel momento è automatico: appena il DNS si propaga, il tuo dominio inizia a servire il negozio da solo.</>,
+    guiaPrazo: "Il DNS può richiedere da pochi minuti ad alcune ore per propagarsi — se non funziona subito è normale, aspetta un po' e ricarica.",
   },
 };
 
@@ -92,6 +103,16 @@ export default async function DominioPage() {
           </a>,
         )}
       </p>
+
+      <section className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-stone-700">
+        <h2 className="font-semibold text-stone-900">{t.guiaTitulo}</h2>
+        <ol className="mt-2 space-y-2">
+          <li>{t.guia1}</li>
+          <li>{t.guia2}</li>
+          <li>{t.guia3}</li>
+        </ol>
+        <p className="mt-3 text-xs text-stone-500">{t.guiaPrazo}</p>
+      </section>
 
       <section className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
         <h2 className="font-semibold text-stone-900">{t.cadastrarDominio}</h2>

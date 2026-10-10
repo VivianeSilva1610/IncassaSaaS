@@ -8,6 +8,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { registerStockMovement, registrarCustoHistorico, restaurarEstoquePorCancelamento, registrarLoteEstoque } from "@/lib/delivery/stock";
 import { createOrderWithItems } from "@/lib/delivery/orders";
 import { verificarRegistroTxt } from "@/lib/domain-verification";
+import { addDomainToVercelProject } from "@/lib/vercel";
 import {
   emitirNotaFiscalParaPedido,
   cancelarNotaFiscal as cancelarNotaFiscalLib,
@@ -1544,6 +1545,18 @@ export async function verifyRestaurantDomain(id: string) {
   if (!verificado) {
     throw new Error(
       `Ainda não encontrei o registro TXT em _incassa-challenge.${dominio.hostname} com o valor esperado. Confirme o DNS e tente de novo — propagação pode levar algumas horas.`,
+    );
+  }
+
+  // Prova de propriedade passou — já pode registrar o domínio no projeto
+  // da Vercel. A Vercel mesma espera o CNAME do cliente apontar antes de
+  // emitir o certificado, então isso é seguro de chamar mesmo que o CNAME
+  // ainda não tenha propagado. Falha aqui não desfaz a verificação do TXT
+  // (que já é um resultado real), só avisa que a ativação final ficou pendente.
+  const vercel = await addDomainToVercelProject(dominio.hostname);
+  if (!vercel.ok) {
+    throw new Error(
+      `Domínio verificado, mas não consegui registrá-lo na Vercel automaticamente (${vercel.aviso}). Avise o suporte para ativação manual.`,
     );
   }
 }
