@@ -1809,3 +1809,41 @@ export async function solicitarCancelamento(formData: FormData) {
 
   redirect("/restaurante/plano?cancelamento=enviado");
 }
+
+function urlOpcional(formData: FormData, campo: string, rotulo: string): string | null {
+  const valor = String(formData.get(campo) ?? "").trim();
+  if (!valor) return null;
+  let url: URL;
+  try {
+    url = new URL(valor);
+  } catch {
+    throw new Error(`Informe uma URL válida para ${rotulo}.`);
+  }
+  if (!["http:", "https:"].includes(url.protocol)) throw new Error(`${rotulo} precisa usar um endereço http ou https.`);
+  return url.toString();
+}
+
+export async function updateIdentidadeVisual(formData: FormData) {
+  const { supabase, restaurantOwnerId, isOwner, user } = await requireRestaurantSubscription();
+  if (!isOwner) throw new Error("Apenas o dono do restaurante pode editar a identidade visual.");
+
+  const logoUrl = urlOpcional(formData, "logo_url", "o logo");
+  const capaUrl = urlOpcional(formData, "capa_url", "a foto de capa");
+  const corPrimaria = String(formData.get("cor_primaria") ?? "").trim() || null;
+  if (corPrimaria && !/^#[0-9a-fA-F]{6}$/.test(corPrimaria)) {
+    throw new Error("A cor precisa estar no formato #RRGGBB.");
+  }
+
+  const { error } = await supabase
+    .from("restaurants")
+    .update({ logo_url: logoUrl, capa_url: capaUrl, cor_primaria: corPrimaria })
+    .eq("owner_user_id", restaurantOwnerId);
+  if (error) throw new Error(`Não foi possível salvar a identidade visual: ${error.message}`);
+
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "identidade_visual_editada", entidade: "restaurante",
+  });
+
+  revalidatePath("/restaurante/dominio");
+  revalidatePath("/loja/[slug]", "page");
+}

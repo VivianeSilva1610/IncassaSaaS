@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireRestaurantSubscription, type RestauranteLocale } from "@/lib/subscription";
-import { addRestaurantDomain, verifyRestaurantDomain, deleteRestaurantDomain } from "@/app/restaurante/actions";
+import { addRestaurantDomain, verifyRestaurantDomain, deleteRestaurantDomain, updateIdentidadeVisual } from "@/app/restaurante/actions";
 
 const STATUS_LABEL: Record<RestauranteLocale, Record<string, string>> = {
   "pt-BR": { pending: "Pendente de verificação", verified: "Verificado", blocked: "Bloqueado" },
@@ -22,6 +22,8 @@ const CONTEUDO: Record<RestauranteLocale, {
   nenhumDominio: string;
   guiaTitulo: string; guia1: React.ReactNode; guia2: React.ReactNode; guia3: React.ReactNode; guiaPrazo: string;
   guiaAviso: React.ReactNode;
+  identidadeTitulo: string; identidadeDescricao: string; logoLabel: string; capaLabel: string; corLabel: string;
+  salvarIdentidade: string;
 }> = {
   "pt-BR": {
     titulo: "Domínio", semRestaurante: "Ainda não existe um registro de restaurante pra essa conta — fale com o suporte.",
@@ -44,6 +46,10 @@ const CONTEUDO: Record<RestauranteLocale, {
       <strong>Atenção:</strong> apontar o domínio pra gente <strong>substitui</strong> o que está ali hoje — não é uma integração lado a lado. Se você já tem um site em <code>www.seurestaurante.com.br</code>, por exemplo, e não quer perdê-lo, cadastre um subdomínio diferente aqui (tipo <code>cardapio.seurestaurante.com.br</code> ou <code>pedidos.seurestaurante.com.br</code>) em vez do endereço principal — assim os dois convivem.
       {" "}E o CNAME só funciona em subdomínio: pro domínio raiz sem <code>www</code> (ex: <code>seurestaurante.com.br</code> puro), o registro certo é do tipo <strong>A</strong> apontando pro IP <code>76.76.21.21</code>, não CNAME.
     </>,
+    identidadeTitulo: "Identidade visual da loja",
+    identidadeDescricao: "Logo, foto de capa e cor da marca que aparecem na sua loja pública. Cole o link de uma imagem já hospedada (ex: no seu site, Google Drive público, Imgur) — não é upload de arquivo.",
+    logoLabel: "URL do logo", capaLabel: "URL da foto de capa", corLabel: "Cor da marca",
+    salvarIdentidade: "Salvar identidade visual",
   },
   it: {
     titulo: "Dominio", semRestaurante: "Non esiste ancora un ristorante registrato per questo account — contatta l'assistenza.",
@@ -66,6 +72,10 @@ const CONTEUDO: Record<RestauranteLocale, {
       <strong>Attenzione:</strong> puntare il dominio verso di noi <strong>sostituisce</strong> quello che c&apos;è oggi — non è un&apos;integrazione affiancata. Se hai già un sito su <code>www.ilsuoristorante.it</code>, ad esempio, e non vuoi perderlo, registra qui un sottodominio diverso (tipo <code>menu.ilsuoristorante.it</code> o <code>ordini.ilsuoristorante.it</code>) invece dell&apos;indirizzo principale — così convivono entrambi.
       {" "}Il CNAME funziona solo su un sottodominio: per il dominio radice senza <code>www</code> (es: <code>ilsuoristorante.it</code> puro), il record giusto è di tipo <strong>A</strong> verso l&apos;IP <code>76.76.21.21</code>, non CNAME.
     </>,
+    identidadeTitulo: "Identità visiva del negozio",
+    identidadeDescricao: "Logo, foto di copertina e colore del marchio che appaiono nel tuo negozio pubblico. Incolla il link di un'immagine già ospitata altrove (es: sul tuo sito, Google Drive pubblico, Imgur) — non è un caricamento di file.",
+    logoLabel: "URL del logo", capaLabel: "URL della foto di copertina", corLabel: "Colore del marchio",
+    salvarIdentidade: "Salva identità visiva",
   },
 };
 
@@ -81,7 +91,7 @@ export default async function DominioPage() {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, name, slug")
+    .select("id, name, slug, logo_url, capa_url, cor_primaria")
     .eq("owner_user_id", restaurantOwnerId)
     .maybeSingle();
 
@@ -184,6 +194,48 @@ export default async function DominioPage() {
           </div>
         ))}
         {(dominios ?? []).length === 0 && <p className="text-sm text-stone-500">{t.nenhumDominio}</p>}
+      </section>
+
+      <section className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
+        <h2 className="font-semibold text-stone-900">{t.identidadeTitulo}</h2>
+        <p className="mt-1 text-sm text-stone-600">{t.identidadeDescricao}</p>
+        <form action={updateIdentidadeVisual} className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="text-sm text-stone-600 sm:col-span-2">
+            <span className="mb-1 block text-xs text-stone-500">{t.logoLabel}</span>
+            <input
+              name="logo_url"
+              type="url"
+              defaultValue={restaurant.logo_url ?? ""}
+              placeholder="https://..."
+              className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="text-sm text-stone-600 sm:col-span-2">
+            <span className="mb-1 block text-xs text-stone-500">{t.capaLabel}</span>
+            <input
+              name="capa_url"
+              type="url"
+              defaultValue={restaurant.capa_url ?? ""}
+              placeholder="https://..."
+              className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="text-sm text-stone-600">
+            <span className="mb-1 block text-xs text-stone-500">{t.corLabel}</span>
+            <div className="flex items-center gap-2">
+              <input
+                name="cor_primaria"
+                type="color"
+                defaultValue={restaurant.cor_primaria ?? "#b84432"}
+                className="h-10 w-14 rounded-md border border-stone-300"
+              />
+              <span className="text-xs text-stone-400">{restaurant.cor_primaria ?? "#b84432"}</span>
+            </div>
+          </label>
+          <button type="submit" className="h-fit w-fit self-end rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white">
+            {t.salvarIdentidade}
+          </button>
+        </form>
       </section>
     </div>
   );

@@ -161,12 +161,20 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
     ? `https://wa.me/${whatsappNumber}?text=${retiradaMessage}`
     : `mailto:${contactEmail}?subject=${encodeURIComponent(`Pedido para retirada — ${restaurant.name}`)}&body=${retiradaMessage}`;
 
+  const corPersonalizada = !ehPranzo && restaurant.corPrimaria ? ({ "--orange": restaurant.corPrimaria } as React.CSSProperties) : undefined;
+
   return (
     <CartProvider>
-      <main className={styles.page}>
+      <main className={styles.page} style={corPersonalizada}>
         <header className={styles.header}>
           <Link href={`/loja/${restaurant.slug}`} className={styles.brand} aria-label={`${restaurant.name}, início`}>
-            <span className={styles.brandMark}><LeafMark /></span>
+            {restaurant.logoUrl ? (
+              <span className={styles.brandMark} style={{ overflow: "hidden" }}>
+                <Image src={restaurant.logoUrl} alt="" width={42} height={42} style={{ objectFit: "cover", width: "100%", height: "100%" }} />
+              </span>
+            ) : (
+              <span className={styles.brandMark}><LeafMark /></span>
+            )}
             <span>
               <strong>{restaurant.name.toUpperCase()}</strong>
               {ehPranzo && <small>cucina italiana</small>}
@@ -227,7 +235,7 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
             </div>
           </section>
         ) : (
-          <section className={styles.hero}>
+          <section className={styles.hero} style={restaurant.capaUrl ? undefined : { gridTemplateColumns: "1fr" }}>
             <div className={styles.heroCopy}>
               <h1>{restaurant.name}</h1>
               <p className={styles.heroText}>Veja o cardápio de hoje e faça seu pedido.</p>
@@ -237,6 +245,20 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
                 </a>
               </div>
             </div>
+            {restaurant.capaUrl && (
+              <div className={styles.heroVisual}>
+                <div className={styles.heroImageWrap}>
+                  <Image
+                    src={restaurant.capaUrl}
+                    alt={restaurant.name}
+                    fill
+                    sizes="(max-width: 900px) 92vw, 48vw"
+                    className={styles.heroImage}
+                    priority
+                  />
+                </div>
+              </div>
+            )}
           </section>
         )}
 

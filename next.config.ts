@@ -7,6 +7,12 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "6mb",
     },
   },
+  images: {
+    // Fotos de produto, logo e capa de loja são sempre uma URL colada pelo
+    // dono (hospedada em outro lugar), nunca upload — sem isso o
+    // next/image recusa qualquer host que não esteja explicitamente aqui.
+    remotePatterns: [{ protocol: "https", hostname: "**" }],
+  },
   turbopack: {
     root: path.join(__dirname),
   },
