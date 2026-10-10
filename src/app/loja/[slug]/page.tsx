@@ -20,6 +20,55 @@ import { getPaymentProviderForRestaurant } from "@/lib/delivery/providers";
 // "pranzo", a página já funciona com os dados certos, só com uma capa
 // simples no lugar da identidade visual do Pranzo.
 
+type LojaLocale = "pt-BR" | "it";
+
+function resolverLocaleLoja(defaultLocale: string): LojaLocale {
+  return defaultLocale === "it" ? "it" : "pt-BR";
+}
+
+const CONTEUDO_LOJA: Record<LojaLocale, {
+  navCardapio: string; fazerPedido: string; heroTextoGenerico: string; verCardapio: string;
+  cardapioEyebrow: string; cardapioTitulo: string; cardapioDescricao: string;
+  menuVazio: string; adicionarSacola: string;
+  sobremesasEyebrow: string; sobremesasTitulo: string; bebidasEyebrow: string; bebidasTitulo: string; adicionar: string;
+  menuCtaPergunta: string; menuCtaBotao: string;
+  voltarTopo: string; pedidoVia: string; naoAchouBairro: string; pecaRetirada: string;
+  mensagemPedido: (nome: string) => string; mensagemRetirada: (nome: string) => string; assuntoPedido: (nome: string) => string;
+}> = {
+  "pt-BR": {
+    navCardapio: "Cardápio", fazerPedido: "Fazer pedido",
+    heroTextoGenerico: "Veja o cardápio de hoje e faça seu pedido.", verCardapio: "Ver cardápio",
+    cardapioEyebrow: "Nosso cardápio", cardapioTitulo: "Cardápio.",
+    cardapioDescricao: "Nosso cardápio muda ao longo da semana para você sempre ter um almoço especial esperando.",
+    menuVazio: "Nenhum prato disponível hoje — volte mais tarde ou confira nossas bebidas e sobremesas.",
+    adicionarSacola: "Adicionar à sacola",
+    sobremesasEyebrow: "Para fechar com chave de ouro", sobremesasTitulo: "Sobremesas.",
+    bebidasEyebrow: "Para beber", bebidasTitulo: "Bebidas.", adicionar: "Adicionar",
+    menuCtaPergunta: "Quer saber quais pratos estão saindo hoje?", menuCtaBotao: "Receber cardápio do dia",
+    voltarTopo: "Voltar ao topo ↑", pedidoVia: "Peça pelo WhatsApp e retire no local",
+    naoAchouBairro: "Não achou seu bairro?", pecaRetirada: "Peça pelo WhatsApp e retire no local",
+    mensagemPedido: (nome) => `Olá! Quero conhecer o cardápio de hoje e fazer um pedido (${nome}).`,
+    mensagemRetirada: (nome) => `Olá! Meu bairro não está na área de entrega do site — gostaria de fazer um pedido para retirar no local (${nome}).`,
+    assuntoPedido: (nome) => `Pedido — ${nome}`,
+  },
+  it: {
+    navCardapio: "Menù", fazerPedido: "Ordina ora",
+    heroTextoGenerico: "Guarda il menù di oggi e fai il tuo ordine.", verCardapio: "Vedi il menù",
+    cardapioEyebrow: "Il nostro menù", cardapioTitulo: "Menù.",
+    cardapioDescricao: "Il nostro menù cambia durante la settimana, per avere sempre un pranzo speciale ad aspettarti.",
+    menuVazio: "Nessun piatto disponibile oggi — torna più tardi o guarda bevande e dolci.",
+    adicionarSacola: "Aggiungi al carrello",
+    sobremesasEyebrow: "Per finire in dolcezza", sobremesasTitulo: "Dolci.",
+    bebidasEyebrow: "Da bere", bebidasTitulo: "Bevande.", adicionar: "Aggiungi",
+    menuCtaPergunta: "Vuoi sapere quali piatti escono oggi?", menuCtaBotao: "Ricevi il menù del giorno",
+    voltarTopo: "Torna su ↑", pedidoVia: "Ordina su WhatsApp e ritira sul posto",
+    naoAchouBairro: "Non hai trovato il tuo quartiere?", pecaRetirada: "Ordina su WhatsApp e ritira sul posto",
+    mensagemPedido: (nome) => `Ciao! Vorrei conoscere il menù di oggi e fare un ordine (${nome}).`,
+    mensagemRetirada: (nome) => `Ciao! Il mio quartiere non è nell'area di consegna del sito — vorrei fare un ordine da ritirare sul posto (${nome}).`,
+    assuntoPedido: (nome) => `Ordine — ${nome}`,
+  },
+};
+
 type ItemCardapio = {
   productId: string;
   nome: string;
@@ -90,8 +139,10 @@ async function buscarZonasEntrega(admin: SupabaseClient, ownerId: string): Promi
   }));
 }
 
-function formatReal(value: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+function formatMoney(value: number, locale: LojaLocale) {
+  return locale === "it"
+    ? new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(value)
+    : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
 function ArrowIcon() {
@@ -116,9 +167,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const admin = getSupabaseAdmin();
   const restaurant = await getRestaurantBySlug(admin, slug);
   if (!restaurant) return { title: "Restaurante não encontrado" };
+  const locale = resolverLocaleLoja(restaurant.defaultLocale);
   return {
-    title: `${restaurant.name} — comida de verdade, pronta para você`,
-    description: "Veja o cardápio e faça seu pedido.",
+    title: locale === "it" ? `${restaurant.name} — cibo vero, pronto per te` : `${restaurant.name} — comida de verdade, pronta para você`,
+    description: locale === "it" ? "Guarda il menù e fai il tuo ordine." : "Veja o cardápio e faça seu pedido.",
   };
 }
 
@@ -142,24 +194,25 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
   const aceitaPix = paymentProvider?.provider === "asaas";
 
   const ehPranzo = restaurant.slug === "pranzo";
+  const locale = resolverLocaleLoja(restaurant.defaultLocale);
+  const t = CONTEUDO_LOJA[locale];
+  const formatPreco = (value: number) => formatMoney(value, locale);
 
   const whatsappNumber = (process.env.NEXT_PUBLIC_RESTAURANTE_WHATSAPP ?? "").replace(/\D/g, "");
   const contactEmail = "viverevivi37@gmail.com";
-  const orderMessage = `Olá! Quero conhecer o cardápio de hoje e fazer um pedido (${restaurant.name}).`;
+  const orderMessage = t.mensagemPedido(restaurant.name);
   const whatsappMessage = encodeURIComponent(orderMessage);
-  const emailSubject = encodeURIComponent(`Pedido — ${restaurant.name}`);
+  const emailSubject = encodeURIComponent(t.assuntoPedido(restaurant.name));
   const emailBody = encodeURIComponent(orderMessage);
   const contactHref = whatsappNumber
     ? `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`
     : `mailto:${contactEmail}?subject=${emailSubject}&body=${emailBody}`;
   const contactTarget = whatsappNumber ? "_blank" : undefined;
 
-  const retiradaMessage = encodeURIComponent(
-    `Olá! Meu bairro não está na área de entrega do site — gostaria de fazer um pedido para retirar no local (${restaurant.name}).`,
-  );
+  const retiradaMessage = encodeURIComponent(t.mensagemRetirada(restaurant.name));
   const whatsappRetiradaHref = whatsappNumber
     ? `https://wa.me/${whatsappNumber}?text=${retiradaMessage}`
-    : `mailto:${contactEmail}?subject=${encodeURIComponent(`Pedido para retirada — ${restaurant.name}`)}&body=${retiradaMessage}`;
+    : `mailto:${contactEmail}?subject=${encodeURIComponent(t.assuntoPedido(restaurant.name))}&body=${retiradaMessage}`;
 
   const corPersonalizada = !ehPranzo && restaurant.corPrimaria ? ({ "--orange": restaurant.corPrimaria } as React.CSSProperties) : undefined;
 
@@ -182,13 +235,13 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
           </Link>
 
           <nav className={styles.nav} aria-label="Navegação principal">
-            <a href="#cardapio">Cardápio</a>
+            <a href="#cardapio">{t.navCardapio}</a>
             {ehPranzo && <a href="#como-funciona">Como pedir</a>}
             {ehPranzo && <a href="#sobre">Nossa cozinha</a>}
           </nav>
 
           <a className={styles.headerCta} href={contactHref} target={contactTarget} rel="noreferrer">
-            Fazer pedido
+            {t.fazerPedido}
           </a>
         </header>
 
@@ -238,10 +291,10 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
           <section className={styles.hero} style={restaurant.capaUrl ? undefined : { gridTemplateColumns: "1fr" }}>
             <div className={styles.heroCopy}>
               <h1>{restaurant.name}</h1>
-              <p className={styles.heroText}>Veja o cardápio de hoje e faça seu pedido.</p>
+              <p className={styles.heroText}>{t.heroTextoGenerico}</p>
               <div className={styles.heroActions}>
                 <a className={styles.primaryButton} href="#cardapio">
-                  Ver cardápio <ArrowIcon />
+                  {t.verCardapio} <ArrowIcon />
                 </a>
               </div>
             </div>
@@ -271,10 +324,10 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
         <section id="cardapio" className={styles.menuSection}>
           <div className={styles.sectionHeading}>
             <div>
-              <p className={styles.eyebrow}><span /> Il nostro menù</p>
-              <h2>Cardápio.</h2>
+              <p className={styles.eyebrow}><span /> {ehPranzo ? "Il nostro menù" : t.cardapioEyebrow}</p>
+              <h2>{ehPranzo ? "Cardápio." : t.cardapioTitulo}</h2>
             </div>
-            <p>Nosso cardápio muda ao longo da semana para você sempre ter um almoço especial esperando.</p>
+            <p>{ehPranzo ? "Nosso cardápio muda ao longo da semana para você sempre ter um almoço especial esperando." : t.cardapioDescricao}</p>
           </div>
 
           <div className={styles.menuGrid}>
@@ -294,23 +347,23 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
                   {prato.destaque && <span className={styles.foodBadge}>{prato.destaque}</span>}
                   <h3>{prato.nome}</h3>
                   {prato.descricao && <p>{prato.descricao}</p>}
-                  <p className={styles.foodPrice}>{formatReal(prato.preco)}</p>
+                  <p className={styles.foodPrice}>{formatPreco(prato.preco)}</p>
                   <AddToCartButton productId={prato.productId} nome={prato.nome} preco={prato.preco} className={styles.foodCardCta}>
-                    Adicionar à sacola <ArrowIcon />
+                    {t.adicionarSacola} <ArrowIcon />
                   </AddToCartButton>
                 </div>
               </article>
             ))}
             {cardapio.pratos.length === 0 && (
-              <p className={styles.menuEmpty}>Nenhum prato disponível hoje — volte mais tarde ou confira nossas bebidas e sobremesas.</p>
+              <p className={styles.menuEmpty}>{t.menuVazio}</p>
             )}
           </div>
 
           {cardapio.sobremesas.length > 0 && (
             <>
               <div className={styles.dessertHeading}>
-                <p className={styles.eyebrow}><span /> Per finire in dolcezza</p>
-                <h2>Sobremesas.</h2>
+                <p className={styles.eyebrow}><span /> {ehPranzo ? "Per finire in dolcezza" : t.sobremesasEyebrow}</p>
+                <h2>{ehPranzo ? "Sobremesas." : t.sobremesasTitulo}</h2>
               </div>
 
               <div className={styles.dessertGrid}>
@@ -330,9 +383,9 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
                       {sobremesa.destaque && <span className={styles.foodBadge}>{sobremesa.destaque}</span>}
                       <h3>{sobremesa.nome}</h3>
                       {sobremesa.descricao && <p>{sobremesa.descricao}</p>}
-                      <p className={styles.foodPrice}>{formatReal(sobremesa.preco)}</p>
+                      <p className={styles.foodPrice}>{formatPreco(sobremesa.preco)}</p>
                       <AddToCartButton productId={sobremesa.productId} nome={sobremesa.nome} preco={sobremesa.preco} className={styles.foodCardCta}>
-                        Adicionar à sacola <ArrowIcon />
+                        {t.adicionarSacola} <ArrowIcon />
                       </AddToCartButton>
                     </div>
                   </article>
@@ -344,17 +397,17 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
           {cardapio.bebidas.length > 0 && (
             <>
               <div className={styles.dessertHeading}>
-                <p className={styles.eyebrow}><span /> Da bere</p>
-                <h2>Bebidas.</h2>
+                <p className={styles.eyebrow}><span /> {ehPranzo ? "Da bere" : t.bebidasEyebrow}</p>
+                <h2>{ehPranzo ? "Bebidas." : t.bebidasTitulo}</h2>
               </div>
 
               <div className={styles.drinkGrid}>
                 {cardapio.bebidas.map((bebida) => (
                   <div className={styles.drinkCard} key={bebida.productId}>
                     <span className={styles.drinkName}>{bebida.nome}</span>
-                    <span className={styles.drinkPrice}>{formatReal(bebida.preco)}</span>
+                    <span className={styles.drinkPrice}>{formatPreco(bebida.preco)}</span>
                     <AddToCartButton productId={bebida.productId} nome={bebida.nome} preco={bebida.preco} className={styles.drinkCta}>
-                      Adicionar <ArrowIcon />
+                      {t.adicionar} <ArrowIcon />
                     </AddToCartButton>
                   </div>
                 ))}
@@ -363,8 +416,8 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
           )}
 
           <div className={styles.menuCta}>
-            <p>Quer saber quais pratos estão saindo hoje?</p>
-            <a href={contactHref} target={contactTarget} rel="noreferrer">Receber cardápio do dia <ArrowIcon /></a>
+            <p>{t.menuCtaPergunta}</p>
+            <a href={contactHref} target={contactTarget} rel="noreferrer">{t.menuCtaBotao} <ArrowIcon /></a>
           </div>
         </section>
 
@@ -451,7 +504,13 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
 
         <footer className={styles.footer}>
           <div className={styles.brand}>
-            <span className={styles.brandMark}><LeafMark /></span>
+            {restaurant.logoUrl ? (
+              <span className={styles.brandMark} style={{ overflow: "hidden" }}>
+                <Image src={restaurant.logoUrl} alt="" width={42} height={42} style={{ objectFit: "cover", width: "100%", height: "100%" }} />
+              </span>
+            ) : (
+              <span className={styles.brandMark}><LeafMark /></span>
+            )}
             <span><strong>{restaurant.name.toUpperCase()}</strong>{ehPranzo && <small>cucina italiana</small>}</span>
           </div>
           {ehPranzo && <p>Comida de verdade, feita com carinho.</p>}
@@ -462,7 +521,7 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
               <Link href="/loja/pranzo/privacidade">Privacidade</Link>
             </>
           )}
-          <a href="#cardapio">Voltar ao topo ↑</a>
+          <a href="#cardapio">{t.voltarTopo}</a>
         </footer>
       </main>
       <CartBar
@@ -471,6 +530,7 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
         restaurantSlug={restaurant.slug}
         exigirCpf={exigirCpf}
         aceitaPix={aceitaPix}
+        locale={locale}
       />
     </CartProvider>
   );
