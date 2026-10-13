@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { parseNfeEntrada } from "@/lib/fiscal/nfe-entrada";
 import { requireCommerceAccess } from "@/lib/commerce-subscription";
 import { MODULOS_COMERCIO } from "@/lib/commerce-subscription";
+import { isValidCommerceQuantity } from "@/lib/commerce-quantity";
 import Papa from "papaparse";
 
 const MAX_XML_BYTES = 5 * 1024 * 1024;
@@ -296,7 +297,7 @@ export async function concluirVendaComercial(formData: FormData) {
   requested = requested.filter(item => uuidPattern.test(item.productId) && (!item.variantId || uuidPattern.test(item.variantId)) && Number.isFinite(item.quantity) && item.quantity > 0);
   if (!requested.length) go("/comercio/vendas/nova", "erro", "Adicione produtos ao carrinho.");
   const ids = [...new Set(requested.map(item => item.productId))];
-  const { data: products } = await supabase.from("commerce_products").select("id, nome, preco_venda, custo_medio, estoque_atual").eq("business_id", business.id).in("id", ids).eq("ativo", true);
+  const { data: products } = await supabase.from("commerce_products").select("id, nome, unidade, preco_venda, custo_medio, estoque_atual").eq("business_id", business.id).in("id", ids).eq("ativo", true);
   if (!products || products.length !== ids.length) go("/comercio/vendas/nova", "erro", "Um produto do carrinho não está mais disponível.");
   const byId = new Map(products.map(product => [product.id, product]));
   const variantIds=[...new Set(requested.map(item=>item.variantId).filter((id):id is string=>Boolean(id)))];
@@ -304,6 +305,7 @@ export async function concluirVendaComercial(formData: FormData) {
   if((variants??[]).length!==variantIds.length)go("/comercio/vendas/nova","erro","Uma variação não está mais disponível.");
   const variantById=new Map((variants??[]).map(variant=>[variant.id,variant]));
   const items = requested.map(item => { const base=byId.get(item.productId)!;const variant=item.variantId?variantById.get(item.variantId):null;if(variant&&variant.product_id!==base.id)go("/comercio/vendas/nova","erro","Variação não pertence ao produto.");const product={...base,nome:variant?`${base.nome} · ${variant.nome}`:base.nome,preco_venda:variant?.preco_venda??base.preco_venda,custo_medio:variant?.custo_medio??base.custo_medio,estoque_atual:variant?.estoque_atual??base.estoque_atual};const total=Number(product.preco_venda)*item.quantity;return{...item,product,total}; });
+  if (items.some(item => !isValidCommerceQuantity(item.quantity, item.product.unidade))) go("/comercio/vendas/nova", "erro", "Produtos vendidos por unidade exigem quantidade inteira.");
   if (items.some(item => Number(item.product.estoque_atual) < item.quantity)) go("/comercio/vendas/nova", "erro", "Um dos produtos não possui estoque suficiente.");
   const subtotal = items.reduce((sum, item) => sum + item.total, 0);
   const desconto = number(formData, "desconto");
