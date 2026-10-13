@@ -1847,3 +1847,27 @@ export async function updateIdentidadeVisual(formData: FormData) {
   revalidatePath("/restaurante/dominio");
   revalidatePath("/loja/[slug]", "page");
 }
+
+export async function updateContatoLoja(formData: FormData) {
+  const { supabase, restaurantOwnerId, isOwner, user } = await requireRestaurantSubscription();
+  if (!isOwner) throw new Error("Apenas o dono do restaurante pode editar o contato da loja.");
+
+  const contatoEmail = String(formData.get("contato_email") ?? "").trim() || null;
+  if (contatoEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contatoEmail)) {
+    throw new Error("Informe um e-mail de contato válido.");
+  }
+  const contatoWhatsapp = String(formData.get("contato_whatsapp") ?? "").trim() || null;
+
+  const { error } = await supabase
+    .from("restaurants")
+    .update({ contato_email: contatoEmail, contato_whatsapp: contatoWhatsapp })
+    .eq("owner_user_id", restaurantOwnerId);
+  if (error) throw new Error(`Não foi possível salvar o contato da loja: ${error.message}`);
+
+  await registrarAtividade(supabase, {
+    ownerId: restaurantOwnerId, atorEmail: user.email, acao: "contato_loja_editado", entidade: "restaurante",
+  });
+
+  revalidatePath("/restaurante/dominio");
+  revalidatePath("/loja/[slug]", "page");
+}

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireRestaurantSubscription, type RestauranteLocale } from "@/lib/subscription";
-import { addRestaurantDomain, verifyRestaurantDomain, deleteRestaurantDomain, updateIdentidadeVisual } from "@/app/restaurante/actions";
+import { addRestaurantDomain, verifyRestaurantDomain, deleteRestaurantDomain, updateIdentidadeVisual, updateContatoLoja } from "@/app/restaurante/actions";
 
 const STATUS_LABEL: Record<RestauranteLocale, Record<string, string>> = {
   "pt-BR": { pending: "Pendente de verificação", verified: "Verificado", blocked: "Bloqueado" },
@@ -24,6 +24,7 @@ const CONTEUDO: Record<RestauranteLocale, {
   guiaAviso: React.ReactNode;
   identidadeTitulo: string; identidadeDescricao: string; logoLabel: string; capaLabel: string; corLabel: string;
   salvarIdentidade: string;
+  contatoTitulo: string; contatoDescricao: string; contatoEmailLabel: string; contatoWhatsappLabel: string; salvarContato: string;
 }> = {
   "pt-BR": {
     titulo: "Domínio", semRestaurante: "Ainda não existe um registro de restaurante pra essa conta — fale com o suporte.",
@@ -50,6 +51,10 @@ const CONTEUDO: Record<RestauranteLocale, {
     identidadeDescricao: "Logo, foto de capa e cor da marca que aparecem na sua loja pública. Cole o link de uma imagem já hospedada (ex: no seu site, Google Drive público, Imgur) — não é upload de arquivo.",
     logoLabel: "URL do logo", capaLabel: "URL da foto de capa", corLabel: "Cor da marca",
     salvarIdentidade: "Salvar identidade visual",
+    contatoTitulo: "Contato da loja",
+    contatoDescricao: "E-mail e WhatsApp usados no botão \"Fazer pedido\" e no rodapé da sua loja pública. Sem isso configurado, usamos o e-mail da sua conta.",
+    contatoEmailLabel: "E-mail de contato", contatoWhatsappLabel: "WhatsApp (com DDI, ex: +5511999999999)",
+    salvarContato: "Salvar contato",
   },
   it: {
     titulo: "Dominio", semRestaurante: "Non esiste ancora un ristorante registrato per questo account — contatta l'assistenza.",
@@ -76,6 +81,10 @@ const CONTEUDO: Record<RestauranteLocale, {
     identidadeDescricao: "Logo, foto di copertina e colore del marchio che appaiono nel tuo negozio pubblico. Incolla il link di un'immagine già ospitata altrove (es: sul tuo sito, Google Drive pubblico, Imgur) — non è un caricamento di file.",
     logoLabel: "URL del logo", capaLabel: "URL della foto di copertina", corLabel: "Colore del marchio",
     salvarIdentidade: "Salva identità visiva",
+    contatoTitulo: "Contatto del negozio",
+    contatoDescricao: "E-mail e WhatsApp usati nel pulsante \"Ordina ora\" e nel footer del tuo negozio pubblico. Senza questo configurato, usiamo l'e-mail del tuo account.",
+    contatoEmailLabel: "E-mail di contatto", contatoWhatsappLabel: "WhatsApp (con prefisso, es: +393331234567)",
+    salvarContato: "Salva contatto",
   },
 };
 
@@ -91,7 +100,7 @@ export default async function DominioPage() {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, name, slug, logo_url, capa_url, cor_primaria")
+    .select("id, name, slug, logo_url, capa_url, cor_primaria, contato_email, contato_whatsapp")
     .eq("owner_user_id", restaurantOwnerId)
     .maybeSingle();
 
@@ -234,6 +243,36 @@ export default async function DominioPage() {
           </label>
           <button type="submit" className="h-fit w-fit self-end rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white">
             {t.salvarIdentidade}
+          </button>
+        </form>
+      </section>
+
+      <section className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
+        <h2 className="font-semibold text-stone-900">{t.contatoTitulo}</h2>
+        <p className="mt-1 text-sm text-stone-600">{t.contatoDescricao}</p>
+        <form action={updateContatoLoja} className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="text-sm text-stone-600">
+            <span className="mb-1 block text-xs text-stone-500">{t.contatoEmailLabel}</span>
+            <input
+              name="contato_email"
+              type="email"
+              defaultValue={restaurant.contato_email ?? ""}
+              placeholder="contato@seurestaurante.com"
+              className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="text-sm text-stone-600">
+            <span className="mb-1 block text-xs text-stone-500">{t.contatoWhatsappLabel}</span>
+            <input
+              name="contato_whatsapp"
+              type="tel"
+              defaultValue={restaurant.contato_whatsapp ?? ""}
+              placeholder="+5511999999999"
+              className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <button type="submit" className="h-fit w-fit self-end rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white">
+            {t.salvarContato}
           </button>
         </form>
       </section>

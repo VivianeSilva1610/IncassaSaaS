@@ -198,8 +198,11 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
   const t = CONTEUDO_LOJA[locale];
   const formatPreco = (value: number) => formatMoney(value, locale);
 
-  const whatsappNumber = (process.env.NEXT_PUBLIC_RESTAURANTE_WHATSAPP ?? "").replace(/\D/g, "");
-  const contactEmail = "viverevivi37@gmail.com";
+  const whatsappNumber = (restaurant.contatoWhatsapp ?? "").replace(/\D/g, "");
+  // getRestaurantBySlug já cai no e-mail de login do dono quando não há
+  // contato_email configurado — na prática isso nunca fica nulo, já que
+  // todo restaurante tem um membro "owner". O "" é só defesa de tipo.
+  const contactEmail = restaurant.contatoEmail ?? "";
   const orderMessage = t.mensagemPedido(restaurant.name);
   const whatsappMessage = encodeURIComponent(orderMessage);
   const emailSubject = encodeURIComponent(t.assuntoPedido(restaurant.name));
@@ -514,7 +517,7 @@ export default async function LojaPage({ params }: { params: Promise<{ slug: str
             <span><strong>{restaurant.name.toUpperCase()}</strong>{ehPranzo && <small>cucina italiana</small>}</span>
           </div>
           {ehPranzo && <p>Comida de verdade, feita com carinho.</p>}
-          <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
+          {contactEmail && <a href={`mailto:${contactEmail}`}>{contactEmail}</a>}
           {ehPranzo && (
             <>
               <Link href="/loja/pranzo/termos">Termos de Uso</Link>
