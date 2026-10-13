@@ -7,6 +7,23 @@ import { sendMetaEvent } from "@/lib/meta-capi";
 import type { Locale } from "@/lib/locale";
 import { deduzirEstoquePorVenda } from "@/lib/delivery/stock";
 
+function commerceSubscriptionStatus(status: Stripe.Subscription.Status) {
+  return (["trialing", "active", "past_due", "canceled"] as const).find(value => value === status) ?? "inactive";
+}
+
+function commerceSubscriptionCycle(subscription: Stripe.Subscription) {
+  const periodEnd = subscription.items.data.reduce<number | null>((latest, item) => {
+    if (!item.current_period_end) return latest;
+    return latest === null ? item.current_period_end : Math.max(latest, item.current_period_end);
+  }, null);
+  return {
+    trial_ends_at: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
+    current_period_ends_at: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+    cancel_at_period_end: subscription.cancel_at_period_end,
+    updated_at: new Date().toISOString(),
+  };
+}
+
 async function handleKitIncassaCheckout(session: Stripe.Checkout.Session) {
   const email = session.customer_details?.email ?? session.customer_email;
   if (!email || session.payment_status !== "paid") return;
@@ -91,25 +108,28 @@ async function handlePranzoPedidoCheckout(session: Stripe.Checkout.Session) {
 // pelo metadata.product. Mapeia pra coluna booleana em
 // restaurant_subscriptions — essa tabela precisa já existir pro usuário
 // (criada pela assinatura principal), por isso é update, não upsert.
-const COLUNA_POR_ADDON: Record<string, string> = {
-  restaurante_addon_modulos: "addon_modulos_ilimitados",
-  restaurante_addon_equipe: "addon_equipe_ilimitada",
-  restaurante_addon_abas: "addon_abas_ilimitadas",
+const CONFIG_POR_ADDON: Record<string, { table: "restaurant_subscriptions" | "commerce_subscriptions"; column: string }> = {
+  restaurante_addon_modulos: { table: "restaurant_subscriptions", column: "addon_modulos_ilimitados" },
+  restaurante_addon_equipe: { table: "restaurant_subscriptions", column: "addon_equipe_ilimitada" },
+  restaurante_addon_abas: { table: "restaurant_subscriptions", column: "addon_abas_ilimitadas" },
+  comercio_addon_modulos: { table: "commerce_subscriptions", column: "addon_modulos_ilimitados" },
+  comercio_addon_equipe: { table: "commerce_subscriptions", column: "addon_equipe_ilimitada" },
+  comercio_addon_abas: { table: "commerce_subscriptions", column: "addon_abas_ilimitadas" },
 };
 
 async function handleAddonCheckout(userId: string, product: string) {
-  const coluna = COLUNA_POR_ADDON[product];
-  if (!coluna) return false;
+  const config = CONFIG_POR_ADDON[product];
+  if (!config) return false;
   const supabase = getSupabaseAdmin();
-  await supabase.from("restaurant_subscriptions").update({ [coluna]: true }).eq("user_id", userId);
+  await supabase.from(config.table).update({ [config.column]: true }).eq("user_id", userId);
   return true;
 }
 
 async function handleAddonSubscriptionDeleted(userId: string, product: string) {
-  const coluna = COLUNA_POR_ADDON[product];
-  if (!coluna) return false;
+  const config = CONFIG_POR_ADDON[product];
+  if (!config) return false;
   const supabase = getSupabaseAdmin();
-  await supabase.from("restaurant_subscriptions").update({ [coluna]: false }).eq("user_id", userId);
+  await supabase.from(config.table).update({ [config.column]: false }).eq("user_id", userId);
   return true;
 }
 
@@ -120,7 +140,7 @@ async function handleSubscriptionCheckout(session: Stripe.Checkout.Session) {
   const productRaw = session.metadata?.product ?? "incassa";
   if (await handleAddonCheckout(userId, productRaw)) return;
 
-  const product = productRaw === "restaurante" ? "restaurante" : "incassa";
+  const product = productRaw === "restaurante" ? "restaurante" : productRaw === "comercio" ? "comercio" : "incassa";
 
   const stripe = getStripe();
   const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
@@ -138,6 +158,17 @@ async function handleSubscriptionCheckout(session: Stripe.Checkout.Session) {
       },
       { onConflict: "user_id" },
     );
+    return;
+  }
+
+  if (product === "comercio") {
+    await supabase.from("commerce_subscriptions").upsert({
+      user_id: userId,
+      stripe_customer_id: session.customer as string,
+      stripe_subscription_id: subscription.id,
+      subscription_status: commerceSubscriptionStatus(subscription.status),
+      ...commerceSubscriptionCycle(subscription),
+    }, { onConflict: "user_id" });
     return;
   }
 
@@ -168,10 +199,11 @@ async function handleSubscriptionUpdated(
 ) {
   const userId = subscription.metadata?.user_id;
   if (!userId) return;
-  if (COLUNA_POR_ADDON[subscription.metadata?.product ?? ""]) return; // add-on é on/off, sem status próprio a sincronizar aqui
+  if (CONFIG_POR_ADDON[subscription.metadata?.product ?? ""]) return; // add-on é on/off, sem status próprio a sincronizar aqui
 
   const supabase = getSupabaseAdmin();
-  const product = subscription.metadata?.product === "restaurante" ? "restaurante" : "incassa";
+  const productRaw = subscription.metadata?.product;
+  const product = productRaw === "restaurante" ? "restaurante" : productRaw === "comercio" ? "comercio" : "incassa";
 
   if (product === "restaurante") {
     await supabase
@@ -181,6 +213,14 @@ async function handleSubscriptionUpdated(
         trial_ends_at: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
       })
       .eq("user_id", userId);
+    return;
+  }
+
+  if (product === "comercio") {
+    await supabase.from("commerce_subscriptions").update({
+      subscription_status: commerceSubscriptionStatus(subscription.status),
+      ...commerceSubscriptionCycle(subscription),
+    }).eq("user_id", userId);
     return;
   }
 
@@ -215,11 +255,23 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   if (!userId) return;
   if (await handleAddonSubscriptionDeleted(userId, subscription.metadata?.product ?? "")) return;
 
-  const product = subscription.metadata?.product === "restaurante" ? "restaurante" : "incassa";
+  const productRaw = subscription.metadata?.product;
+  const product = productRaw === "restaurante" ? "restaurante" : productRaw === "comercio" ? "comercio" : "incassa";
   const supabase = getSupabaseAdmin();
 
   if (product === "restaurante") {
     await supabase.from("restaurant_subscriptions").update({ subscription_status: "canceled" }).eq("user_id", userId);
+    return;
+  }
+
+
+  if (product === "comercio") {
+    await supabase.from("commerce_subscriptions").update({
+      subscription_status: "canceled",
+      cancel_at_period_end: false,
+      current_period_ends_at: null,
+      updated_at: new Date().toISOString(),
+    }).eq("user_id", userId);
     return;
   }
 

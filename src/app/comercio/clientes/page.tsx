@@ -1,0 +1,14 @@
+import Link from "next/link";
+import { requireCommerceAccess } from "@/lib/commerce-subscription";
+import { adicionarClienteComercio } from "../actions";
+
+export default async function ClientesPage({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
+  const { supabase, business } = await requireCommerceAccess("clientes"); if (!business) return null;
+  const messages = await searchParams;
+  const { data } = await supabase.from("commerce_customers").select("id,nome,documento,email,telefone,ativo,limite_credito").eq("business_id", business.id).order("ativo", { ascending: false }).order("nome");
+  return <div><h1 className="text-3xl font-bold">Clientes</h1><p className="mt-1 text-sm text-stone-500">Cadastro, histórico de compras e controle comercial do crediário.</p>{messages.erro && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{messages.erro}</p>}
+    <form action={adicionarClienteComercio} className="mt-6 grid gap-3 rounded-2xl border border-stone-200 bg-white p-5 sm:grid-cols-2"><input name="nome" required placeholder="Nome" className="rounded-xl border p-3"/><input name="documento" placeholder="CPF/CNPJ" className="rounded-xl border p-3"/><input name="email" type="email" placeholder="E-mail" className="rounded-xl border p-3"/><input name="telefone" placeholder="Telefone" className="rounded-xl border p-3"/><label className="sm:col-span-2"><span className="mb-1 block text-xs font-medium text-stone-600">Limite de crediário (vazio = sem limite configurado; zero = bloqueado)</span><input name="limite_credito" type="number" min="0" step="0.01" placeholder="Ex.: 500,00" className="w-full rounded-xl border p-3"/></label><button className="rounded-xl bg-stone-900 p-3 text-sm font-semibold text-white sm:col-span-2">Cadastrar cliente</button></form>
+    <div className="mt-6 grid gap-3 sm:grid-cols-2">{(data ?? []).map(customer => <Link href={`/comercio/clientes/${customer.id}`} key={customer.id} className={`rounded-2xl border bg-white p-5 transition hover:border-amber-300 ${customer.ativo ? "border-stone-200" : "border-stone-200 opacity-60"}`}><div className="flex justify-between gap-3"><div><p className="font-semibold">{customer.nome}</p><p className="mt-1 text-xs text-stone-500">{customer.documento || customer.email || customer.telefone || "Sem contato"}</p></div><span className="text-xs font-semibold uppercase text-stone-500">{customer.ativo ? "ativo" : "inativo"}</span></div><p className="mt-3 text-xs text-stone-500">Limite: {customer.limite_credito === null ? "não configurado" : `R$ ${Number(customer.limite_credito).toFixed(2)}`}</p></Link>)}{!data?.length && <p className="rounded-2xl border border-dashed border-stone-300 p-8 text-center text-sm text-stone-500 sm:col-span-2">Nenhum cliente cadastrado.</p>}</div>
+  </div>;
+}
+

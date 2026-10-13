@@ -1,0 +1,14 @@
+import { requireCommerceAccess } from "@/lib/commerce-subscription";
+import { adicionarFornecedorComercio, alternarFornecedorComercio } from "../actions";
+
+export default async function FornecedoresPage({ searchParams }: { searchParams: Promise<{ sucesso?: string; erro?: string }> }) {
+  const { supabase, business } = await requireCommerceAccess("compras");
+  if (!business) return null;
+  const messages = await searchParams;
+  const { data: suppliers } = await supabase.from("commerce_suppliers").select("id,nome,documento,email,telefone,ativo").eq("business_id", business.id).order("nome");
+  return <div><h1 className="text-3xl font-bold text-stone-950">Fornecedores</h1><p className="mt-1 text-sm text-stone-500">Cadastre quem fornece as mercadorias e vincule às compras e contas a pagar.</p>
+    {messages.sucesso && <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{messages.sucesso}</p>}{messages.erro && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{messages.erro}</p>}
+    <form action={adicionarFornecedorComercio} className="mt-6 grid gap-3 rounded-2xl border border-stone-200 bg-white p-5 sm:grid-cols-2"><input name="nome" required placeholder="Nome ou razão social" className="rounded-xl border border-stone-300 p-3"/><input name="documento" inputMode="numeric" placeholder="CPF ou CNPJ" className="rounded-xl border border-stone-300 p-3"/><input name="email" type="email" placeholder="E-mail" className="rounded-xl border border-stone-300 p-3"/><input name="telefone" placeholder="Telefone" className="rounded-xl border border-stone-300 p-3"/><textarea name="observacoes" placeholder="Observações" className="min-h-20 rounded-xl border border-stone-300 p-3 sm:col-span-2"/><button className="rounded-xl bg-stone-900 p-3 text-sm font-semibold text-white sm:col-span-2">Cadastrar fornecedor</button></form>
+    <section className="mt-6 overflow-hidden rounded-2xl border border-stone-200 bg-white"><div className="divide-y divide-stone-100">{(suppliers ?? []).map(supplier => <div key={supplier.id} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-semibold text-stone-900">{supplier.nome}</p><p className="text-xs text-stone-500">{supplier.documento || "Sem documento"}{supplier.email ? ` · ${supplier.email}` : ""}{supplier.telefone ? ` · ${supplier.telefone}` : ""}</p></div><form action={alternarFornecedorComercio.bind(null, supplier.id, !supplier.ativo)}><button className={`rounded-lg px-3 py-2 text-xs font-semibold ${supplier.ativo ? "bg-emerald-50 text-emerald-700" : "bg-stone-100 text-stone-600"}`}>{supplier.ativo ? "Ativo · desativar" : "Inativo · ativar"}</button></form></div>)}{!suppliers?.length && <p className="p-8 text-center text-sm text-stone-500">Nenhum fornecedor cadastrado.</p>}</div></section>
+  </div>;
+}

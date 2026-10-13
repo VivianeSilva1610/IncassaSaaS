@@ -1,0 +1,14 @@
+create table commerce_activity_log(id bigint generated always as identity primary key,business_id uuid not null,owner_id uuid not null,actor_id uuid default auth.uid(),actor_email text,acao text not null,entidade text not null,entidade_id text,created_at timestamptz not null default now(),foreign key(business_id,owner_id) references commerce_businesses(id,owner_id) on delete cascade);
+create index commerce_activity_log_tenant_date_idx on commerce_activity_log(business_id,created_at desc);
+alter table commerce_activity_log enable row level security;
+create policy commerce_activity_log_select on commerce_activity_log for select using(owner_id=commerce_owner_atual());
+create policy commerce_activity_log_insert on commerce_activity_log for insert with check(owner_id=commerce_owner_atual());
+create or replace function commerce_log_activity()returns trigger language plpgsql security invoker set search_path=public as $$declare r record;begin if tg_op='DELETE' then r:=old;else r:=new;end if;insert into commerce_activity_log(business_id,owner_id,actor_id,actor_email,acao,entidade,entidade_id)values(r.business_id,r.owner_id,auth.uid(),auth.jwt()->>'email',lower(tg_op),tg_argv[0],r.id::text);return r;end;$$;
+create trigger commerce_log_products after insert or update or delete on commerce_products for each row execute function commerce_log_activity('produto');
+create trigger commerce_log_sales after insert or update or delete on commerce_sales for each row execute function commerce_log_activity('venda');
+create trigger commerce_log_entries after insert or update or delete on commerce_stock_entries for each row execute function commerce_log_activity('compra');
+create trigger commerce_log_customers after insert or update or delete on commerce_customers for each row execute function commerce_log_activity('cliente');
+create trigger commerce_log_suppliers after insert or update or delete on commerce_suppliers for each row execute function commerce_log_activity('fornecedor');
+create trigger commerce_log_payable after insert or update or delete on commerce_accounts_payable for each row execute function commerce_log_activity('conta_pagar');
+create trigger commerce_log_receivable after insert or update or delete on commerce_accounts_receivable for each row execute function commerce_log_activity('conta_receber');
+create trigger commerce_log_inventory after insert on commerce_inventory_movements for each row execute function commerce_log_activity('movimento_estoque');

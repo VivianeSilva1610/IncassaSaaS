@@ -155,7 +155,7 @@ export function RestaurantHomepage({
   loginHref?: string;
   legalLinks: { privacyHref: string; termsHref: string; privacyLabel: string; termsLabel: string };
 }) {
-  const contactHref = `mailto:${SUPPORT_EMAIL}`;
+  const contactHref = "https://wa.me/393403006141";
   const pageRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLElement>(null);
 
@@ -287,7 +287,7 @@ export function RestaurantHomepage({
           </p>
 
           <div className="hero-cta">
-            <a href={contactHref} style={{
+            <a href={contactHref} target="_blank" rel="noopener noreferrer" style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               padding: "14px 32px", borderRadius: 12,
               background: "linear-gradient(135deg, #f59e0b, #ea580c)",

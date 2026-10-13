@@ -39,8 +39,8 @@ export default function CriarContaPage() {
       <p className="mt-2 text-sm text-stone-600">
         Pra acessar como equipe de um restaurante. Se você está abrindo seu próprio restaurante,
         use o{" "}
-        <Link href="/cadastro-restaurante" className="text-amber-700 underline underline-offset-2">
-          cadastro de restaurante
+        <Link href="/escolher-sistema" className="text-amber-700 underline underline-offset-2">
+          cadastro do sistema
         </Link>{" "}
         em vez desta página.
       </p>
