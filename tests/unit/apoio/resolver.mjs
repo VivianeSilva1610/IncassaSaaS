@@ -16,6 +16,11 @@ function arquivo(href) {
 }
 
 export async function resolve(especificador, contexto, proximo) {
+  // `server-only` é uma sentinela do Next, sem implementação Node. Nos testes
+  // puros ela vira um módulo vazio; a proteção real continua no build Next.
+  if (especificador === "server-only") {
+    return { url: "data:text/javascript,export%20default%20undefined", shortCircuit: true };
+  }
   if (especificador.startsWith("@/")) {
     const achado = arquivo(new URL(especificador.slice(2), SRC).href);
     if (achado) return { url: achado, shortCircuit: true };

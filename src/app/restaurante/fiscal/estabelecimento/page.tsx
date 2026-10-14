@@ -2,6 +2,7 @@ import { updateFiscalConfig, updateFiscalConfigIt } from "@/app/restaurante/acti
 import { requireRestaurantSubscription } from "@/lib/subscription";
 import { DetectarPaisForm } from "./detectar-pais-form";
 import { AVISO_PROVEDORES, PROVEDORES_FISCAIS, STATUS_PROVEDOR_LABEL } from "@/lib/fiscal/core/provedores-suportados";
+import { pendenciasParaHomologacaoPranzo } from "@/lib/fiscal/restaurante/prontidao";
 
 // Valores que telas antigas deixavam escolher mas que não têm integração.
 // Continuam aparecendo só pra quem já tinha salvo, marcados como não
@@ -94,6 +95,7 @@ export default async function EstabelecimentoFiscalPage() {
 
   const { data: config } = await supabase.from("del_fiscal_config").select("*").eq("owner_id", restaurantOwnerId).maybeSingle();
   const completo = !!(config?.cnpj && config?.razao_social && config?.municipio && config?.uf);
+  const pendenciasHomologacao = pendenciasParaHomologacaoPranzo(config);
 
   return (
     <div>
@@ -104,6 +106,12 @@ export default async function EstabelecimentoFiscalPage() {
         {completo
           ? "Cadastro básico preenchido. A produção continua bloqueada até a homologação e validação fiscal."
           : "Complete CNPJ, razão social, município e UF para preparar a validação com o contador."}
+      </div>
+
+      <div className="mt-4 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+        <p className="font-semibold">Fase atual do Pranzo: preparação sem CNPJ</p>
+        <p className="mt-1">Continue usando apenas a Simulação. Não preencha CNPJ, inscrição estadual, CRT ou certificado com dados fictícios. Quando a empresa for aberta, estes itens liberarão a homologação oficial:</p>
+        <p className="mt-2 text-xs leading-5">{pendenciasHomologacao.join(" · ")}</p>
       </div>
 
       <form action={updateFiscalConfig} className="mt-6 grid gap-3 rounded-xl border border-stone-200 bg-white p-5 sm:grid-cols-2">
@@ -133,7 +141,7 @@ export default async function EstabelecimentoFiscalPage() {
           <input name="cep" defaultValue={config?.cep ?? ""} placeholder="CEP" className="min-w-0 flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm" />
         </div>
         <select name="provedor" defaultValue={config?.provedor ?? ""} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
-          <option value="">Nenhum provedor contratado</option>
+          <option value="">Nenhum motor selecionado</option>
           <option value="simulado">🧪 Simulação</option>
           {PROVEDORES_FISCAIS.map((p) => (
             <option key={p.id} value={p.id}>{p.nome} — {STATUS_PROVEDOR_LABEL[p.status]}</option>
@@ -145,12 +153,12 @@ export default async function EstabelecimentoFiscalPage() {
         <p className="text-xs leading-5 text-amber-800 sm:col-span-2">{AVISO_PROVEDORES}</p>
         <label className="text-sm text-stone-600">
           <span className="mb-1 block text-xs text-stone-500">
-            Chave de API do provedor{mascarar(config?.provedor_api_key) ? ` (atual: ${mascarar(config?.provedor_api_key)})` : ""}
+            Credencial de provedor externo{mascarar(config?.provedor_api_key) ? ` (atual: ${mascarar(config?.provedor_api_key)})` : ""}
           </span>
           <input
             name="provedor_api_key"
             type="password"
-            placeholder={config?.provedor_api_key ? "Deixe em branco para manter a chave atual" : "Credenciais da sua conta no provedor"}
+            placeholder={config?.provedor_api_key ? "Deixe em branco para manter a credencial atual" : "Somente para integração externa futura"}
             className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
           />
         </label>

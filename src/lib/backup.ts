@@ -13,7 +13,7 @@ const LIMITE_LINHAS_POR_TABELA = 200_000;
 // fiscal de cada cliente). Ficam inteiras só na cópia do Storage privado
 // (mesmo projeto onde já estão em texto aberto); a cópia que sai por e-mail
 // leva o valor substituído.
-const COLUNA_SEGREDO = /(api_key|secret|senha|password|private_key)/i;
+const COLUNA_SEGREDO = /(api_key|secret|senha|password|private_key|certificado|token|^cifra$|^iv$|^auth_tag$|^csc$)/i;
 export const VALOR_REDIGIDO = "[REDIGIDO]";
 
 export const FORMATO_BACKUP = 2;
