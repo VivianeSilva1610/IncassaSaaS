@@ -70,9 +70,9 @@ Claude não deve alterar nesta frente:
 
 ## Frente Claude — emissão fiscal unificada (Restaurante + Comércio)
 
-Responsabilidade: uma camada fiscal comum aos dois sistemas, com a Focus NFe como primeiro provedor. O cliente contrata o provedor. Plano completo em `docs/comercio-plano-nfe-provedores.md`. Autorizada pela Viviane em 2026-10-14.
+Responsabilidade: uma camada fiscal comum aos dois sistemas, com o motor privado INCASSA Fiscal comunicando diretamente com a SEFAZ como caminho principal. A Focus NFe permanece preservada como alternativa testável futura, sem ser dependência. Plano completo em `docs/comercio-plano-nfe-provedores.md`. Autorizada pela Viviane em 2026-10-14.
 
-Status: Fases 0, 1 e 7 concluídas em 2026-10-14 (linha de base + camada comum, 19 testes de unidade passando, lint e build ok; revisão do contador virou só aviso, migration `0122` executada no Supabase). Próximas fases dependem da conta de homologação da Focus NFe. Sugestão ao Codex: incluir o comando dos testes de unidade (ver plano) nos scripts do `package.json`, que é reservado à frente Codex.
+Status: Fases 0, 1 e 7 concluídas em 2026-10-14 (linha de base + camada comum, 19 testes de unidade passando, lint e build ok; revisão do contador virou só aviso, migration `0122` executada no Supabase). Próximas fases do motor direto dependem do credenciamento fiscal, certificado A1 e validação contábil; a conta Focus não bloqueia mais o avanço. Sugestão ao Codex: incluir o comando dos testes de unidade (ver plano) nos scripts do `package.json`, que é reservado à frente Codex.
 
 Arquivos desta frente:
 

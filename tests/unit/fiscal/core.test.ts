@@ -59,3 +59,8 @@ test("nenhum provedor é anunciado como disponível antes da liberação", () =>
   // (Fase 9 do plano). Se este teste falhar, confira se o piloto acabou.
   assert.ok(PROVEDORES_FISCAIS.every((p) => p.status !== "disponivel"));
 });
+
+test("motor direto é principal e Focus permanece preservada para teste futuro", () => {
+  assert.equal(PROVEDORES_FISCAIS[0]?.id, "incassa_direto");
+  assert.ok(PROVEDORES_FISCAIS.some((p) => p.id === "focus_nfe"));
+});

@@ -1,8 +1,8 @@
-// Camada de integração fiscal comum ao Restaurante e ao Comércio. Cada
-// cliente contrata o próprio provedor e informa a credencial — o INCASSA não
-// revende emissão nem guarda certificado. Nenhum provedor real está
-// implementado ainda: a Focus NFe é a primeira prevista (Fase 4 do plano em
-// docs/comercio-plano-nfe-provedores.md). Pra adicionar um provedor,
+// Camada de integração fiscal comum ao Restaurante e ao Comércio. O caminho
+// principal será o motor privado do INCASSA, comunicando diretamente com a
+// SEFAZ com o certificado dos estabelecimentos da proprietária. A Focus NFe
+// continua prevista como alternativa testável, sem ser dependência do motor
+// direto. Nenhum provedor real está implementado ainda. Pra adicionar um,
 // implementar ProvedorFiscal em core/provedores/ e incluir no switch abaixo;
 // o resto do sistema não muda.
 import type { DocumentoFiscal, ProdutoFiscal } from "./documento";
@@ -53,6 +53,7 @@ export function getProvedorFiscal(
   switch (provedor) {
     case "simulado":
       return new ProvedorSimulado();
+    // case "incassa_direto": return new IncassaDiretoProvider(...);
     // case "focus_nfe": return new FocusNfeProvider(opcoes.credencial, ...);
     default:
       return new ProvedorNaoConfigurado(opcoes.produto);

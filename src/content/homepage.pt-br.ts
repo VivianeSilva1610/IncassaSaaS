@@ -24,7 +24,7 @@ export const homepage = {
         "Disponível apenas no Brasil, para empresas com CNPJ. O INCASSA Comércio ainda não está disponível na Itália — nem em versão beta —, pois o sistema ainda não foi traduzido e a parte fiscal italiana ainda não foi feita.",
         "O sistema está em fase de testes. Podem ocorrer falhas, instabilidades e mudanças em telas e funções sem aviso prévio.",
         "A emissão de documentos fiscais (NF-e/NFC-e) ainda não está ativa: o módulo fiscal funciona apenas em homologação, sem validade fiscal. Continue emitindo suas notas pelo sistema que você já usa.",
-        "Quando liberada, a emissão será feita por um provedor contratado por você. O primeiro provedor suportado será a Focus NFe; outros provedores (PlugNotas, eNotas etc.) ainda não são suportados. Não contrate um provedor só para usar com o INCASSA antes de anunciarmos a liberação.",
+        "Quando liberada, a emissão usará o motor fiscal próprio do INCASSA. A integração com a Focus NFe será mantida como alternativa para testes futuros. A produção permanece bloqueada até a conclusão da homologação.",
         "Durante o beta, recomendamos manter um controle paralelo de estoque, caixa e financeiro e baixar o backup dos seus dados com frequência (disponível em Meu plano).",
         "Relatórios e DRE são gerenciais e não substituem a orientação do seu contador.",
       ],
@@ -79,7 +79,7 @@ export const homepage = {
     },
     {
       title: "Base fiscal pronta para NFC-e",
-      text: "Dados da empresa, classificação fiscal por produto e histórico de notas já organizados — prontos para conectar a um provedor de NFC-e quando você tiver Inscrição Estadual e certificado digital.",
+      text: "Dados da empresa, classificação fiscal por produto e histórico de notas já organizados — prontos para o motor fiscal quando houver Inscrição Estadual, certificado digital e homologação.",
     },
     {
       title: "Caixa e exportação para o contador",
@@ -113,7 +113,7 @@ export const homepage = {
   faqs: [
     {
       q: "Já emite nota fiscal (NFC-e) automaticamente?",
-      a: "A estrutura já está pronta — dados fiscais, classificação por produto e histórico de notas. A emissão real depende de você ter Inscrição Estadual, certificado digital e um provedor de NFC-e contratado; conectamos isso assim que você tiver.",
+      a: "A estrutura já está pronta — dados fiscais, classificação por produto e histórico de notas. A emissão real depende de Inscrição Estadual, certificado digital, credenciamento e homologação do motor fiscal.",
     },
     {
       q: "Dá pra usar em mais de um restaurante?",
