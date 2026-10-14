@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
 import { signOut } from "@/lib/auth-actions";
+import { isAdminEmail } from "@/lib/subscription";
 
 const ACTIVE_STATUSES = ["trialing", "active"];
 
@@ -20,7 +21,7 @@ export default async function SistemasPage() {
     ? await supabase.from("commerce_subscriptions").select("subscription_status").eq("user_id", commerceStaff.owner_id).maybeSingle()
     : { data: null };
 
-  const restaurant = !!restaurantStaff || (!!restaurantSub && ACTIVE_STATUSES.includes(restaurantSub.subscription_status));
+  const restaurant = isAdminEmail(user.email) || !!restaurantStaff || (!!restaurantSub && ACTIVE_STATUSES.includes(restaurantSub.subscription_status));
   const commerceSubscription = commerceOwnSub ?? commerceOwnerSub;
   const commerce = !!commerceSubscription && ACTIVE_STATUSES.includes(commerceSubscription.subscription_status);
 
