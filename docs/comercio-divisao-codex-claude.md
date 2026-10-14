@@ -68,6 +68,25 @@ Claude não deve alterar nesta frente:
 - arquivos de teste ou `package.json`
 - migrations `0115` a `0119`
 
+## Frente Claude — emissão fiscal unificada (Restaurante + Comércio)
+
+Responsabilidade: uma camada fiscal comum aos dois sistemas, com a Focus NFe como primeiro provedor. O cliente contrata o provedor. Plano completo em `docs/comercio-plano-nfe-provedores.md`. Autorizada pela Viviane em 2026-10-14.
+
+Status: Fases 0, 1 e 7 concluídas em 2026-10-14 (linha de base + camada comum, 19 testes de unidade passando, lint e build ok; revisão do contador virou só aviso, migration `0122` executada no Supabase). Próximas fases dependem da conta de homologação da Focus NFe. Sugestão ao Codex: incluir o comando dos testes de unidade (ver plano) nos scripts do `package.json`, que é reservado à frente Codex.
+
+Arquivos desta frente:
+
+- `src/lib/fiscal/core/**`, `src/lib/fiscal/restaurante/**`, `src/lib/fiscal/comercio/**`
+- `src/lib/fiscal/emitir.ts` e `src/lib/fiscal/nfce.ts` (fluxo BR do Restaurante; a API pública é preservada)
+- `tests/unit/**` (testes de unidade em Node puro, sem dependência nova; não toca em `tests/e2e/**`)
+- migrations `0122` a `0124` (a `0121` foi usada por `0121_pranzo_acesso_gestor.sql`, de outra frente, dentro da faixa Claude; não renumerar)
+
+Coordenação necessária:
+
+- `src/app/comercio/actions.ts` (frente Codex): as ações fiscais do Comércio (`prepararDocumentoFiscalComercio`, `simularDocumentoFiscalComercio`) vão chamar a camada nova a partir da Fase 5. Combinar antes de editar.
+- Tabelas `del_*` do Restaurante serão alteradas na Fase 2, para requisitos do **próprio** Restaurante (emissão real), não do Comércio.
+- O fluxo fiscal da Itália (`emitirIt.ts`, `fatturaIt.ts`) não é alterado.
+
 ## Prompt para entregar ao Claude
 
 > Trabalhe apenas na frente “Claude — observabilidade e backups” descrita em `docs/comercio-divisao-codex-claude.md`. Leia o `AGENTS.md` e a documentação desta versão do Next.js em `node_modules/next/dist/docs/` antes de escrever código. Preserve todas as alterações existentes e não edite os arquivos reservados ao Codex. Use somente migrations `0120` a `0124`. Audite primeiro o backup atual, implemente observabilidade segura e documentação de restauração, depois execute lint e build. Não transmita documentos fiscais, não use credenciais reais e não exponha segredos ou dados pessoais. Ao terminar, informe arquivos alterados, migrations que precisam ser executadas, validações realizadas e riscos restantes.
