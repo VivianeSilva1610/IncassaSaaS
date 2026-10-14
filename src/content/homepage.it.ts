@@ -1,6 +1,9 @@
 export const homepage = {
   englishLink: "English",
   portugueseLink: "Português",
+  commerce: {
+    strip: "INCASSA Comércio, il gestionale per negozi, è disponibile solo in Brasile: non è ancora disponibile in Italia, nemmeno in versione beta.",
+  },
   login: "Accedi",
 
   badge: "Per ristoranti, bar e attività di ristorazione",

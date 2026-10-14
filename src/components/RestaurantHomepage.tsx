@@ -16,6 +16,29 @@ type Feature = { title: string; text: string };
 type Step = { step: string; title: string; text: string };
 type Faq = { q: string; a: string };
 
+// Anúncio do INCASSA Comércio (Brasil, beta). A faixa aparece em todos os
+// idiomas; a seção completa, com os avisos do beta, só na versão em
+// português. O Comércio NÃO está disponível na Itália, nem em beta (sem
+// tradução e sem a parte fiscal italiana) — em italiano/inglês a faixa só
+// informa isso, sem link de cadastro.
+export type CommerceAnnouncement = {
+  strip: string;
+  // Sem link onde o Comércio não está disponível (Itália): a faixa só informa.
+  stripCta?: string;
+  stripHref?: string;
+  section?: {
+    badge: string;
+    title: string;
+    text: string;
+    features: readonly string[];
+    betaTitle: string;
+    betaItems: readonly string[];
+    cta: string;
+    ctaHref: string;
+    secondaryCta: string;
+  };
+};
+
 export type HomepageContent = {
   login: string;
   badge: string;
@@ -37,6 +60,7 @@ export type HomepageContent = {
   footerRights: string;
   englishLink?: string;
   portugueseLink?: string;
+  commerce?: CommerceAnnouncement;
 };
 
 /* ─── SVG Icons ────────────────────────────────────────────────────────────── */
@@ -206,6 +230,20 @@ export function RestaurantHomepage({
   return (
     <div ref={pageRef} className="dark-landing" style={{ minHeight: "100vh" }}>
 
+      {/* ── ANÚNCIO COMÉRCIO ─────────────────────────────────────────── */}
+      {content.commerce && (
+        <div style={{ background: "rgba(245,158,11,0.1)", borderBottom: "1px solid rgba(245,158,11,0.25)" }}>
+          <div className="mx-auto max-w-6xl px-6" style={{ padding: "9px 24px", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "4px 12px", fontSize: 13, color: "var(--text-secondary)", textAlign: "center" }}>
+            <span>{content.commerce.strip}</span>
+            {content.commerce.stripHref && content.commerce.stripCta && (
+              <a href={content.commerce.stripHref} style={{ color: "#fbbf24", fontWeight: 700, textDecoration: "underline", textUnderlineOffset: 3 }}>
+                {content.commerce.stripCta} →
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── NAV ──────────────────────────────────────────────────────── */}
       <nav style={{
         position: "sticky", top: 0, zIndex: 50,
@@ -314,6 +352,54 @@ export function RestaurantHomepage({
           </div>
         </div>
       </section>
+
+      {/* ── COMÉRCIO (beta) ──────────────────────────────────────────── */}
+      {content.commerce?.section && (
+        <section id="comercio" className="px-6 pb-8" style={{ scrollMarginTop: 80 }}>
+          <div className="reveal-section mx-auto max-w-5xl" style={{
+            borderRadius: 24, border: "1px solid rgba(245,158,11,0.25)",
+            background: "linear-gradient(135deg, var(--surface-1) 0%, rgba(245,158,11,0.05) 100%)",
+            padding: "clamp(28px, 5vw, 56px)",
+          }}>
+            <span style={{
+              display: "inline-block", padding: "4px 12px", borderRadius: 100,
+              border: "1px solid rgba(245,158,11,0.35)", background: "rgba(245,158,11,0.1)",
+              fontSize: 12, fontWeight: 700, letterSpacing: "0.03em", color: "#fbbf24",
+            }}>{content.commerce.section.badge}</span>
+            <h2 style={{ fontSize: "clamp(1.5rem, 3vw, 2.2rem)", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--foreground)", margin: "16px 0 12px" }}>
+              {content.commerce.section.title}
+            </h2>
+            <p style={{ color: "var(--text-secondary)", fontSize: 15, lineHeight: 1.7, maxWidth: 680 }}>{content.commerce.section.text}</p>
+
+            <ul style={{ listStyle: "none", padding: 0, margin: "28px 0", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
+              {content.commerce.section.features.map((f) => (
+                <li key={f} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, color: "var(--text-secondary)" }}>
+                  <span style={{ flexShrink: 0, color: "#fbbf24", fontWeight: 700 }}>✓</span>{f}
+                </li>
+              ))}
+            </ul>
+
+            <div role="note" style={{ borderRadius: 14, border: "1px solid rgba(251,191,36,0.35)", background: "rgba(0,0,0,0.25)", padding: "18px 20px" }}>
+              <p style={{ fontWeight: 700, fontSize: 14, color: "#fbbf24", marginBottom: 10 }}>⚠ {content.commerce.section.betaTitle}</p>
+              <ul style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 8, fontSize: 13, lineHeight: 1.6, color: "var(--text-secondary)" }}>
+                {content.commerce.section.betaItems.map((b) => <li key={b}>{b}</li>)}
+              </ul>
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 28 }}>
+              <Link href={content.commerce.section.ctaHref} style={{
+                display: "inline-flex", alignItems: "center", gap: 8, padding: "13px 28px", borderRadius: 12,
+                background: "linear-gradient(135deg, #f59e0b, #ea580c)", color: "#fff", fontWeight: 700, fontSize: "0.95rem", textDecoration: "none",
+                boxShadow: "0 0 32px rgba(245,158,11,0.25)",
+              }}>{content.commerce.section.cta}</Link>
+              <a href={contactHref} target="_blank" rel="noopener noreferrer" style={{
+                display: "inline-flex", alignItems: "center", padding: "13px 24px", borderRadius: 12,
+                border: "1px solid var(--border)", background: "var(--surface-2)", color: "var(--foreground)", fontWeight: 600, fontSize: "0.95rem", textDecoration: "none",
+              }}>{content.commerce.section.secondaryCta}</a>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── PROBLEMS ─────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-6xl px-6 py-20">

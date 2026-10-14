@@ -1,6 +1,9 @@
 export const homepage = {
   italianLink: "Italiano",
   portugueseLink: "Português",
+  commerce: {
+    strip: "INCASSA Comércio, our retail store management software, is available in Brazil only — it is not yet available in Italy, not even as a beta.",
+  },
   login: "Log in",
 
   badge: "For restaurants, cafés and food businesses",

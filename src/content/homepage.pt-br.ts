@@ -3,6 +3,37 @@ export const homepage = {
   italianLink: "Italiano",
   login: "Entrar",
 
+  commerce: {
+    strip: "Novo no Brasil: INCASSA Comércio, o sistema para lojas e revendas — em versão beta.",
+    stripCta: "Conhecer",
+    stripHref: "#comercio",
+    section: {
+      badge: "Novo no Brasil · Versão beta",
+      title: "Agora também para lojas e revendas: INCASSA Comércio",
+      text: "Para quem vende produtos: PDV, estoque, compras, clientes, caixa e gestão financeira num só lugar, rodando no navegador — com o mesmo cuidado do INCASSA Restaurante.",
+      features: [
+        "PDV com abertura e fechamento de caixa",
+        "Produtos com variações, lotes e validade",
+        "Fornecedores, pedidos de compra e entrada de mercadorias",
+        "Orçamentos, pedidos de venda e devoluções",
+        "Clientes, contas a receber e contas a pagar",
+        "DRE gerencial e registro do que cada pessoa da equipe fez",
+      ],
+      betaTitle: "Importante: o INCASSA Comércio está em versão beta",
+      betaItems: [
+        "Disponível apenas no Brasil, para empresas com CNPJ. O INCASSA Comércio ainda não está disponível na Itália — nem em versão beta —, pois o sistema ainda não foi traduzido e a parte fiscal italiana ainda não foi feita.",
+        "O sistema está em fase de testes. Podem ocorrer falhas, instabilidades e mudanças em telas e funções sem aviso prévio.",
+        "A emissão de documentos fiscais (NF-e/NFC-e) ainda não está ativa: o módulo fiscal funciona apenas em homologação, sem validade fiscal. Continue emitindo suas notas pelo sistema que você já usa.",
+        "Quando liberada, a emissão será feita por um provedor contratado por você. O primeiro provedor suportado será a Focus NFe; outros provedores (PlugNotas, eNotas etc.) ainda não são suportados. Não contrate um provedor só para usar com o INCASSA antes de anunciarmos a liberação.",
+        "Durante o beta, recomendamos manter um controle paralelo de estoque, caixa e financeiro e baixar o backup dos seus dados com frequência (disponível em Meu plano).",
+        "Relatórios e DRE são gerenciais e não substituem a orientação do seu contador.",
+      ],
+      cta: "Testar 7 dias grátis",
+      ctaHref: "/cadastro-comercio",
+      secondaryCta: "Tirar dúvidas no WhatsApp",
+    },
+  },
+
   badge: "Para restaurantes, lanchonetes e marmitarias",
   heroTitle: "Gestão completa do seu restaurante, num só lugar.",
   heroText:

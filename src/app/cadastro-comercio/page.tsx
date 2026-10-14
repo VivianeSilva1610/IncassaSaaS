@@ -21,7 +21,7 @@ export default function CadastroComercioPage() {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/ativar-comercio`,
-        data: { locale: "pt-BR", selected_product: "comercio", termini_accettati: true, consenso_registrato_il: new Date().toISOString() },
+        data: { locale: "pt-BR", selected_product: "comercio", termini_accettati: true, comercio_beta_ciente: true, consenso_registrato_il: new Date().toISOString() },
       },
     });
     if (signUpError) {
@@ -36,6 +36,7 @@ export default function CadastroComercioPage() {
     <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-600">INCASSA Comércio</p>
     <h1 className="mt-2 text-2xl font-bold">Criar conta</h1>
     <p className="mt-2 text-sm text-stone-600">Depois de confirmar o e-mail, você ativará a assinatura e cadastrará sua empresa.</p>
+    <div role="note" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><strong>Versão beta, somente Brasil.</strong> Disponível apenas para empresas no Brasil (CNPJ); ainda não disponível na Itália. O INCASSA Comércio está em fase de testes e pode apresentar falhas ou mudanças sem aviso prévio. A emissão fiscal (NF-e/NFC-e) ainda não está ativa — funciona só em homologação, sem validade fiscal. Mantenha um controle paralelo e baixe o backup dos seus dados com frequência.</div>
     {status === "sent" ? <p role="status" className="mt-6 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">Confira seu e-mail ({email}) e clique no link de confirmação.</p> : <form onSubmit={submit} className="mt-6 space-y-3">
       <label className="block text-sm font-medium text-stone-700">E-mail
         <input name="email" type="email" autoComplete="email" required value={email} onChange={event => setEmail(event.target.value)} placeholder="seuemail@exemplo.com" className="mt-1 w-full rounded-xl border p-3 text-sm"/>
@@ -43,7 +44,7 @@ export default function CadastroComercioPage() {
       <label className="block text-sm font-medium text-stone-700">Senha
         <input name="password" type="password" autoComplete="new-password" required minLength={6} value={password} onChange={event => setPassword(event.target.value)} placeholder="Senha (mínimo 6 caracteres)" className="mt-1 w-full rounded-xl border p-3 text-sm"/>
       </label>
-      <label className="flex items-start gap-2 text-xs text-stone-600"><input type="checkbox" required checked={terms} onChange={event => setTerms(event.target.checked)} className="mt-0.5"/><span>Li e aceito os <Link href="/pt/termos" target="_blank" className="text-amber-700 underline">Termos de Serviço</Link> e a <Link href="/pt/privacidade" target="_blank" className="text-amber-700 underline">Política de Privacidade</Link>.</span></label>
+      <label className="flex items-start gap-2 text-xs text-stone-600"><input type="checkbox" required checked={terms} onChange={event => setTerms(event.target.checked)} className="mt-0.5"/><span>Li e aceito os <Link href="/pt/termos" target="_blank" className="text-amber-700 underline">Termos de Serviço</Link> e a <Link href="/pt/privacidade" target="_blank" className="text-amber-700 underline">Política de Privacidade</Link>, e estou ciente de que o INCASSA Comércio está em versão beta, sem emissão fiscal ativa.</span></label>
       <button disabled={status === "sending" || !terms} className="w-full rounded-xl bg-stone-900 p-3 text-sm font-semibold text-white disabled:opacity-50">{status === "sending" ? "Um momento…" : "Criar conta Comércio"}</button>
       {error && <p role="alert" aria-live="polite" className="text-sm text-red-600">{error}</p>}
     </form>}
