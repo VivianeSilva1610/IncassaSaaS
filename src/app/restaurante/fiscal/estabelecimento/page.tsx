@@ -1,6 +1,12 @@
 import { updateFiscalConfig, updateFiscalConfigIt } from "@/app/restaurante/actions";
 import { requireRestaurantSubscription } from "@/lib/subscription";
 import { DetectarPaisForm } from "./detectar-pais-form";
+import { AVISO_PROVEDORES, PROVEDORES_FISCAIS, STATUS_PROVEDOR_LABEL } from "@/lib/fiscal/core/provedores-suportados";
+
+// Valores que telas antigas deixavam escolher mas que não têm integração.
+// Continuam aparecendo só pra quem já tinha salvo, marcados como não
+// suportados, em vez de sumirem do formulário sem aviso.
+const PROVEDORES_LEGADOS: Record<string, string> = { plugnotas: "PlugNotas", enotas: "eNotas" };
 
 function mascarar(chave: string | null | undefined) {
   if (!chave) return null;
@@ -129,10 +135,14 @@ export default async function EstabelecimentoFiscalPage() {
         <select name="provedor" defaultValue={config?.provedor ?? ""} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
           <option value="">Nenhum provedor contratado</option>
           <option value="simulado">🧪 Simulação</option>
-          <option value="focus_nfe">Focus NFe</option>
-          <option value="plugnotas">PlugNotas</option>
-          <option value="enotas">eNotas</option>
+          {PROVEDORES_FISCAIS.map((p) => (
+            <option key={p.id} value={p.id}>{p.nome} — {STATUS_PROVEDOR_LABEL[p.status]}</option>
+          ))}
+          {config?.provedor && PROVEDORES_LEGADOS[config.provedor] && (
+            <option value={config.provedor}>{PROVEDORES_LEGADOS[config.provedor]} — não suportado</option>
+          )}
         </select>
+        <p className="text-xs leading-5 text-amber-800 sm:col-span-2">{AVISO_PROVEDORES}</p>
         <label className="text-sm text-stone-600">
           <span className="mb-1 block text-xs text-stone-500">
             Chave de API do provedor{mascarar(config?.provedor_api_key) ? ` (atual: ${mascarar(config?.provedor_api_key)})` : ""}

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getFiscalProvider } from "./nfce";
+import { getProvedorFiscal } from "./core/provedor";
+import { documentoDoPedido, statusCancelamentoRestaurante, statusNotaRestaurante } from "./restaurante/mapper";
 
 type ItemFiscal = {
   product_id: string;
@@ -39,7 +40,7 @@ export async function emitirNotaFiscalParaPedido(
     return { notaId: notaAtiva.id as string, status: notaAtiva.status as "pendente" | "emitida", mensagemErro: undefined };
   }
 
-  const provider = getFiscalProvider(config?.provedor ?? null, config?.provedor_api_key ?? null);
+  const provider = getProvedorFiscal(config?.provedor ?? null, { produto: "restaurante", credencial: config?.provedor_api_key ?? null });
   const numero = config?.proxima_numeracao ?? 1;
   const serie = config?.serie ?? 1;
   const itensSnapshot = ((pedido.del_order_items ?? []) as unknown as ItemFiscal[]).map((item) => ({
@@ -58,55 +59,38 @@ export async function emitirNotaFiscalParaPedido(
     aliquota_icms: item.del_products?.aliquota_icms ?? null,
   }));
 
-  const resultado = await provider.emitirNFCe({
-    fiscalConfig: {
-      razaoSocial: config?.razao_social ?? null,
-      cnpj: config?.cnpj ?? null,
-      inscricaoEstadual: config?.inscricao_estadual ?? null,
-      crt: config?.crt ?? null,
-      ambiente: (config?.ambiente as "homologacao" | "producao") ?? "homologacao",
-      logradouro: config?.logradouro ?? null,
-      numero: config?.numero ?? null,
-      bairro: config?.bairro ?? null,
-      municipio: config?.municipio ?? null,
-      uf: config?.uf ?? null,
-      cep: config?.cep ?? null,
-    },
-    pedido: {
-      id: pedido.id,
-      totale: Number(pedido.totale),
-      clienteNome: pedido.cliente_nome,
-      clienteCpfCnpj: pedido.cliente_cpf_cnpj,
-      items: itensSnapshot.map((item) => ({
-        nome: item.nome,
-        quantidade: item.quantidade,
-        precoUnitario: item.preco_unitario,
-        ncm: item.ncm,
-        cfop: item.cfop ?? "5102",
-        cest: item.cest,
-        origem: Number(item.origem ?? 0),
-      })),
-    },
-    numero,
-    serie,
-  });
+  const resultado = await provider.emitir(
+    documentoDoPedido({
+      config,
+      pedido: {
+        id: pedido.id,
+        totale: Number(pedido.totale),
+        clienteNome: pedido.cliente_nome,
+        clienteCpfCnpj: pedido.cliente_cpf_cnpj,
+      },
+      itens: itensSnapshot,
+      numero,
+      serie,
+    }),
+  );
+  const status = statusNotaRestaurante(resultado.status);
 
   const { data: nota, error } = await supabase
     .from("del_notas_fiscais")
     .insert({
       owner_id: params.ownerId,
       order_id: params.orderId,
-      status: resultado.status,
+      status,
       ambiente: config?.ambiente ?? "homologacao",
       provedor: config?.provedor ?? null,
       numero: resultado.numero ?? numero,
       serie: resultado.serie ?? serie,
       chave_acesso: resultado.chaveAcesso ?? null,
-      protocolo_autorizacao: resultado.protocoloAutorizacao ?? null,
+      protocolo_autorizacao: resultado.protocolo ?? null,
       url_danfe: resultado.urlDanfe ?? null,
       url_xml: resultado.urlXml ?? null,
-      erro_mensagem: resultado.mensagemErro ?? null,
-      emitida_em: resultado.status === "emitida" ? new Date().toISOString() : null,
+      erro_mensagem: resultado.mensagem ?? null,
+      emitida_em: status === "emitida" ? new Date().toISOString() : null,
       itens_snapshot: itensSnapshot,
     })
     .select("id")
@@ -114,14 +98,14 @@ export async function emitirNotaFiscalParaPedido(
 
   if (error || !nota) throw new Error("Não foi possível registrar a nota fiscal.");
 
-  if (resultado.status === "emitida") {
+  if (status === "emitida") {
     await supabase
       .from("del_fiscal_config")
       .update({ proxima_numeracao: numero + 1 })
       .eq("owner_id", params.ownerId);
   }
 
-  return { notaId: nota.id as string, status: resultado.status, mensagemErro: resultado.mensagemErro };
+  return { notaId: nota.id as string, status, mensagemErro: resultado.mensagem };
 }
 
 export async function cancelarNotaFiscal(
@@ -143,7 +127,7 @@ export async function cancelarNotaFiscal(
     .eq("owner_id", params.ownerId)
     .maybeSingle();
 
-  const provider = getFiscalProvider(config?.provedor ?? null, config?.provedor_api_key ?? null);
+  const provider = getProvedorFiscal(config?.provedor ?? null, { produto: "restaurante", credencial: config?.provedor_api_key ?? null });
   await supabase
     .from("del_notas_fiscais")
     .update({
@@ -154,9 +138,9 @@ export async function cancelarNotaFiscal(
     .eq("id", nota.id)
     .eq("owner_id", params.ownerId);
 
-  let resultado;
+  let resposta;
   try {
-    resultado = await provider.cancelarNFCe({ chaveAcesso: nota.chave_acesso, justificativa: params.justificativa });
+    resposta = await provider.cancelar({ ref: nota.order_id ?? nota.id, chaveAcesso: nota.chave_acesso ?? null, justificativa: params.justificativa });
   } catch (error) {
     const mensagem = error instanceof Error ? error.message : "Falha inesperada ao solicitar cancelamento fiscal.";
     await supabase
@@ -166,6 +150,13 @@ export async function cancelarNotaFiscal(
       .eq("owner_id", params.ownerId);
     throw error;
   }
+
+  const resultado = {
+    status: statusCancelamentoRestaurante(resposta.status),
+    protocoloCancelamento: resposta.protocolo,
+    canceladaEm: resposta.canceladoEm,
+    mensagemErro: resposta.mensagem,
+  };
 
   if (resultado.status === "cancelada") {
     await supabase
