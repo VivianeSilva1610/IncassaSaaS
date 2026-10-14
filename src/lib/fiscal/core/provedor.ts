@@ -8,6 +8,7 @@
 import type { DocumentoFiscal, ProdutoFiscal } from "./documento";
 import { ProvedorNaoConfigurado } from "./provedores/nao-configurado";
 import { ProvedorSimulado } from "./provedores/simulado";
+import { ProvedorIncassaDireto } from "./provedores/incassa-direto";
 
 export type ResultadoEmissao = {
   // processando: o provedor aceitou e vai responder depois (NF-e assíncrona).
@@ -53,7 +54,8 @@ export function getProvedorFiscal(
   switch (provedor) {
     case "simulado":
       return new ProvedorSimulado();
-    // case "incassa_direto": return new IncassaDiretoProvider(...);
+    case "incassa_direto":
+      return new ProvedorIncassaDireto();
     // case "focus_nfe": return new FocusNfeProvider(opcoes.credencial, ...);
     default:
       return new ProvedorNaoConfigurado(opcoes.produto);

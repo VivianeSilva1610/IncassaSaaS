@@ -82,8 +82,9 @@ src/lib/fiscal/
 | 1 Camada comum | ✅ 2026-10-14: `src/lib/fiscal/core/` (documento, provedor, simulado, não configurado, lista de provedores) + `restaurante/mapper.ts`; `emitir.ts` migrado e `nfce.ts` removido; os 13 testes continuam passando, mais 6 testes da camada |
 | 2 Banco | 🟡 migrations `0123` e `0124` preparadas; aguardam revisão/aplicação no Supabase |
 | 3 Credenciais | 🟡 AES-256-GCM com isolamento por tenant implementado e testado; persistência/tela aguardam as migrations e o futuro certificado A1 |
+| 4A Motor direto | 🟡 barreira pré-SEFAZ, chave, XML, XMLDSig, XSD oficial `PL_010f_v1.04`, lote `enviNFe`, SOAP 1.2, retorno e mTLS implementados; endpoints MG/SP de homologação revisados. Conversão A1/PFX e demais UFs ainda pendentes |
 | 7 Governança | ✅ decidida em 2026-10-14: a revisão do contador é **só aviso nos dois sistemas**. Migration `0122` testada em Postgres 16 local e **executada no Supabase em 2026-10-14**; telas ajustadas |
-| 4–6, 8, 9 | não iniciadas; Fase 4 prioriza o motor direto e mantém Focus como 4B futura |
+| 4B–6, 8, 9 | não iniciadas; Focus permanece como 4B futura |
 
 **Numeração de migrations:** a `0121` foi usada por outra frente (`0121_pranzo_acesso_gestor.sql`, já commitada) dentro da faixa reservada a esta. Ficou assim: `0122` revisão como aviso, `0123` credenciais compartilhadas, `0124` alterações de banco do Restaurante e do Comércio da Fase 2, juntas. Se precisar de mais, reservar `0125+` no documento de divisão antes de usar.
 
