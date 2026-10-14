@@ -1,5 +1,6 @@
 import { updateProductFiscal } from "@/app/restaurante/actions";
 import { requireRestaurantSubscription } from "@/lib/subscription";
+import { AVISO_REVISAO_CONTADOR } from "@/lib/fiscal/core/avisos";
 
 export default async function ClassificacaoFiscalPage() {
   const { supabase, restaurantOwnerId } = await requireRestaurantSubscription("fiscal");
@@ -35,6 +36,7 @@ export default async function ClassificacaoFiscalPage() {
     <div>
       <h1 className="text-2xl font-bold text-stone-900">Classificação fiscal</h1>
       <p className="mt-1 text-sm text-stone-600">Revise NCM, CFOP, CEST e origem de cada produto com o contador.</p>
+      <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">{AVISO_REVISAO_CONTADOR}</p>
 
       {regime === "mei" && (
         <p className="mt-4 rounded-lg border border-stone-200 bg-stone-50 p-4 text-xs text-stone-600">
