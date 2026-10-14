@@ -4,11 +4,11 @@ export const homepage = {
   login: "Entrar",
 
   commerce: {
-    strip: "Novo no Brasil: INCASSA Comércio, o sistema para lojas e revendas — em versão beta.",
+    strip: "Novo: INCASSA Comércio, o sistema para lojas e revendas — em versão beta.",
     stripCta: "Conhecer",
     stripHref: "#comercio",
     section: {
-      badge: "Novo no Brasil · Versão beta",
+      badge: "Novo · Versão beta",
       title: "Agora também para lojas e revendas: INCASSA Comércio",
       text: "Para quem vende produtos: PDV, estoque, compras, clientes, caixa e gestão financeira num só lugar, rodando no navegador — com o mesmo cuidado do INCASSA Restaurante.",
       features: [
@@ -21,7 +21,6 @@ export const homepage = {
       ],
       betaTitle: "Importante: o INCASSA Comércio está em versão beta",
       betaItems: [
-        "Disponível apenas no Brasil, para empresas com CNPJ. O INCASSA Comércio ainda não está disponível na Itália — nem em versão beta —, pois o sistema ainda não foi traduzido e a parte fiscal italiana ainda não foi feita.",
         "O sistema está em fase de testes. Podem ocorrer falhas, instabilidades e mudanças em telas e funções sem aviso prévio.",
         "A emissão de documentos fiscais (NF-e/NFC-e) ainda não está ativa: o módulo fiscal funciona apenas em homologação, sem validade fiscal. Continue emitindo suas notas pelo sistema que você já usa.",
         "Quando liberada, a emissão usará o motor fiscal próprio do INCASSA. A integração com a Focus NFe será mantida como alternativa para testes futuros. A produção permanece bloqueada até a conclusão da homologação.",
